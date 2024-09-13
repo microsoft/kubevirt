@@ -12,6 +12,7 @@ RUN --mount=type=bind,rw,target=. \
 
 FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
 ARG TARGETARCH="amd64"
+ARG AZURE_DEVOPS_PAT
 
 RUN tdnf -y install mariner-repos-extended.noarch
 RUN tdnf -y install mariner-repos-preview
@@ -112,7 +113,7 @@ RUN curl -sSf https://sh.rustup.rs | sh -s -- -y \
     && export CLOUDH=$HOME/cloud-hypervisor \
     && mkdir $CLOUDH \
     && cd $CLOUDH \
-    && git clone -b msft-main https://microsoft.visualstudio.com/DefaultCollection/LSG/_git/cloud-hypervisor \
+    && git clone -b msft-main https://${AZURE_DEVOPS_PAT}@microsoft.visualstudio.com/DefaultCollection/LSG/_git/cloud-hypervisor \
     && cd cloud-hypervisor \
     && cargo build --release --features mshv \
     && setcap cap_net_admin+ep ./target/release/cloud-hypervisor \
