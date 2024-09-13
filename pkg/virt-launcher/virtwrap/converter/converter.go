@@ -1775,12 +1775,16 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 
 	if vmi.Spec.Domain.Devices.AutoattachSerialConsole == nil || *vmi.Spec.Domain.Devices.AutoattachSerialConsole {
 		// Add mandatory console device
-		domain.Spec.Devices.Controllers = append(domain.Spec.Devices.Controllers, api.Controller{
-			Type:   "virtio-serial",
-			Index:  "0",
-			Model:  InterpretTransitionalModelType(&c.UseVirtioTransitional, c.Architecture),
-			Driver: controllerDriver,
-		})
+		/*
+			// Commenting out these lines because cloud-hypervisor does not support unix type console
+			https://dev.azure.com/mariner-org/ECF/_workitems/edit/4788/
+			domain.Spec.Devices.Controllers = append(domain.Spec.Devices.Controllers, api.Controller{
+				Type:   "virtio-serial",
+				Index:  "0",
+				Model:  InterpretTransitionalModelType(&c.UseVirtioTransitional, c.Architecture),
+				Driver: controllerDriver,
+			})
+		*/
 
 		var serialPort uint = 0
 		var serialType string = "serial"
@@ -1793,6 +1797,9 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 				},
 			},
 		}
+
+		/*  // Commenting out these lines because cloud-hypervisor does not support unix type console
+		https://dev.azure.com/mariner-org/ECF/_workitems/edit/4788/
 
 		socketPath := fmt.Sprintf("%s/%s/virt-serial%d", util.VirtPrivateDir, vmi.ObjectMeta.UID, serialPort)
 		domain.Spec.Devices.Serials = []api.Serial{
@@ -1813,7 +1820,7 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 				File:   fmt.Sprintf("%s-log", socketPath),
 				Append: "on",
 			}
-		}
+		}*/
 
 	}
 
