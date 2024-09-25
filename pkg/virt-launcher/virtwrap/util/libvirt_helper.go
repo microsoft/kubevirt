@@ -95,13 +95,21 @@ var PausedReasonTranslationMap = map[libvirt.DomainPausedReason]api.StateChangeR
 
 var getHookManager = hooks.GetManager
 
+// This interface exposes functions used by virt-launcher to start and configure libvirt. The implementation varies for different hypervisors.
 type LibvirtWrapper interface {
+	// Setup libvirt for hosting the virtual machine. This function is called during the startup of the virt-launcher.
 	SetupLibvirt(customLogFilters *string) (err error)
+	// Return a list of potential prefixes of the specific hypervisor's process, e.g., qemu-system or cloud-hypervisor
 	GetHypervisorCommandPrefix() []string
+	// Start the libvirt daemon, either in modular mode or monolithic mode
 	StartHypervisorDaemon(stopChan chan struct{})
+	// Start the virtlogd daemon, which is used to capture logs from the hypervisor
 	StartVirtlog(stopChan chan struct{}, domainName string)
+	// Returns true if the libvirt process(es) should be run as root user
 	root() bool
+	// Return the URI to connect to libvirt and the user with which to connect to libvirt
 	GetLibvirtUriAndUser() (string, string)
+	// Return the directory where libvirt stores the PID files of the hypervisor processes
 	GetPidDir() string
 }
 
