@@ -2,6 +2,7 @@ package hypervisor
 
 import "regexp"
 
+// TODO These global variables should be changed to accessor functions in the Hypervisor interface
 var HypervisorDaemonExecutables []string = []string{"virtqemud", "libvirtd"}
 var QemuProcessExecutablePrefixes []string = []string{"qemu-system", "qemu-kvm", "cloud-hypervisor"}
 
@@ -24,9 +25,6 @@ type Hypervisor interface {
 
 	// Return true if the hypervisor supports ISO files
 	SupportsIso() bool
-
-	// TODO Probably not needed
-	SupportsNonRootUser() bool
 
 	// Return the K8s device name that should be exposed for the hypervisor,
 	// e.g., devices.kubevirt.io/kvm for QEMU and devices.kubevirt.io/mshv for Cloud Hypervisor
@@ -124,10 +122,6 @@ func (q *QemuHypervisor) SupportsIso() bool {
 	return true
 }
 
-func (q *QemuHypervisor) SupportsNonRootUser() bool {
-	return true
-}
-
 // Implement SupportsMemoryBallooning method for CloudHypervisor
 func (c *CloudHypervisor) SupportsMemoryBallooning() bool {
 	return false
@@ -190,10 +184,6 @@ func (c *CloudHypervisor) GetHypervisorOverhead() string {
 }
 
 func (c *CloudHypervisor) SupportsIso() bool {
-	return false
-}
-
-func (c *CloudHypervisor) SupportsNonRootUser() bool {
 	return false
 }
 

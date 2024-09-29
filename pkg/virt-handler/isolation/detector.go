@@ -123,7 +123,7 @@ func (s *socketBasedIsolationDetector) AdjustResources(vm *v1.VirtualMachineInst
 		// Iterate over hypervisor.hypervisorDaemonExecutables
 		// to find the virtqemud process
 		matched := false
-		for _, executable := range hypervisor.QemuProcessExecutablePrefixes {
+		for _, executable := range hypervisor.HypervisorDaemonExecutables {
 			if process.Executable() == executable {
 				matched = true
 				break

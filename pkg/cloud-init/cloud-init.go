@@ -576,20 +576,17 @@ func GenerateEmptyIso(vmiName string, namespace string, data *CloudInitData, siz
 	return nil
 }
 
-func GenerateLocalData(vmi *v1.VirtualMachineInstance, instanceType string, data *CloudInitData) error {
-	hypervisor := hypervisor.NewHypervisor(vmi.Spec.Hypervisor)
+func GenerateLocalData(vmi *v1.VirtualMachineInstance, instanceType string, data *CloudInitData, hypervisor hypervisor.Hypervisor) error {
 	if hypervisor.SupportsIso() {
-		return GenerateLocalDataIso(vmi, instanceType, data)
+		return GenerateLocalDataIso(vmi, instanceType, data, hypervisor)
 	} else {
-		return GenerateLocalDataRaw(vmi, instanceType, data)
+		return GenerateLocalDataRaw(vmi, instanceType, data, hypervisor)
 	}
 }
 
-func GenerateLocalDataIso(vmi *v1.VirtualMachineInstance, instanceType string, data *CloudInitData) error {
+func GenerateLocalDataIso(vmi *v1.VirtualMachineInstance, instanceType string, data *CloudInitData, hypervisor hypervisor.Hypervisor) error {
 	precond.MustNotBeEmpty(vmi.Name)
 	precond.MustNotBeNil(data)
-
-	hypervisor := hypervisor.NewHypervisor(vmi.Spec.Hypervisor)
 
 	var metaData []byte
 	var err error
@@ -708,11 +705,9 @@ func GenerateLocalDataIso(vmi *v1.VirtualMachineInstance, instanceType string, d
 	return nil
 }
 
-func GenerateLocalDataRaw(vmi *v1.VirtualMachineInstance, instanceType string, data *CloudInitData) error { // TODO Hermes Deduplicate code between this and GenerateLocalDataIso function
+func GenerateLocalDataRaw(vmi *v1.VirtualMachineInstance, instanceType string, data *CloudInitData, hypervisor hypervisor.Hypervisor) error { // TODO Hermes Deduplicate code between this and GenerateLocalDataIso function
 	precond.MustNotBeEmpty(vmi.Name)
 	precond.MustNotBeNil(data)
-
-	hypervisor := hypervisor.NewHypervisor(vmi.Spec.Hypervisor)
 
 	var metaData []byte
 	var err error
