@@ -56,7 +56,7 @@ RUN tdnf -y update \
     && tdnf install -y git kernel-headers curl-devel
 
 RUN git config --global http.sslVerify false \
-    && git clone -b mshv-dev https://github.com/praveen-pk/libvirt \
+    && git clone -b mshv-main https://github.com/praveen-pk/libvirt \
     && cd libvirt/ \
     && git submodule update --init --recursive subprojects/keycodemapdb/
 
