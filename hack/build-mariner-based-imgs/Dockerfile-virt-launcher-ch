@@ -7,19 +7,20 @@ RUN --mount=type=bind,rw,target=. \
       cmd/virt-launcher \
       cmd/virt-launcher-monitor \
       cmd/virt-freezer \
-      cmd/virt-probe
+      cmd/virt-probe \
+      cmd/virt-tail
 
-
-FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
+FROM mcr.microsoft.com/azurelinux/base/core:3.0
 ARG TARGETARCH="amd64"
 ARG AZURE_DEVOPS_PAT
 
-RUN tdnf -y install mariner-repos-extended.noarch
-RUN tdnf -y install mariner-repos-preview
+RUN tdnf -y install azurelinux-repos-extended.noarch
+RUN tdnf -y install azurelinux-repos-preview
 RUN tdnf -y install \
   augeas \
   ca-certificates \
   iptables \
+  json-c-devel \
   libcap \
   libvirt-client \
   libvirt-daemon-driver-qemu \
@@ -52,14 +53,10 @@ RUN  tdnf clean all \
 RUN tdnf -y update \
     && tdnf -y install dnf dnf-plugins-core \
     && dnf -y builddep libvirt \
-    && tdnf -y install libvirt \
-    && systemctl disable libvirtd.service \
     && tdnf install -y git kernel-headers curl-devel
 
-RUN echo "1" > /tmp/counter
-
 RUN git config --global http.sslVerify false \
-    && git clone -b mshv-main https://github.com/praveen-pk/libvirt \
+    && git clone -b mshv-dev https://github.com/praveen-pk/libvirt \
     && cd libvirt/ \
     && git submodule update --init --recursive subprojects/keycodemapdb/
 
@@ -103,7 +100,7 @@ RUN echo "log_outputs=\"1:file:/var/log/libvirt/libvirtd.log\"" >> /etc/libvirt/
 
 RUN ls /usr/bin/virt-launcher
 
-RUN mkdir /run/lock
+RUN mkdir -p /run/lock
 
 # Add more tools in virt-launcher for generating cloudinit for CH VMs
 RUN tdnf install -y dosfstools
@@ -113,7 +110,7 @@ RUN curl -sSf https://sh.rustup.rs | sh -s -- -y \
     && export CLOUDH=$HOME/cloud-hypervisor \
     && mkdir $CLOUDH \
     && cd $CLOUDH \
-    && git clone -b msft-main https://${AZURE_DEVOPS_PAT}@microsoft.visualstudio.com/DefaultCollection/LSG/_git/cloud-hypervisor \
+    && git clone -b msft-main-3.0 https://${AZURE_DEVOPS_PAT}@microsoft.visualstudio.com/DefaultCollection/LSG/_git/cloud-hypervisor \
     && cd cloud-hypervisor \
     && cargo build --release --features mshv \
     && setcap cap_net_admin+ep ./target/release/cloud-hypervisor \

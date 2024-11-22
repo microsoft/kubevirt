@@ -1,3 +1,0 @@
-FROM harshitg/virt-launcher:mariner
-
-ENTRYPOINT []

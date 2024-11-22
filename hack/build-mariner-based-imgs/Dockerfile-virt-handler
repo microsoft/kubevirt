@@ -8,10 +8,10 @@ RUN --mount=type=bind,rw,target=. \
       cmd/virt-chroot
 
 
-FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
+FROM mcr.microsoft.com/azurelinux/base/core:3.0
 
 
-RUN tdnf install -y mariner-repos-preview
+RUN tdnf install -y azurelinux-repos-preview
 RUN tdnf -y install \
   curl \
   ca-certificates \
