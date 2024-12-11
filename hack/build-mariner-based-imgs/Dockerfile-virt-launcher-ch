@@ -56,7 +56,7 @@ RUN tdnf -y update \
     && tdnf install -y git kernel-headers curl-devel
 
 RUN git config --global http.sslVerify false \
-    && git clone -b mshv-main https://github.com/praveen-pk/libvirt \
+    && git clone --depth=1 -b mshv-main-ch-logging https://github.com/praveen-pk/libvirt \
     && cd libvirt/ \
     && git submodule update --init --recursive subprojects/keycodemapdb/
 
@@ -76,7 +76,7 @@ COPY --from=builder /build/_out/cmd/virt-freezer/virt-freezer /usr/bin/
 COPY --from=builder /build/_out/cmd/virt-probe/virt-probe /usr/bin/
 COPY --from=builder /build/cmd/virt-launcher/node-labeller/node-labeller.sh /usr/bin/
 COPY --from=builder /build/_out/cmd/virt-tail/virt-tail /usr/bin/
-RUN mkdir -p /usr/share/kube-virt/virt-launcher
+RUN mkdir -p /usr/share/kube-virt/virt-launcher /var/log/libvirt/ch/
 COPY --from=builder /build/cmd/virt-launcher/qemu.conf /usr/share/kube-virt/virt-launcher/
 COPY --from=builder /build/cmd/virt-launcher/virtqemud.conf /usr/share/kube-virt/virt-launcher/
 COPY --from=builder /build/cmd/virt-launcher/nsswitch.conf /usr/share/kube-virt/virt-launcher/
@@ -105,15 +105,18 @@ RUN mkdir -p /run/lock
 # Add more tools in virt-launcher for generating cloudinit for CH VMs
 RUN tdnf install -y dosfstools
 
-RUN curl -sSf https://sh.rustup.rs | sh -s -- -y \
-    && source "$HOME/.cargo/env" \
-    && export CLOUDH=$HOME/cloud-hypervisor \
-    && mkdir $CLOUDH \
-    && cd $CLOUDH \
-    && git clone -b msft-main-3.0 https://${AZURE_DEVOPS_PAT}@microsoft.visualstudio.com/DefaultCollection/LSG/_git/cloud-hypervisor \
-    && cd cloud-hypervisor \
-    && cargo build --release --features mshv \
-    && setcap cap_net_admin+ep ./target/release/cloud-hypervisor \
-    && cp ./target/release/cloud-hypervisor /usr/bin/
+RUN tdnf install -y azure-cli ca-certificates \
+  && echo ${AZURE_DEVOPS_PAT} | az devops login --organization "https://dev.azure.com/microsoft" \
+  && LSG_VIRT_MARINER_PIPELINE_ID=86336 \
+  && runId=$(az pipelines runs list --status completed --result succeeded --top 1 \
+      --org "https://dev.azure.com/microsoft" --project LSG --query "[0].id"  \
+      --pipeline-ids $LSG_VIRT_MARINER_PIPELINE_ID --branch main-3.0) \
+  && export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
+  && az pipelines runs artifact download --artifact-name "dom0 x86_64 out" \
+      --path . --run-id $runId --org "https://dev.azure.com/microsoft" --project LSG \
+  && ch_rpm=$(find RPMS -name "cloud-hypervisor*.rpm") \
+  && tdnf install -y $ch_rpm \
+  && rm -rf RPMS/ SRPMS/ images/ \
+  && tdnf remove -y azure-cli
 
 ENTRYPOINT [ "/usr/bin/virt-launcher" ]
