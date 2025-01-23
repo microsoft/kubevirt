@@ -89,7 +89,9 @@ func newPCIAddressPoolWithNetworkStatusFromFile(path string) (*PCIAddressWithNet
 
 func readFileUntilNotEmpty(networkPCIMapPath string) ([]byte, error) {
 	var networkPCIMapBytes []byte
-	err := wait.PollImmediate(100*time.Millisecond, time.Second, func() (bool, error) {
+	// Increasing the timeout for network-info file to 5 seconds. Original timeout = 1 sec
+	// TODO Tracking bug: https://dev.azure.com/mariner-org/ECF/_workitems/edit/10072
+	err := wait.PollImmediate(100*time.Millisecond, 5*time.Second, func() (bool, error) {
 		var err error
 		networkPCIMapBytes, err = os.ReadFile(networkPCIMapPath)
 		return len(networkPCIMapBytes) > 0, err
