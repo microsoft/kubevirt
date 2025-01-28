@@ -47,6 +47,10 @@ type Hypervisor interface {
 
 	// Return true if the hypervisor supports memory ballooning
 	SupportsMemoryBallooning() bool
+
+	// Return the default kernel path and initrd path for the hypervisor
+	// If default kernel is not needed return "", ""
+	GetDefaultKernelPath() (string, string)
 }
 
 // Define QemuHypervisor struct that implements the Hypervisor interface
@@ -122,6 +126,11 @@ func (q *QemuHypervisor) SupportsIso() bool {
 	return true
 }
 
+// Implement GetDefaultKernelPath method for QemuHypervisor
+func (q *QemuHypervisor) GetDefaultKernelPath() (string, string) {
+	return "", ""
+}
+
 // Implement SupportsMemoryBallooning method for CloudHypervisor
 func (c *CloudHypervisor) SupportsMemoryBallooning() bool {
 	return false
@@ -185,6 +194,11 @@ func (c *CloudHypervisor) GetHypervisorOverhead() string {
 
 func (c *CloudHypervisor) SupportsIso() bool {
 	return false
+}
+
+// Implement GetDefaultKernelPath method for CloudHypervisor
+func (c *CloudHypervisor) GetDefaultKernelPath() (string, string) {
+	return "/usr/share/cloud-hypervisor/CLOUDHV_EFI.fd", ""
 }
 
 func NewHypervisor(hypervisor string) Hypervisor {

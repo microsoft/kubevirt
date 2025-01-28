@@ -1256,13 +1256,18 @@ func Convert_v1_Firmware_To_related_apis(vmi *v1.VirtualMachineInstance, domain 
 			log.Log.Object(vmi).Infof("setting initrd path for kernel boot: " + initrdPath)
 			domain.Spec.OS.Initrd = initrdPath
 		}
-
-		if c.Hypervisor.RequiresBootOrder() {
-			bootDevice := api.Boot{
-				Dev: "hd",
-			}
-			domain.Spec.OS.BootOrder = append(domain.Spec.OS.BootOrder, bootDevice)
+	} else if defaultKernelPath, defaultInitrdPath := c.Hypervisor.GetDefaultKernelPath(); defaultKernelPath != "" {
+		domain.Spec.OS.Kernel = defaultKernelPath
+		if defaultInitrdPath != "" {
+			domain.Spec.OS.Initrd = defaultInitrdPath
 		}
+	}
+
+	if c.Hypervisor.RequiresBootOrder() {
+		bootDevice := api.Boot{
+			Dev: "hd",
+		}
+		domain.Spec.OS.BootOrder = append(domain.Spec.OS.BootOrder, bootDevice)
 	}
 
 	// Define custom command-line arguments even if kernel-boot container is not defined
