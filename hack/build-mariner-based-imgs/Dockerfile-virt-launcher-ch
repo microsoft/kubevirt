@@ -43,7 +43,9 @@ RUN tdnf -y install \
   edk2-cloud-hypervisor \
   libvirt \
   libvirt-daemon-driver-ch \
-  cloud-hypervisor
+  cloud-hypervisor \
+  vim \
+  wget
 
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
     # required for OVMF files \
@@ -62,14 +64,6 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 RUN  tdnf clean all \
    && cd /var && rm -rf run && ln -s ../run .
 
-# Now install components needed for cloud-hypervisor
-RUN tdnf -y update \
-    && tdnf -y install dnf dnf-plugins-core \
-    && dnf -y builddep libvirt \
-    && tdnf install -y git kernel-headers curl-devel
-
-RUN tdnf -y install vim wget
-
 USER 0
 
 # Copy files from the builder
@@ -84,7 +78,6 @@ RUN mkdir -p /usr/share/kube-virt/virt-launcher
 COPY --from=builder /build/cmd/virt-launcher/qemu.conf /usr/share/kube-virt/virt-launcher/
 COPY --from=builder /build/cmd/virt-launcher/virtqemud.conf /usr/share/kube-virt/virt-launcher/
 COPY --from=builder /build/cmd/virt-launcher/nsswitch.conf /usr/share/kube-virt/virt-launcher/
-
 
 # Setup permissions and capabilities for non-root VMIs. KubeVirt sets
 # XDG_* directories to /var/run.
