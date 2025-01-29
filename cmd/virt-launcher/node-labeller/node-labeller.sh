@@ -37,6 +37,7 @@ fi
 virtqemud -d
 
 # TODO Replace QEMU with the correct VMM
+# TODO Needs this bug fixed: https://dev.azure.com/mariner-org/ECF/_queries/edit/4984
 virsh -c qemu:///system domcapabilities --machine $MACHINE --arch $ARCH --virttype $VIRTTYPE > /var/lib/kubevirt-node-labeller/virsh_domcapabilities.xml
 
 # hypervisor-cpu-baseline command only works on x86 and s390x
