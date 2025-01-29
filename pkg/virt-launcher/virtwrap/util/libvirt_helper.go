@@ -302,7 +302,7 @@ func (l CloudHypervisorLibvirtWrapper) StartLibvirtd(stopChan chan struct{}) {
 		for {
 			exitChan := make(chan struct{})
 			args := []string{"-f", "/etc/libvirt/libvirtd.conf"}
-			cmd := exec.Command("/libvirt/build/src/libvirtd", args...)
+			cmd := exec.Command("/usr/sbin/libvirtd", args...)
 
 			// connect libvirt's stderr to our own stdout in order to see the logs in the container logs
 			reader, err := cmd.StderrPipe()
@@ -530,7 +530,7 @@ func (l QemuLibvirtWrapper) StartVirtlog(stopChan chan struct{}, domainName stri
 }
 
 func (l CloudHypervisorLibvirtWrapper) StartVirtlog(stopChan chan struct{}, domainName string) { // TODO No need for this function when the path to virtlogd has been made consistent with QEMU
-	go startVirtlogdLogging("/libvirt/build/src/virtlogd", stopChan, domainName, l.user != util.RootUser)
+	go startVirtlogdLogging("/usr/sbin/virtlogd", stopChan, domainName, l.user != util.RootUser)
 }
 
 // returns the namespace and name that is encoded in the
