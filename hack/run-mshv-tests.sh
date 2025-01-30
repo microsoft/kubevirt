@@ -8,4 +8,4 @@ export DOCKER_PREFIX=[your registry]
 
 make cluster-up
 
-make cluster-syn
+make cluster-sync
