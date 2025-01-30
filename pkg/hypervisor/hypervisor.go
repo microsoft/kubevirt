@@ -3,7 +3,7 @@ package hypervisor
 import "regexp"
 
 // TODO These global variables should be changed to accessor functions in the Hypervisor interface
-var HypervisorDaemonExecutables []string = []string{"virtqemud", "libvirtd"}
+var HypervisorDaemonExecutables []string = []string{"virtqemud", "virtchd"}
 var QemuProcessExecutablePrefixes []string = []string{"qemu-system", "qemu-kvm", "cloud-hypervisor"}
 
 // Hypervisor interface defines functions needed to tune the virt-launcher pod spec and the libvirt domain XML for a specific hypervisor
