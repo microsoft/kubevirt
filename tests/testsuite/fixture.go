@@ -179,7 +179,7 @@ func EnsureKubevirtReadyWithTimeout(timeout time.Duration) {
 func EnsureKVMPresent() {
 	virtClient := kubevirt.Client()
 
-	hypervisor := hypervisor.NewHypervisor("qemu")
+	hypervisor := hypervisor.NewHypervisor("ch")
 	kvmDevice := k8sv1.ResourceName(hypervisor.GetHypervisorDevice())
 
 	if !ShouldAllowEmulation(virtClient) {
