@@ -111,6 +111,8 @@ type LibvirtWrapper interface {
 	GetLibvirtUriAndUser() (string, string)
 	// Return the directory where libvirt stores the PID files of the hypervisor processes
 	GetPidDir() string
+	// Return the modular libvirt daemon for the hypervisor
+	GetModularDaemonName() string
 }
 
 type QemuLibvirtWrapper struct {
@@ -118,7 +120,7 @@ type QemuLibvirtWrapper struct {
 }
 
 func (q *QemuLibvirtWrapper) StartHypervisorDaemon(stopChan chan struct{}) {
-	q.StartVirtqemud(stopChan)
+	startModularLibvirtDaemon(q, stopChan)
 }
 
 func (q *QemuLibvirtWrapper) GetPidDir() string {
@@ -147,6 +149,10 @@ func (q *QemuLibvirtWrapper) GetLibvirtUriAndUser() (string, string) {
 	return libvirtUri, user
 }
 
+func (q *QemuLibvirtWrapper) GetModularDaemonName() string {
+	return "virtqemud"
+}
+
 func (c *CloudHypervisorLibvirtWrapper) GetPidDir() string {
 	return "/run/libvirt/ch"
 }
@@ -160,7 +166,7 @@ func (c *CloudHypervisorLibvirtWrapper) GetHypervisorCommandPrefix() []string {
 }
 
 func (c *CloudHypervisorLibvirtWrapper) StartHypervisorDaemon(stopChan chan struct{}) {
-	c.StartLibvirtd(stopChan)
+	startModularLibvirtDaemon(c, stopChan)
 }
 
 type CloudHypervisorLibvirtWrapper struct {
@@ -170,6 +176,10 @@ type CloudHypervisorLibvirtWrapper struct {
 func (l CloudHypervisorLibvirtWrapper) SetupLibvirt(customLogFilters *string) (err error) {
 	// TODO Need to implement this function
 	return nil
+}
+
+func (c *CloudHypervisorLibvirtWrapper) GetModularDaemonName() string {
+	return "virtchd"
 }
 
 func NewLibvirtWrapper(nonRoot bool, vmm string) LibvirtWrapper {
@@ -292,75 +302,20 @@ func GetDomainSpecWithFlags(dom cli.VirDomain, flags libvirt.DomainXMLFlags) (*a
 	return domain, nil
 }
 
-func (l CloudHypervisorLibvirtWrapper) StartLibvirtd(stopChan chan struct{}) {
-	// we spawn libvirtd from virt-launcher in order to ensure the libvirtd process
-	// doesn't exit until virt-launcher is ready for it to. Virt-launcher traps signals
-	// to perform special shutdown logic. These processes need to live in the same
-	// container.
-
-	go func() {
-		for {
-			exitChan := make(chan struct{})
-			args := []string{"-f", "/etc/libvirt/libvirtd.conf"}
-			cmd := exec.Command("/libvirt/build/src/libvirtd", args...)
-
-			// connect libvirt's stderr to our own stdout in order to see the logs in the container logs
-			reader, err := cmd.StderrPipe()
-			if err != nil {
-				log.Log.Reason(err).Error("failed to start libvirtd")
-				panic(err)
-			}
-
-			go func() {
-				scanner := bufio.NewScanner(reader)
-				scanner.Buffer(make([]byte, 1024), 512*1024)
-				for scanner.Scan() {
-					log.LogLibvirtLogLine(log.Log, scanner.Text())
-				}
-
-				if err := scanner.Err(); err != nil {
-					log.Log.Reason(err).Error("failed to read libvirt logs")
-				}
-			}()
-
-			err = cmd.Start()
-			if err != nil {
-				log.Log.Reason(err).Error("failed to start libvirtd")
-				panic(err)
-			}
-
-			go func() {
-				defer close(exitChan)
-				cmd.Wait()
-			}()
-
-			select {
-			case <-stopChan:
-				cmd.Process.Kill()
-				return
-			case <-exitChan:
-				log.Log.Errorf("libvirtd exited, restarting")
-			}
-
-			// this sleep is to avoid consuming all resources in the
-			// event of a virtqemud crash loop.
-			time.Sleep(time.Second)
-		}
-	}()
-}
-
-func (l QemuLibvirtWrapper) StartVirtqemud(stopChan chan struct{}) {
+func startModularLibvirtDaemon(l LibvirtWrapper, stopChan chan struct{}) {
 	// we spawn libvirt from virt-launcher in order to ensure the virtqemud+qemu process
 	// doesn't exit until virt-launcher is ready for it to. Virt-launcher traps signals
 	// to perform special shutdown logic. These processes need to live in the same
 	// container.
 
+	modularDaemonName := l.GetModularDaemonName()
+
 	go func() {
 		for {
 			exitChan := make(chan struct{})
-			args := []string{"-f", "/var/run/libvirt/virtqemud.conf"}
-			cmd := exec.Command("/usr/sbin/virtqemud", args...)
-			if l.user != 0 {
+			args := []string{"-f", fmt.Sprintf("/etc/libvirt/%s.conf", modularDaemonName)}
+			cmd := exec.Command(fmt.Sprintf("/usr/sbin/%s", modularDaemonName), args...)
+			if !l.root() {
 				cmd.SysProcAttr = &syscall.SysProcAttr{
 					AmbientCaps: []uintptr{unix.CAP_NET_BIND_SERVICE},
 				}
@@ -369,7 +324,7 @@ func (l QemuLibvirtWrapper) StartVirtqemud(stopChan chan struct{}) {
 			// connect libvirt's stderr to our own stdout in order to see the logs in the container logs
 			reader, err := cmd.StderrPipe()
 			if err != nil {
-				log.Log.Reason(err).Error("failed to start virtqemud")
+				log.Log.Reason(err).Error(fmt.Sprintf("failed to start %s", modularDaemonName))
 				panic(err)
 			}
 
@@ -387,7 +342,7 @@ func (l QemuLibvirtWrapper) StartVirtqemud(stopChan chan struct{}) {
 
 			err = cmd.Start()
 			if err != nil {
-				log.Log.Reason(err).Error("failed to start virtqemud")
+				log.Log.Reason(err).Error(fmt.Sprintf("failed to start %s", modularDaemonName))
 				panic(err)
 			}
 
@@ -401,7 +356,7 @@ func (l QemuLibvirtWrapper) StartVirtqemud(stopChan chan struct{}) {
 				cmd.Process.Kill()
 				return
 			case <-exitChan:
-				log.Log.Errorf("virtqemud exited, restarting")
+				log.Log.Errorf(fmt.Sprintf("%s exited, restarting", modularDaemonName))
 			}
 
 			// this sleep is to avoid consuming all resources in the
@@ -530,7 +485,7 @@ func (l QemuLibvirtWrapper) StartVirtlog(stopChan chan struct{}, domainName stri
 }
 
 func (l CloudHypervisorLibvirtWrapper) StartVirtlog(stopChan chan struct{}, domainName string) { // TODO No need for this function when the path to virtlogd has been made consistent with QEMU
-	go startVirtlogdLogging("/libvirt/build/src/virtlogd", stopChan, domainName, l.user != util.RootUser)
+	go startVirtlogdLogging("/usr/sbin/virtlogd", stopChan, domainName, l.user != util.RootUser)
 }
 
 // returns the namespace and name that is encoded in the
