@@ -45,6 +45,8 @@ func NewFedora(opts ...libvmi.Option) *kvirtv1.VirtualMachineInstance {
 		libvmi.WithResourceMemory("512Mi"),
 		libvmi.WithRng(),
 		libvmi.WithContainerDisk("disk0", cd.ContainerDiskFor(cd.ContainerDiskFedoraTestTooling)),
+		libvmi.WithHypervisor("ch"),
+		libvmi.WithAutoattachGraphicsDevice(false),
 	}
 	opts = append(fedoraOptions, opts...)
 	return libvmi.New(opts...)
@@ -55,6 +57,8 @@ func NewCirros(opts ...libvmi.Option) *kvirtv1.VirtualMachineInstance {
 	cirrosOpts := []libvmi.Option{
 		libvmi.WithContainerDisk("disk0", cd.ContainerDiskFor(cd.ContainerDiskCirros)),
 		libvmi.WithResourceMemory(cirrosMemory()),
+		libvmi.WithHypervisor("ch"),
+		libvmi.WithAutoattachGraphicsDevice(false),
 	}
 	cirrosOpts = append(cirrosOpts, opts...)
 	vmi := libvmi.New(cirrosOpts...)
@@ -73,7 +77,9 @@ func NewAlpine(opts ...libvmi.Option) *kvirtv1.VirtualMachineInstance {
 	alpineOpts := []libvmi.Option{
 		libvmi.WithContainerDisk("disk0", cd.ContainerDiskFor(cd.ContainerDiskAlpine)),
 		libvmi.WithResourceMemory(alpineMemory()),
-		libvmi.WithRng(),
+		//libvmi.WithRng(),
+		libvmi.WithHypervisor("ch"),
+		libvmi.WithAutoattachGraphicsDevice(false),
 	}
 	alpineOpts = append(alpineOpts, opts...)
 	return libvmi.New(alpineOpts...)
@@ -85,6 +91,8 @@ func NewAlpineWithTestTooling(opts ...libvmi.Option) *kvirtv1.VirtualMachineInst
 		libvmi.WithContainerDisk("disk0", cd.ContainerDiskFor(cd.ContainerDiskAlpineTestTooling)),
 		libvmi.WithResourceMemory(alpineMemory()),
 		libvmi.WithRng(),
+		libvmi.WithHypervisor("ch"),
+		libvmi.WithAutoattachGraphicsDevice(false),
 	}
 	alpineOpts = append(alpineOpts, opts...)
 	vmi := libvmi.New(alpineOpts...)
@@ -129,6 +137,8 @@ func NewWindows(opts ...libvmi.Option) *kvirtv1.VirtualMachineInstance {
 		libvmi.WithCPUCount(cpuCount, cpuCount, cpuCount),
 		libvmi.WithResourceMemory("2048Mi"),
 		libvmi.WithEphemeralPersistentVolumeClaim(windowsDiskName, WindowsPVCName),
+		libvmi.WithHypervisor("ch"),
+		libvmi.WithAutoattachGraphicsDevice(false),
 	}
 
 	windowsOpts = append(windowsOpts, opts...)

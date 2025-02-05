@@ -135,8 +135,10 @@ func AdjustKubeVirtResource() {
 	util.PanicOnError(err)
 	KubeVirtDefaultConfig = adjustedKV.Spec.Configuration
 	if checks.HasFeature(virtconfig.CPUManager) {
-		// CPUManager is not enabled in the control-plane node(s)
-		nodes, err := virtClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "!node-role.kubernetes.io/control-plane"})
+		//// CPUManager is not enabled in the control-plane node(s)
+		nodes, err := virtClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+    // TODO Readd the label when we can create a test environment with multiple nodes
+		//nodes, err := virtClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "!node-role.kubernetes.io/control-plane"})
 		Expect(err).NotTo(HaveOccurred())
 		waitForSchedulableNodesWithCPUManager(len(nodes.Items))
 	}
