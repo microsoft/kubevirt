@@ -43,7 +43,7 @@ const (
 func NewFedora(opts ...libvmi.Option) *kvirtv1.VirtualMachineInstance {
 	fedoraOptions := []libvmi.Option{
 		libvmi.WithResourceMemory("512Mi"),
-		libvmi.WithRng(),
+		//libvmi.WithRng(),
 		libvmi.WithContainerDisk("disk0", cd.ContainerDiskFor(cd.ContainerDiskFedoraTestTooling)),
 		libvmi.WithHypervisor("ch"),
 		libvmi.WithAutoattachGraphicsDevice(false),
@@ -90,7 +90,7 @@ func NewAlpineWithTestTooling(opts ...libvmi.Option) *kvirtv1.VirtualMachineInst
 	alpineOpts := []libvmi.Option{
 		libvmi.WithContainerDisk("disk0", cd.ContainerDiskFor(cd.ContainerDiskAlpineTestTooling)),
 		libvmi.WithResourceMemory(alpineMemory()),
-		libvmi.WithRng(),
+		//libvmi.WithRng(),
 		libvmi.WithHypervisor("ch"),
 		libvmi.WithAutoattachGraphicsDevice(false),
 	}
