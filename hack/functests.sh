@@ -32,6 +32,10 @@ if [ -z "$kubeconfig" ]; then
     kubeconfig="$KUBECONFIG"
 fi
 
+if [ -z "$kubectl" ]; then
+    kubectl=$(which kubectl)
+fi
+
 _default_previous_release_registry="quay.io/kubevirt"
 
 previous_release_registry=${PREVIOUS_RELEASE_REGISTRY:-$_default_previous_release_registry}
