@@ -107,7 +107,10 @@ func NewAlpineWithTestTooling(opts ...libvmi.Option) *kvirtv1.VirtualMachineInst
 
 func NewGuestless(opts ...libvmi.Option) *kvirtv1.VirtualMachineInstance {
 	opts = append(
-		[]libvmi.Option{libvmi.WithResourceMemory(qemuMinimumMemory())},
+		[]libvmi.Option{
+			libvmi.WithResourceMemory(qemuMinimumMemory()),
+			libvmi.WithHypervisor("ch"),
+		},
 		opts...)
 	return libvmi.New(opts...)
 }
@@ -126,7 +129,7 @@ func cirrosMemory() string {
 	if isARM64() {
 		return "256Mi"
 	}
-	return "128Mi"
+	return "256Mi"
 }
 
 func NewWindows(opts ...libvmi.Option) *kvirtv1.VirtualMachineInstance {
