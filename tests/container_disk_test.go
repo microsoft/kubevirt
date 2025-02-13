@@ -231,10 +231,6 @@ var _ = Describe("[rfe_id:588][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 	Describe("[rfe_id:4052][crit:high][arm64][vendor:cnv-qe@redhat.com][level:component]VMI disk permissions", func() {
 		Context("with ephemeral registry disk", func() {
 			It("[test_id:4299]should not have world write permissions", func() {
-				// TODO This test case is failing due to Invalid Magic error
-				// HTTP response code from CH: 500
-				// Response = Error from device manager: CreateQcowDiskSync(BackingFileOpen(InvalidMagic))
-
 				vmi := libvmifact.NewAlpine()
 				vmi = libvmops.RunVMIAndExpectLaunch(vmi, 60)
 

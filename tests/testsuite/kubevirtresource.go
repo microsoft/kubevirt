@@ -138,6 +138,7 @@ func AdjustKubeVirtResource() {
 		//// CPUManager is not enabled in the control-plane node(s)
 		nodes, err := virtClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		// TODO Readd the label when we can create a test environment with multiple nodes
+		// TODO Tracking task: https://dev.azure.com/mariner-org/ECF/_workitems/edit/11021
 		//nodes, err := virtClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "!node-role.kubernetes.io/control-plane"})
 		Expect(err).NotTo(HaveOccurred())
 		waitForSchedulableNodesWithCPUManager(len(nodes.Items))
