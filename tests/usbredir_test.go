@@ -73,7 +73,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 
 		var vmi *v1.VirtualMachineInstance
 		BeforeEach(func() {
-			vmi = libvmi.New(libvmi.WithResourceMemory(enoughMemForSafeBiosEmulation))
+			vmi = libvmi.New(libvmi.WithResourceMemory(enoughMemForSafeBiosEmulation), libvmi.WithHypervisor("ch"))
 			vmi = libvmops.RunVMIAndExpectLaunch(vmi, 90)
 		})
 
@@ -91,7 +91,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 
 		BeforeEach(func() {
 			// A VMI for each test to have fresh stack on server side
-			vmi = libvmi.New(libvmi.WithResourceMemory(enoughMemForSafeBiosEmulation), withClientPassthrough())
+			vmi = libvmi.New(libvmi.WithResourceMemory(enoughMemForSafeBiosEmulation), withClientPassthrough(), libvmi.WithHypervisor("ch"))
 			vmi = libvmops.RunVMIAndExpectLaunch(vmi, 90)
 			name = vmi.ObjectMeta.Name
 			namespace = vmi.ObjectMeta.Namespace

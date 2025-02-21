@@ -60,6 +60,7 @@ var _ = SIGDescribe("VMIDefaults", func() {
 				libvmi.WithNetwork(v1.DefaultPodNetwork()),
 				libvmi.WithResourceMemory("8192Ki"),
 				libvmi.WithContainerDisk("testdisk", "dummy"),
+				libvmi.WithHypervisor("ch"),
 			)
 		})
 
@@ -105,6 +106,7 @@ var _ = SIGDescribe("VMIDefaults", func() {
 				libvmi.WithInterface(libvmi.InterfaceDeviceWithMasqueradeBinding()),
 				libvmi.WithNetwork(v1.DefaultPodNetwork()),
 				libvmi.WithResourceMemory("128Mi"),
+				libvmi.WithHypervisor("ch"),
 			)
 
 			kv := libkubevirt.GetCurrentKv(virtClient)

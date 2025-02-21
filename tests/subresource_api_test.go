@@ -486,7 +486,7 @@ var _ = Describe("[sig-compute]Subresource Api", decorators.SigCompute, func() {
 				})
 
 				DescribeTable("[test_id:TODO] should return VirtualMachine with instancetype expanded", func(matcherFn func() *v1.InstancetypeMatcher) {
-					vm := libvmi.NewVirtualMachine(libvmi.New())
+					vm := libvmi.NewVirtualMachine(libvmi.New(libvmi.WithHypervisor("ch")))
 					vm.Spec.Instancetype = matcherFn()
 
 					vm, err := virtCli.VirtualMachine(testsuite.GetTestNamespace(vm)).Create(context.Background(), vm, metav1.CreateOptions{})
@@ -513,7 +513,7 @@ var _ = Describe("[sig-compute]Subresource Api", decorators.SigCompute, func() {
 				})
 
 				DescribeTable("[test_id:TODO] should return VirtualMachine with instancetype expanded", func(matcherFn func() *v1.InstancetypeMatcher) {
-					vm := libvmi.NewVirtualMachine(libvmi.New())
+					vm := libvmi.NewVirtualMachine(libvmi.New(libvmi.WithHypervisor("ch")))
 					vm.Spec.Instancetype = matcherFn()
 
 					expandedVm, err := virtCli.ExpandSpec(testsuite.GetTestNamespace(vm)).ForVirtualMachine(vm)
@@ -526,7 +526,7 @@ var _ = Describe("[sig-compute]Subresource Api", decorators.SigCompute, func() {
 				)
 
 				DescribeTable("[test_id:TODO] should fail, if referenced instancetype does not exist", func(matcher *v1.InstancetypeMatcher) {
-					vm := libvmi.NewVirtualMachine(libvmi.New())
+					vm := libvmi.NewVirtualMachine(libvmi.New(libvmi.WithHypervisor("ch")))
 					vm.Spec.Instancetype = matcher
 
 					_, err := virtCli.ExpandSpec(testsuite.GetTestNamespace(vm)).ForVirtualMachine(vm)

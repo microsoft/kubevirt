@@ -823,7 +823,8 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 					},
 					Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 						Spec: virtv1.VirtualMachineInstanceSpec{
-							Domain: virtv1.DomainSpec{},
+							Domain:     virtv1.DomainSpec{},
+							Hypervisor: "ch",
 						},
 					},
 					RunStrategy: &runStrategy,
