@@ -191,6 +191,7 @@ var _ = Describe("[rfe_id:1177][crit:medium][vendor:cnv-qe@redhat.com][level:com
 				libvmi.WithNamespace(testsuite.GetTestNamespace(nil)),
 				libvmi.WithCloudInitNoCloud(libvmifact.WithDummyCloudForFastBoot()),
 				libvmi.WithTerminationGracePeriod(30),
+				libvmi.WithHypervisor("ch"),
 			), dataVolume
 		}
 
@@ -630,6 +631,7 @@ var _ = Describe("[rfe_id:1177][crit:medium][vendor:cnv-qe@redhat.com][level:com
 			vmi := libvmi.New(
 				libvmi.WithContainerDisk("disk0", "no-such-image"),
 				libvmi.WithResourceMemory("128Mi"),
+				libvmi.WithHypervisor("ch"),
 			)
 			unschedulableFunc(vmi)
 
@@ -656,6 +658,7 @@ var _ = Describe("[rfe_id:1177][crit:medium][vendor:cnv-qe@redhat.com][level:com
 			vmi := libvmi.New(
 				libvmi.WithContainerDisk("disk0", "no-such-image"),
 				libvmi.WithResourceMemory("128Mi"),
+				libvmi.WithHypervisor("ch"),
 			)
 
 			vm := createRunningVM(virtClient, vmi)
@@ -678,6 +681,7 @@ var _ = Describe("[rfe_id:1177][crit:medium][vendor:cnv-qe@redhat.com][level:com
 					return libvmi.New(
 						libvmi.WithPersistentVolumeClaim("disk0", "missing-pvc"),
 						libvmi.WithResourceMemory("128Mi"),
+						libvmi.WithHypervisor("ch"),
 					)
 				},
 				v1.VirtualMachineStatusPvcNotFound,
@@ -688,6 +692,7 @@ var _ = Describe("[rfe_id:1177][crit:medium][vendor:cnv-qe@redhat.com][level:com
 					return libvmi.New(
 						libvmi.WithDataVolume("disk0", "missing-datavolume"),
 						libvmi.WithResourceMemory("128Mi"),
+						libvmi.WithHypervisor("ch"),
 					)
 				},
 				v1.VirtualMachineStatusPvcNotFound,
@@ -813,6 +818,7 @@ var _ = Describe("[rfe_id:1177][crit:medium][vendor:cnv-qe@redhat.com][level:com
 				vm := libvmops.StartVirtualMachine(createVM(virtClient, libvmi.New(
 					libvmi.WithResourceMemory("128Mi"),
 					libvmi.WithTerminationGracePeriod(1600),
+					libvmi.WithHypervisor("ch"),
 				)))
 
 				By("setting up a watch for vmi")

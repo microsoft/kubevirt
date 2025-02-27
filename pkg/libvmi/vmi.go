@@ -269,6 +269,18 @@ func WithoutSerialConsole() Option {
 	}
 }
 
+func WithHypervisor(hypervisor string) Option {
+	return func(vmi *v1.VirtualMachineInstance) {
+		vmi.Spec.Hypervisor = hypervisor
+	}
+}
+
+func WithAutoattachGraphicsDevice(autoAttachGraphicsDevice bool) Option {
+	return func(vmi *v1.VirtualMachineInstance) {
+		vmi.Spec.Domain.Devices.AutoattachGraphicsDevice = &autoAttachGraphicsDevice
+	}
+}
+
 func baseVmi(name string) *v1.VirtualMachineInstance {
 	vmi := v1.NewVMIReferenceFromNameWithNS("", name)
 	vmi.Spec = v1.VirtualMachineInstanceSpec{Domain: v1.DomainSpec{}}

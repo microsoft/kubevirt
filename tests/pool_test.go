@@ -129,6 +129,7 @@ var _ = Describe("[sig-compute]VirtualMachinePool", decorators.SigCompute, func(
 			libvmi.New(
 				libvmi.WithDataVolume("disk0", dataVolume.Name),
 				libvmi.WithResourceMemory("100M"),
+				libvmi.WithHypervisor("ch"),
 			),
 			libvmi.WithDataVolumeTemplate(dataVolume),
 		)
@@ -148,7 +149,7 @@ var _ = Describe("[sig-compute]VirtualMachinePool", decorators.SigCompute, func(
 
 	newVirtualMachinePool := func() *poolv1.VirtualMachinePool {
 		By("Create a new VirtualMachinePool")
-		pool := newPoolFromVMI(libvmi.New(libvmi.WithResourceMemory("2Mi")))
+		pool := newPoolFromVMI(libvmi.New(libvmi.WithResourceMemory("2Mi"), libvmi.WithHypervisor("ch")))
 		running := true
 		pool.Spec.VirtualMachineTemplate.Spec.Running = &running
 		return createVirtualMachinePool(pool)
