@@ -28,13 +28,18 @@ KUBEVIRT_FUNC_TEST_LABEL_FILTER=${FUNC_TEST_LABEL_FILTER:-${KUBEVIRT_FUNC_TEST_L
 source hack/common.sh
 source hack/config.sh
 
-if [ -z "$kubeconfig" ]; then
-    kubeconfig="$KUBECONFIG"
+# Set KUBECONFIG if not already set
+kubeconfig="${kubeconfig:-$KUBECONFIG}"
+
+# Find the path to kubectl if not already set
+kubectl="${kubectl:-$(which kubectl)}"
+if [ ! -x "$kubectl" ]; then
+    echo "kubectl not found or is not executable."
+    exit 1
 fi
 
-if [ -z "$kubectl" ]; then
-    kubectl=$(which kubectl)
-fi
+# Set test timeout if not already set. Default = 3 hours
+test_timeout="${KUBEVIRT_FUNC_TEST_TIMEOUT:-3h}"
 
 _default_previous_release_registry="quay.io/kubevirt"
 
@@ -74,7 +79,8 @@ function functest() {
         KUBEVIRT_FUNC_TEST_SUITE_ARGS="-skip-dual-stack-test ${KUBEVIRT_FUNC_TEST_SUITE_ARGS}"
     fi
 
-    _out/tests/ginkgo -timeout=24h -r "$@" _out/tests/tests.test -- -kubeconfig=${kubeconfig} -container-tag=${docker_tag} -container-tag-alt=${docker_tag_alt} -container-prefix=${functest_docker_prefix} -image-prefix-alt=${image_prefix_alt} -oc-path=${oc} -kubectl-path=${kubectl} -gocli-path=${gocli} -installed-namespace=${namespace} -previous-release-tag=${PREVIOUS_RELEASE_TAG} -previous-release-registry=${previous_release_registry} -deploy-testing-infra=${deploy_testing_infra} -config=${kubevirt_test_config} --artifacts=${ARTIFACTS} --operator-manifest-path=${OPERATOR_MANIFEST_PATH} --testing-manifest-path=${TESTING_MANIFEST_PATH} ${KUBEVIRT_FUNC_TEST_SUITE_ARGS} -virtctl-path=${virtctl_path} -example-guest-agent-path=${example_guest_agent_path}
+    set -x
+    _out/tests/ginkgo -timeout=${test_timeout} -r "$@" _out/tests/tests.test -- -kubeconfig=${kubeconfig} -container-tag=${docker_tag} -container-tag-alt=${docker_tag_alt} -container-prefix=${functest_docker_prefix} -image-prefix-alt=${image_prefix_alt} -oc-path=${oc} -kubectl-path=${kubectl} -gocli-path=${gocli} -installed-namespace=${namespace} -previous-release-tag=${PREVIOUS_RELEASE_TAG} -previous-release-registry=${previous_release_registry} -deploy-testing-infra=${deploy_testing_infra} -config=${kubevirt_test_config} --artifacts=${ARTIFACTS} --operator-manifest-path=${OPERATOR_MANIFEST_PATH} --testing-manifest-path=${TESTING_MANIFEST_PATH} ${KUBEVIRT_FUNC_TEST_SUITE_ARGS} -virtctl-path=${virtctl_path} -example-guest-agent-path=${example_guest_agent_path}
 }
 
 if [ "$KUBEVIRT_E2E_PARALLEL" == "true" ]; then
