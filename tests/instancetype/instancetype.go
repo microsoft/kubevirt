@@ -1480,7 +1480,8 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
-								Domain: virtv1.DomainSpec{},
+								Hypervisor: "ch",
+								Domain:     virtv1.DomainSpec{},
 							},
 						},
 					},
@@ -1523,7 +1524,8 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
-								Domain: virtv1.DomainSpec{},
+								Hypervisor: "ch",
+								Domain:     virtv1.DomainSpec{},
 							},
 						},
 					},
@@ -1554,6 +1556,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
+								Hypervisor: "ch",
 								Domain: virtv1.DomainSpec{
 									CPU: &virtv1.CPU{
 										Cores:   uint32(1),
@@ -1594,6 +1597,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
+								Hypervisor: "ch",
 								Domain: virtv1.DomainSpec{
 									CPU: &virtv1.CPU{
 										Cores:   uint32(2),
@@ -1631,7 +1635,8 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
-								Domain: virtv1.DomainSpec{},
+								Hypervisor: "ch",
+								Domain:     virtv1.DomainSpec{},
 							},
 						},
 					},
@@ -1665,6 +1670,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
+								Hypervisor: "ch",
 								Domain: virtv1.DomainSpec{
 									CPU: &virtv1.CPU{
 										Cores:   uint32(1),
@@ -1705,6 +1711,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
+								Hypervisor: "ch",
 								Domain: virtv1.DomainSpec{
 									CPU: &virtv1.CPU{
 										Cores:   uint32(2),
@@ -1742,6 +1749,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
+								Hypervisor: "ch",
 								Domain: virtv1.DomainSpec{
 									Memory: &virtv1.Memory{
 										Guest: resource.NewQuantity(2*1024*1024*1024, resource.BinarySI),
@@ -1808,7 +1816,8 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
-								Domain: virtv1.DomainSpec{},
+								Hypervisor: "ch",
+								Domain:     virtv1.DomainSpec{},
 							},
 						},
 					},
@@ -1852,7 +1861,8 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
-								Domain: virtv1.DomainSpec{},
+								Hypervisor: "ch",
+								Domain:     virtv1.DomainSpec{},
 							},
 						},
 					},
@@ -1884,6 +1894,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
+								Hypervisor: "ch",
 								Domain: virtv1.DomainSpec{
 									CPU: &virtv1.CPU{
 										Cores:   uint32(1),
@@ -1925,6 +1936,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
+								Hypervisor: "ch",
 								Domain: virtv1.DomainSpec{
 									CPU: &virtv1.CPU{
 										Cores:   uint32(1),
@@ -1966,6 +1978,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
+								Hypervisor: "ch",
 								Domain: virtv1.DomainSpec{
 									CPU: &virtv1.CPU{
 										Cores:   uint32(1),
@@ -2007,6 +2020,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
+								Hypervisor: "ch",
 								Domain: virtv1.DomainSpec{
 									CPU: &virtv1.CPU{
 										Cores:   uint32(2),
@@ -2045,6 +2059,7 @@ var _ = Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-c
 						},
 						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 							Spec: virtv1.VirtualMachineInstanceSpec{
+								Hypervisor: "ch",
 								Domain: virtv1.DomainSpec{
 									Memory: &virtv1.Memory{
 										Guest: resource.NewQuantity(1*1024*1024*1024, resource.BinarySI),
