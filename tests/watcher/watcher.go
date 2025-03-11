@@ -20,8 +20,10 @@
 package watcher
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 	"time"
@@ -141,11 +143,42 @@ func (w *ObjectEventWatcher) Watch(ctx context.Context, processFunc ProcessFunc,
 		return logParams
 	}
 
+	var selector []string
+	objectMeta := w.object.(metav1.ObjectMetaAccessor)
+	name := objectMeta.GetObjectMeta().GetName()
+	namespace := objectMeta.GetObjectMeta().GetNamespace()
+	uid := objectMeta.GetObjectMeta().GetUID()
+
 	if w.warningPolicy.FailOnWarnings {
 		f = func(event *v1.Event) bool {
 			msg := fmt.Sprintf("Event(%#v): type: '%v' reason: '%v' %v", event.InvolvedObject, event.Type, event.Reason, event.Message)
 			if !w.warningPolicy.shouldIgnoreWarning(event) {
-				ExpectWithOffset(1, event.Type).NotTo(Equal(string(WarningEvent)), "Unexpected Warning event received: %s,%s: %s", event.InvolvedObject.Name, event.InvolvedObject.UID, event.Message)
+
+				// TODO: Get the virt-launcher pod's logs
+				listOptions := metav1.ListOptions{
+					LabelSelector: fmt.Sprintf("vm.kubevirt.io/name=%s", name),
+				}
+				virtLauncherPods, _ := cli.CoreV1().Pods(namespace).List(ctx, listOptions)
+				launcherPod := virtLauncherPods.Items[0]
+				fmt.Println("Launcher pod's status : ", launcherPod.Status)
+				launcherPodLogs := ""
+				if launcherPod.Status.Phase == v1.PodRunning || launcherPod.Status.Phase == v1.PodFailed {
+					fmt.Println("Pod is running/failed. Getting logs.")
+					podLogOpts := v1.PodLogOptions{Container: "compute"}
+
+					req := cli.CoreV1().Pods(namespace).GetLogs(launcherPod.Name, &podLogOpts)
+					podLogs, err := req.Stream(ctx)
+
+					Expect(err).ShouldNot(HaveOccurred(), "Error occurred when opening pod log stream")
+					defer podLogs.Close()
+
+					buf := new(bytes.Buffer)
+					_, err = io.Copy(buf, podLogs)
+					Expect(err).ShouldNot(HaveOccurred(), "Error occurred when copying pod log to bugger")
+					launcherPodLogs = buf.String()
+				}
+
+				ExpectWithOffset(1, event.Type).NotTo(Equal(string(WarningEvent)), "Unexpected Warning event received: %s,%s: %s. Launcher pod logs: %s", event.InvolvedObject.Name, event.InvolvedObject.UID, event.Message, launcherPodLogs)
 			}
 			log.Log.With(objectRefOption(&event.InvolvedObject)).Info(msg)
 
@@ -161,12 +194,6 @@ func (w *ObjectEventWatcher) Watch(ctx context.Context, processFunc ProcessFunc,
 			return processFunc(event)
 		}
 	}
-
-	var selector []string
-	objectMeta := w.object.(metav1.ObjectMetaAccessor)
-	name := objectMeta.GetObjectMeta().GetName()
-	namespace := objectMeta.GetObjectMeta().GetNamespace()
-	uid := objectMeta.GetObjectMeta().GetUID()
 
 	selector = append(selector, fmt.Sprintf("involvedObject.name=%v", name))
 	if namespace != "" {
