@@ -41,6 +41,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 
+	"k8s.io/client-go/kubernetes/scheme"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/remotecommand"
 	"kubevirt.io/client-go/log"
 )
 
@@ -160,8 +163,9 @@ func (w *ObjectEventWatcher) Watch(ctx context.Context, processFunc ProcessFunc,
 				}
 				virtLauncherPods, _ := cli.CoreV1().Pods(namespace).List(ctx, listOptions)
 				launcherPod := virtLauncherPods.Items[0]
-				fmt.Println("Launcher pod's status : ", launcherPod.Status)
+				//fmt.Println("Launcher pod's status : ", launcherPod.Status)
 				launcherPodLogs := ""
+				chLogs := ""
 				if launcherPod.Status.Phase == v1.PodRunning || launcherPod.Status.Phase == v1.PodFailed {
 					fmt.Println("Pod is running/failed. Getting logs.")
 					podLogOpts := v1.PodLogOptions{Container: "compute"}
@@ -176,9 +180,55 @@ func (w *ObjectEventWatcher) Watch(ctx context.Context, processFunc ProcessFunc,
 					_, err = io.Copy(buf, podLogs)
 					Expect(err).ShouldNot(HaveOccurred(), "Error occurred when copying pod log to bugger")
 					launcherPodLogs = buf.String()
+
+					// Get Cloud-Hypervisor log from virt-launcher pod
+					if launcherPod.Status.Phase == v1.PodRunning {
+						cmd := []string{
+							"bash",
+							"-c",
+							fmt.Sprintf("cat /var/log/libvirt/ch/%s_%s.log", namespace, name),
+						}
+
+						option := &v1.PodExecOptions{
+							Command:   cmd,
+							Stdin:     false,
+							Stdout:    true,
+							Stderr:    true,
+							TTY:       true,
+							Container: "compute",
+						}
+
+						req := cli.CoreV1().RESTClient().
+							Post().
+							Resource("pods").
+							Name(launcherPod.Name).
+							Namespace(namespace).
+							SubResource("exec").
+							//Param("container", "compute").
+							VersionedParams(
+								option,
+								scheme.ParameterCodec,
+							)
+
+						config := &restclient.Config{
+							Host:            "http://b37aep01r1-compute-nodes-nm2wm-pcwdd:6443",
+							TLSClientConfig: restclient.TLSClientConfig{Insecure: true},
+						}
+
+						var stdout, stderr bytes.Buffer
+
+						exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+						Expect(err).ShouldNot(HaveOccurred(), "Error occurred when executing cat command")
+						err = exec.Stream(remotecommand.StreamOptions{
+							Stdout: &stdout,
+							Stderr: &stderr,
+						})
+						Expect(err).ShouldNot(HaveOccurred(), "Error occurred when streaming output")
+						chLogs = stdout.String() + "\n" + stderr.String()
+					}
 				}
 
-				ExpectWithOffset(1, event.Type).NotTo(Equal(string(WarningEvent)), "Unexpected Warning event received: %s,%s: %s. Launcher pod logs: %s", event.InvolvedObject.Name, event.InvolvedObject.UID, event.Message, launcherPodLogs)
+				ExpectWithOffset(1, event.Type).NotTo(Equal(string(WarningEvent)), "Unexpected Warning event received: %s,%s: %s. Launcher pod logs: %s. CH logs: %s", event.InvolvedObject.Name, event.InvolvedObject.UID, event.Message, launcherPodLogs, chLogs)
 			}
 			log.Log.With(objectRefOption(&event.InvolvedObject)).Info(msg)
 
