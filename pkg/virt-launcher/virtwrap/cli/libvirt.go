@@ -374,15 +374,7 @@ func (l *LibvirtConnection) GetDeviceAliasMap(domain *libvirt.Domain) (map[strin
 	}
 
 	for _, iface := range domSpec.Devices.Interfaces {
-		var ifaceAlias string
-		if iface.Alias == nil {
-			// TODO Hermes Alias is not being persisted in Domain XML
-			// Bug to track https://dev.azure.com/mariner-org/ECF/_queries/edit/4785/?triage=true
-			ifaceAlias = "default"
-		} else {
-			ifaceAlias = iface.Alias.GetName()
-		}
-		devAliasMap[iface.Target.Device] = ifaceAlias
+		devAliasMap[iface.Target.Device] = iface.Alias.GetName()
 	}
 
 	for _, disk := range domSpec.Devices.Disks {

@@ -97,15 +97,7 @@ func (vim *virtIOInterfaceManager) hotplugVirtioInterface(vmi *v1.VirtualMachine
 
 func (vim *virtIOInterfaceManager) hotUnplugVirtioInterface(vmi *v1.VirtualMachineInstance, currentDomain *api.Domain) error {
 	for _, domainIface := range interfacesToHotUnplug(vmi.Spec.Domain.Devices.Interfaces, currentDomain.Spec.Devices.Interfaces) {
-		var ifaceAlias string
-		if domainIface.Alias == nil {
-			// TODO Hermes Alias is not being persisted in Domain XML
-			// Bug to track https://dev.azure.com/mariner-org/ECF/_queries/edit/4785/?triage=true
-			ifaceAlias = "default"
-		} else {
-			ifaceAlias = domainIface.Alias.GetName()
-		}
-		log.Log.Infof("preparing to hot-unplug %s", ifaceAlias)
+		log.Log.Infof("preparing to hot-unplug %s", domainIface.Alias.GetName())
 
 		ifaceXML, err := xml.Marshal(domainIface)
 		if err != nil {
@@ -113,7 +105,7 @@ func (vim *virtIOInterfaceManager) hotUnplugVirtioInterface(vmi *v1.VirtualMachi
 		}
 
 		if derr := vim.dom.DetachDeviceFlags(strings.ToLower(string(ifaceXML)), affectDeviceLiveAndConfigLibvirtFlags); derr != nil {
-			log.Log.Reason(derr).Errorf("libvirt failed to detach interface %s: %v", ifaceAlias, derr)
+			log.Log.Reason(derr).Errorf("libvirt failed to detach interface %s: %v", domainIface.Alias.GetName(), derr)
 			return derr
 		}
 	}
@@ -142,15 +134,7 @@ func hasDeviceWithHashedTapName(target *api.InterfaceTarget, vmiIface v1.Interfa
 
 func lookupDomainInterfaceByName(domainIfaces []api.Interface, networkName string) *api.Interface {
 	for _, iface := range domainIfaces {
-		var ifaceAlias string
-		if iface.Alias == nil {
-			// TODO Hermes Alias is not being persisted in Domain XML
-			// Bug to track https://dev.azure.com/mariner-org/ECF/_queries/edit/4785/?triage=true
-			ifaceAlias = "default"
-		} else {
-			ifaceAlias = iface.Alias.GetName()
-		}
-		if ifaceAlias == networkName {
+		if iface.Alias.GetName() == networkName {
 			return &iface
 		}
 	}
@@ -183,16 +167,7 @@ func networksToHotplugWhoseInterfacesAreNotInTheDomain(vmi *v1.VirtualMachineIns
 func indexedDomainInterfaces(domain *api.Domain) map[string]api.Interface {
 	domainInterfaces := map[string]api.Interface{}
 	for _, iface := range domain.Spec.Devices.Interfaces {
-		var ifaceAlias string
-		if iface.Alias == nil {
-			// TODO Hermes Alias is not being persisted in Domain XML
-			// Bug to track https://dev.azure.com/mariner-org/ECF/_queries/edit/4785/?triage=true
-			ifaceAlias = "default"
-		} else {
-			ifaceAlias = iface.Alias.GetName()
-		}
-
-		domainInterfaces[ifaceAlias] = iface
+		domainInterfaces[iface.Alias.GetName()] = iface
 	}
 	return domainInterfaces
 }
