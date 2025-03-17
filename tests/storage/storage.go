@@ -245,13 +245,15 @@ var _ = SIGDescribe("Storage", func() {
 				return libvmi.New(
 					libvmi.WithPersistentVolumeClaim("disk0", claimName),
 					libvmi.WithResourceMemory("256Mi"),
-					libvmi.WithRng())
+					libvmi.WithHypervisor("ch"),
+					libvmi.WithAutoattachGraphicsDevice(false))
 			}
 			newRandomVMIWithCDRom := func(claimName string) *v1.VirtualMachineInstance {
 				return libvmi.New(
 					libvmi.WithCDRom("disk0", v1.DiskBusSATA, claimName),
 					libvmi.WithResourceMemory("256Mi"),
-					libvmi.WithRng())
+					libvmi.WithHypervisor("ch"),
+					libvmi.WithAutoattachGraphicsDevice(false))
 			}
 
 			Context("should be successfully", func() {
@@ -447,7 +449,9 @@ var _ = SIGDescribe("Storage", func() {
 
 					vmi = libvmi.New(
 						libvmi.WithResourceMemory("256Mi"),
+						libvmi.WithHypervisor("ch"),
 						libvmi.WithEphemeralPersistentVolumeClaim("disk0", pvName),
+						libvmi.WithAutoattachGraphicsDevice(false),
 					)
 
 					if storageEngine == "nfs" {
@@ -470,7 +474,9 @@ var _ = SIGDescribe("Storage", func() {
 				vmi = libvmi.New(
 					libvmi.WithNamespace(testsuite.GetTestNamespace(nil)),
 					libvmi.WithResourceMemory("256Mi"),
+					libvmi.WithHypervisor("ch"),
 					libvmi.WithEphemeralPersistentVolumeClaim("disk0", tests.DiskAlpineHostPath),
+					libvmi.WithAutoattachGraphicsDevice(false),
 				)
 
 				By("Starting the VirtualMachineInstance")
@@ -539,7 +545,8 @@ var _ = SIGDescribe("Storage", func() {
 					libvmi.WithPersistentVolumeClaim("disk0", tests.DiskAlpineHostPath),
 					libvmi.WithPersistentVolumeClaim("disk1", tests.DiskCustomHostPath),
 					libvmi.WithResourceMemory("256Mi"),
-					libvmi.WithRng())
+					libvmi.WithHypervisor("ch"),
+					libvmi.WithAutoattachGraphicsDevice(false))
 
 				num := 3
 				By("Starting and stopping the VirtualMachineInstance number of times")
@@ -575,6 +582,8 @@ var _ = SIGDescribe("Storage", func() {
 					libvmi.WithHostDisk("host-disk", "somepath", v1.HostDiskExistsOrCreate),
 					// hostdisk needs a privileged namespace
 					libvmi.WithNamespace(testsuite.NamespacePrivileged),
+					libvmi.WithHypervisor("ch"),
+					libvmi.WithAutoattachGraphicsDevice(false),
 				)
 				virtClient := kubevirt.Client()
 				_, err = virtClient.VirtualMachineInstance(testsuite.GetTestNamespace(vmi)).Create(context.Background(), vmi, metav1.CreateOptions{})
@@ -631,6 +640,8 @@ var _ = SIGDescribe("Storage", func() {
 							libvmi.WithHostDisk("host-disk", diskPath, v1.HostDiskExistsOrCreate),
 							// hostdisk needs a privileged namespace
 							libvmi.WithNamespace(testsuite.NamespacePrivileged),
+							libvmi.WithHypervisor("ch"),
+							libvmi.WithAutoattachGraphicsDevice(false),
 						)
 						vmi.Spec.Domain.Devices.Disks[0].DiskDevice.Disk.Bus = driver
 
@@ -663,6 +674,8 @@ var _ = SIGDescribe("Storage", func() {
 							libvmi.WithHostDisk("anotherdisk", filepath.Join(hostDiskDir, "another.img"), v1.HostDiskExistsOrCreate),
 							// hostdisk needs a privileged namespace
 							libvmi.WithNamespace(testsuite.NamespacePrivileged),
+							libvmi.WithHypervisor("ch"),
+							libvmi.WithAutoattachGraphicsDevice(false),
 						)
 						vmi = libvmops.RunVMIAndExpectLaunch(vmi, 30)
 
@@ -718,6 +731,8 @@ var _ = SIGDescribe("Storage", func() {
 							libvmi.WithNodeAffinityFor(nodeName),
 							// hostdisk needs a privileged namespace
 							libvmi.WithNamespace(testsuite.NamespacePrivileged),
+							libvmi.WithHypervisor("ch"),
+							libvmi.WithAutoattachGraphicsDevice(false),
 						)
 						vmi = libvmops.RunVMIAndExpectLaunch(vmi, 30)
 
@@ -744,6 +759,8 @@ var _ = SIGDescribe("Storage", func() {
 							libvmi.WithNodeAffinityFor(nodeName),
 							// hostdisk needs a privileged namespace
 							libvmi.WithNamespace(testsuite.NamespacePrivileged),
+							libvmi.WithHypervisor("ch"),
+							libvmi.WithAutoattachGraphicsDevice(false),
 						)
 						for i, volume := range vmi.Spec.Volumes {
 							if volume.HostDisk != nil {
@@ -766,6 +783,8 @@ var _ = SIGDescribe("Storage", func() {
 							libvmi.WithHostDisk("host-disk", "/data/unknown.img", "unknown"),
 							// hostdisk needs a privileged namespace
 							libvmi.WithNamespace(testsuite.NamespacePrivileged),
+							libvmi.WithHypervisor("ch"),
+							libvmi.WithAutoattachGraphicsDevice(false),
 						)
 						_, err = virtClient.VirtualMachineInstance(testsuite.GetTestNamespace(vmi)).Create(context.Background(), vmi, metav1.CreateOptions{})
 						Expect(err).To(HaveOccurred())
@@ -805,6 +824,8 @@ var _ = SIGDescribe("Storage", func() {
 							libvmi.WithResourceMemory("256Mi"),
 							libvmi.WithNetwork(v1.DefaultPodNetwork()),
 							libvmi.WithInterface(libvmi.InterfaceDeviceWithMasqueradeBinding()),
+							libvmi.WithHypervisor("ch"),
+							libvmi.WithAutoattachGraphicsDevice(false),
 							libvmi.WithNodeSelectorFor(&k8sv1.Node{ObjectMeta: metav1.ObjectMeta{Name: node}}))
 						vmi = libvmops.RunVMIAndExpectLaunch(vmi, 90)
 
@@ -897,6 +918,8 @@ var _ = SIGDescribe("Storage", func() {
 						libvmi.WithNodeAffinityFor(pod.Spec.NodeName),
 						// hostdisk needs a privileged namespace
 						libvmi.WithNamespace(testsuite.NamespacePrivileged),
+						libvmi.WithHypervisor("ch"),
+						libvmi.WithAutoattachGraphicsDevice(false),
 					)
 					vmi.Spec.Volumes[0].HostDisk.Capacity = resource.MustParse(strconv.Itoa(int(float64(diskSize) * 1.2)))
 					vmi, err := virtClient.VirtualMachineInstance(testsuite.GetTestNamespace(vmi)).Create(context.Background(), vmi, metav1.CreateOptions{})
@@ -924,6 +947,8 @@ var _ = SIGDescribe("Storage", func() {
 						libvmi.WithNodeAffinityFor(pod.Spec.NodeName),
 						// hostdisk needs a privileged namespace
 						libvmi.WithNamespace(testsuite.NamespacePrivileged),
+						libvmi.WithHypervisor("ch"),
+						libvmi.WithAutoattachGraphicsDevice(false),
 					)
 					vmi.Spec.Volumes[0].HostDisk.Capacity = resource.MustParse(strconv.Itoa(int(float64(diskSize) * 1.2)))
 					libvmops.RunVMIAndExpectLaunch(vmi, 30)
@@ -971,6 +996,8 @@ var _ = SIGDescribe("Storage", func() {
 					libvmi.WithResourceMemory("256Mi"),
 					libvmi.WithPersistentVolumeClaim("disk0", dataVolume.Name),
 					libvmi.WithCloudInitNoCloud(libvmifact.WithDummyCloudForFastBoot()),
+					libvmi.WithHypervisor("ch"),
+					libvmi.WithAutoattachGraphicsDevice(false),
 				)
 				vmi = libvmops.RunVMIAndExpectLaunch(vmi, 90)
 
@@ -1017,6 +1044,8 @@ var _ = SIGDescribe("Storage", func() {
 				vmi = libvmi.New(
 					libvmi.WithResourceMemory("128Mi"),
 					libvmi.WithPersistentVolumeClaim("disk0", pvcName),
+					libvmi.WithHypervisor("ch"),
+					libvmi.WithAutoattachGraphicsDevice(false),
 				)
 				vmi, err := virtClient.VirtualMachineInstance(testsuite.GetTestNamespace(vmi)).Create(context.Background(), vmi, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
@@ -1211,6 +1240,8 @@ var _ = SIGDescribe("Storage", func() {
 					libvmi.WithDataVolume("disk0", dv.Name),
 					libvmi.WithResourceMemory("1Gi"),
 					libvmi.WithLabel(labelKey, ""),
+					libvmi.WithHypervisor("ch"),
+					libvmi.WithAutoattachGraphicsDevice(false),
 				)
 				vmi2 = libvmi.New(
 					libvmi.WithInterface(libvmi.InterfaceDeviceWithMasqueradeBinding()),
@@ -1218,6 +1249,8 @@ var _ = SIGDescribe("Storage", func() {
 					libvmi.WithDataVolume("disk0", dv.Name),
 					libvmi.WithResourceMemory("1Gi"),
 					libvmi.WithLabel(labelKey, ""),
+					libvmi.WithHypervisor("ch"),
+					libvmi.WithAutoattachGraphicsDevice(false),
 				)
 
 				vmi1.Spec.Affinity = affinityRule
