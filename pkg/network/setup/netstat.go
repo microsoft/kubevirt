@@ -213,18 +213,8 @@ func ifacesStatusFromDomainInterfaces(domainSpecIfaces []api.Interface) []v1.Vir
 	var vmiStatusIfaces []v1.VirtualMachineInstanceNetworkInterface
 
 	for _, domainSpecIface := range domainSpecIfaces {
-		var ifaceAlias string
-		if domainSpecIface.Alias == nil {
-			// TODO Hermes
-			// Alias is not being persisted in Domain XML
-			// Bug to track https://dev.azure.com/mariner-org/ECF/_queries/edit/4785/?triage=true
-			ifaceAlias = "default"
-		} else {
-			ifaceAlias = domainSpecIface.Alias.GetName()
-		}
-
 		vmiStatusIfaces = append(vmiStatusIfaces, v1.VirtualMachineInstanceNetworkInterface{
-			Name:       ifaceAlias,
+			Name:       domainSpecIface.Alias.GetName(),
 			MAC:        domainSpecIface.MAC.MAC,
 			InfoSource: netvmispec.InfoSourceDomain,
 			QueueCount: domainInterfaceQueues(domainSpecIface.Driver),

@@ -2028,18 +2028,7 @@ func (l *LibvirtDomainManager) buildDevicesMetadata(vmi *v1.VirtualMachineInstan
 	devices := domainSpec.Devices
 	interfaces := devices.Interfaces
 	for _, nic := range interfaces {
-
-		// Remove leading + signs from below lines
-		var ifaceAlias string
-		if nic.Alias == nil {
-			// TODO Hermes Alias is not being persisted in Domain XML
-			// Bug to track https://dev.azure.com/mariner-org/ECF/_queries/edit/4785/?triage=true
-			ifaceAlias = "default"
-		} else {
-			ifaceAlias = nic.Alias.GetName()
-		}
-
-		if data, exist := taggedInterfaces[ifaceAlias]; exist {
+		if data, exist := taggedInterfaces[nic.Alias.GetName()]; exist {
 			var mac string
 			if nic.MAC != nil {
 				mac = nic.MAC.MAC
