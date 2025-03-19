@@ -267,6 +267,9 @@ func requiredCapabilities(vmi *v1.VirtualMachineInstance) []k8sv1.Capability {
 	if !util.IsNonRootVMI(vmi) {
 		// add a CAP_SYS_NICE capability to allow setting cpu affinity
 		capabilities = append(capabilities, CAP_SYS_NICE)
+		// TODO Adding CAP_NET_ADMIN because cloud-hypervisor needs it
+		// Reference: https://github.com/cloud-hypervisor/cloud-hypervisor/tree/main
+		capabilities = append(capabilities, CAP_NET_ADMIN)
 	}
 
 	return capabilities

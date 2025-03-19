@@ -38,8 +38,6 @@ RUN tdnf -y install \
   xorriso \
   procps \
   edk2-cloud-hypervisor \
-  libvirt \
-  libvirt-daemon-driver-ch \
   cloud-hypervisor \
   vim \
   wget \
@@ -57,6 +55,21 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
     # required for OVMF files  \
     tdnf -y install  edk2-aarch64; \
     fi;
+
+# Now install components needed for cloud-hypervisor
+RUN tdnf -y update \
+    && tdnf -y install dnf dnf-plugins-core \
+    && dnf -y builddep libvirt \
+    && tdnf install -y git kernel-headers curl-devel
+
+RUN git config --global http.sslVerify false \
+    && git clone -b controllers_0 https://github.com/harshitgupta1337/libvirt \
+    && cd libvirt/ \
+    && git submodule update --init --recursive subprojects/keycodemapdb/
+
+RUN cd libvirt \
+    && meson build --prefix=/ --libdir=usr/lib -Dapparmor=disabled -Ddocs=disabled -Ddriver_openvz=disabled -Ddriver_vbox=disabled -Ddriver_esx=disabled -Dstorage_iscsi_direct=disabled -Ddriver_qemu=disabled -Ddriver_ch=enabled -Ddriver_qemu=disabled -Dfirewalld=disabled -Dpolkit=disabled \
+    && ninja -C build
 
 RUN  tdnf clean all \
    && cd /var && rm -rf run && ln -s ../run .
@@ -80,6 +93,13 @@ RUN setcap 'cap_net_bind_service=+ep' /usr/bin/virt-launcher
 RUN setcap 'cap_net_bind_service=+ep' /usr/bin/virt-launcher-monitor
 RUN setcap 'cap_net_bind_service=+ep' /usr/bin/cloud-hypervisor
 RUN chmod 0755 /etc/libvirt
+
+RUN cp /libvirt/build/src/virtlogd /usr/sbin/
+RUN cp /libvirt/build/src/virtchd /usr/sbin/
+RUN mkdir -p /usr/lib/libvirt/connection-driver/ && cp /libvirt/build/src/libvirt_driver_ch.so /usr/lib/libvirt/connection-driver/libvirt_driver_ch.so
+RUN cp /libvirt/build/src/libvirtd.conf /etc/libvirt/
+RUN cp /libvirt/build/src/virtchd.conf /etc/libvirt/
+RUN cp /libvirt/src/logging/virtlogd.conf /etc/libvirt/
 
 RUN cp /usr/share/kube-virt/virt-launcher/nsswitch.conf /etc/
 
