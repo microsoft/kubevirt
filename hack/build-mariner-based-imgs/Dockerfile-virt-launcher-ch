@@ -78,6 +78,7 @@ COPY --from=builder /build/cmd/virt-launcher/nsswitch.conf /usr/share/kube-virt/
 # XDG_* directories to /var/run.
 RUN setcap 'cap_net_bind_service=+ep' /usr/bin/virt-launcher
 RUN setcap 'cap_net_bind_service=+ep' /usr/bin/virt-launcher-monitor
+RUN setcap 'cap_net_bind_service=+ep' /usr/bin/cloud-hypervisor
 RUN chmod 0755 /etc/libvirt
 
 RUN cp /usr/share/kube-virt/virt-launcher/nsswitch.conf /etc/
