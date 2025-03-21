@@ -130,7 +130,8 @@ func (s *socketBasedIsolationDetector) AdjustResources(vm *v1.VirtualMachineInst
 			}
 		}
 
-		if matched {
+		// If the process isn't a vmmDaemon (e.g., virtqemud) - continue
+		if !matched {
 			continue
 		}
 
