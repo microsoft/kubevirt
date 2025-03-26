@@ -322,7 +322,7 @@ func startModularLibvirtDaemon(l LibvirtWrapper, stopChan chan struct{}) {
 	go func() {
 		for {
 			exitChan := make(chan struct{})
-			args := []string{"-f", fmt.Sprintf("/etc/libvirt/%s.conf", modularDaemonName)}
+			args := []string{"-f", fmt.Sprintf("/var/run/libvirt/%s.conf", modularDaemonName)}
 			cmd := exec.Command(fmt.Sprintf("/usr/sbin/%s", modularDaemonName), args...)
 			if !l.root() {
 				cmd.SysProcAttr = &syscall.SysProcAttr{
