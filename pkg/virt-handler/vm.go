@@ -1297,15 +1297,10 @@ func (d *VirtualMachineController) updateFSFreezeStatus(vmi *v1.VirtualMachineIn
 }
 
 func IsoGuestVolumePath(vmi *v1.VirtualMachineInstance, namespace, name string, volume *v1.Volume) string {
-	hypervisor := hypervisor.NewHypervisor(vmi.Spec.Hypervisor)
 	const basepath = "/var/run"
 	switch {
 	case volume.CloudInitNoCloud != nil:
-		if hypervisor.SupportsIso() {
-			return filepath.Join(basepath, "kubevirt-ephemeral-disks", "cloud-init-data", namespace, name, "noCloud.iso")
-		} else {
-			return filepath.Join(basepath, "kubevirt-ephemeral-disks", "cloud-init-data", vmi.Namespace, vmi.Name, "noCloud.img")
-		}
+		return filepath.Join(basepath, "kubevirt-ephemeral-disks", "cloud-init-data", namespace, name, "noCloud.iso")
 	case volume.CloudInitConfigDrive != nil:
 		return filepath.Join(basepath, "kubevirt-ephemeral-disks", "cloud-init-data", namespace, name, "configdrive.iso")
 	case volume.ConfigMap != nil:

@@ -672,12 +672,9 @@ func (l *LibvirtDomainManager) generateSomeCloudInitISO(vmi *v1.VirtualMachineIn
 			cloudInitDataStore.DevicesData = &devicesMetadata
 		}
 
-		// Instantiate Hypervisor interface
-		hypervisor := hypervisor.NewHypervisor(vmi.Spec.Hypervisor)
-
 		var err error
 		if size != 0 {
-			err = cloudinit.GenerateEmptyIso(vmi.Name, vmi.Namespace, cloudInitDataStore, size, hypervisor)
+			err = cloudinit.GenerateEmptyIso(vmi.Name, vmi.Namespace, cloudInitDataStore, size)
 		} else {
 			// ClusterInstancetype will take precedence over a namespaced Instancetype
 			// for setting instance_type in the metadata
@@ -686,7 +683,7 @@ func (l *LibvirtDomainManager) generateSomeCloudInitISO(vmi *v1.VirtualMachineIn
 				instancetype = vmi.Annotations[v1.InstancetypeAnnotation]
 			}
 
-			err = cloudinit.GenerateLocalData(vmi, instancetype, cloudInitDataStore, hypervisor)
+			err = cloudinit.GenerateLocalData(vmi, instancetype, cloudInitDataStore)
 		}
 		if err != nil {
 			return fmt.Errorf("generating local cloud-init data failed: %v", err)
