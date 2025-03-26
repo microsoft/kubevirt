@@ -48,6 +48,9 @@ type Hypervisor interface {
 	// Return the default kernel path and initrd path for the hypervisor
 	// If default kernel is not needed return "", ""
 	GetDefaultKernelPath() (string, string)
+
+	// Return the domain type in Libvirt domain XML
+	GetDomainType() string
 }
 
 // Define QemuHypervisor struct that implements the Hypervisor interface
@@ -55,6 +58,11 @@ type QemuHypervisor struct {
 }
 
 type CloudHypervisor struct {
+}
+
+// Implement GetDomainType method for QemuHypervisor
+func (q *QemuHypervisor) GetDomainType() string {
+	return "kvm"
 }
 
 // Implement SupportsMemoryBallooning method for QemuHypervisor
@@ -188,6 +196,11 @@ func (c *CloudHypervisor) GetHypervisorOverhead() string {
 // Implement GetDefaultKernelPath method for CloudHypervisor
 func (c *CloudHypervisor) GetDefaultKernelPath() (string, string) {
 	return "/usr/share/cloud-hypervisor/CLOUDHV_EFI.fd", ""
+}
+
+// Implement GetDomainType method for CloudHypervisor
+func (c *CloudHypervisor) GetDomainType() string {
+	return "hyperv"
 }
 
 func NewHypervisor(hypervisor string) Hypervisor {
