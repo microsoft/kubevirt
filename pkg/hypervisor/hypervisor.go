@@ -193,7 +193,7 @@ func (c *CloudHypervisor) GetHypervisorOverhead() string {
 }
 
 func (c *CloudHypervisor) SupportsIso() bool {
-	return false
+	return true
 }
 
 // Implement GetDefaultKernelPath method for CloudHypervisor
