@@ -23,9 +23,6 @@ type Hypervisor interface {
 	// The `ps` RSS for vmm, minus the RAM of its (stressed) guest, minus the virtual page table
 	GetHypervisorOverhead() string
 
-	// Return true if the hypervisor supports ISO files
-	SupportsIso() bool
-
 	// Return the K8s device name that should be exposed for the hypervisor,
 	// e.g., devices.kubevirt.io/kvm for QEMU and devices.kubevirt.io/mshv for Cloud Hypervisor
 	GetHypervisorDevice() string
@@ -122,10 +119,6 @@ func (q *QemuHypervisor) GetHypervisorOverhead() string {
 	return "30Mi"
 }
 
-func (q *QemuHypervisor) SupportsIso() bool {
-	return true
-}
-
 // Implement GetDefaultKernelPath method for QemuHypervisor
 func (q *QemuHypervisor) GetDefaultKernelPath() (string, string) {
 	return "", ""
@@ -190,10 +183,6 @@ func (c *CloudHypervisor) GetHypervisorDaemonOverhead() string {
 // Implement GetHypervisorOverhead method for CloudHypervisor
 func (c *CloudHypervisor) GetHypervisorOverhead() string {
 	return "30Mi"
-}
-
-func (c *CloudHypervisor) SupportsIso() bool {
-	return true
 }
 
 // Implement GetDefaultKernelPath method for CloudHypervisor
