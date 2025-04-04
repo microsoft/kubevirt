@@ -348,7 +348,9 @@ func startModularLibvirtDaemon(l LibvirtWrapper, stopChan chan struct{}) {
 
 			go func() {
 				defer close(exitChan)
-				cmd.Wait()
+				if err := cmd.Wait(); err != nil {
+					log.Log.Reason(err).Error("libvirt daemon process exited with error")
+				}
 			}()
 
 			select {
