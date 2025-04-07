@@ -49,8 +49,8 @@ type Hypervisor interface {
 	// If default kernel is not needed return "", ""
 	GetDefaultKernelPath() (string, string)
 
-  // Get the domain type for Libvirt domain XML
-  GetDomainType() string
+	// Get the domain type for Libvirt domain XML
+	GetDomainType() string
 }
 
 // Define QemuHypervisor struct that implements the Hypervisor interface
@@ -76,7 +76,7 @@ func (q *QemuHypervisor) GetDiskDriver() string {
 }
 
 func (q *QemuHypervisor) GetDomainType() string {
-  return "kvm"
+	return "kvm"
 }
 
 // Implement GetLibvirtSocketPath method for QemuHypervisor
@@ -198,7 +198,7 @@ func (c *CloudHypervisor) GetDefaultKernelPath() (string, string) {
 }
 
 func (c *CloudHypervisor) GetDomainType() string {
-  return "hyperv"
+	return "hyperv"
 }
 
 func NewHypervisor(hypervisor string) Hypervisor {
