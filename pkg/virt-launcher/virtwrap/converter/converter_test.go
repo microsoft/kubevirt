@@ -31,6 +31,7 @@ import (
 	"strconv"
 	"strings"
 
+	"kubevirt.io/kubevirt/pkg/util"
 	"kubevirt.io/kubevirt/pkg/util/hardware"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/vcpu"
 
@@ -44,7 +45,6 @@ import (
 	"k8s.io/utils/pointer"
 
 	"kubevirt.io/kubevirt/pkg/virt-api/webhooks"
-	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 
 	"kubevirt.io/kubevirt/pkg/downwardmetrics"
 	"kubevirt.io/kubevirt/pkg/ephemeral-disk/fake"
@@ -1298,10 +1298,10 @@ var _ = Describe("Converter", func() {
 			func(toDefineVerbosityEnvVariable bool, virtLauncherLogVerbosity int, shouldEnableDebugLogs bool) {
 
 				if toDefineVerbosityEnvVariable {
-					Expect(os.Setenv(services.ENV_VAR_VIRT_LAUNCHER_LOG_VERBOSITY, strconv.Itoa(virtLauncherLogVerbosity))).
+					Expect(os.Setenv(util.ENV_VAR_VIRT_LAUNCHER_LOG_VERBOSITY, strconv.Itoa(virtLauncherLogVerbosity))).
 						To(Succeed())
 					defer func() {
-						Expect(os.Unsetenv(services.ENV_VAR_VIRT_LAUNCHER_LOG_VERBOSITY)).To(Succeed())
+						Expect(os.Unsetenv(util.ENV_VAR_VIRT_LAUNCHER_LOG_VERBOSITY)).To(Succeed())
 					}()
 				}
 

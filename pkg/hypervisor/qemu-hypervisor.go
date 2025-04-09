@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"kubevirt.io/client-go/log"
+
 	"kubevirt.io/kubevirt/pkg/util"
 )
 

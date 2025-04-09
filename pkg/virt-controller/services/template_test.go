@@ -608,7 +608,7 @@ var _ = Describe("Template", func() {
 				Expect(pod.Spec.Containers).To(HaveLen(1))
 				debugLogsValue := ""
 				for _, ev := range pod.Spec.Containers[0].Env {
-					if ev.Name == ENV_VAR_LIBVIRT_DEBUG_LOGS {
+					if ev.Name == util.ENV_VAR_LIBVIRT_DEBUG_LOGS {
 						debugLogsValue = ev.Value
 						break
 					}
@@ -640,7 +640,7 @@ var _ = Describe("Template", func() {
 				Expect(pod.Spec.Containers).To(HaveLen(1))
 				debugLogsValue := ""
 				for _, ev := range pod.Spec.Containers[0].Env {
-					if ev.Name == ENV_VAR_LIBVIRT_DEBUG_LOGS {
+					if ev.Name == util.ENV_VAR_LIBVIRT_DEBUG_LOGS {
 						debugLogsValue = ev.Value
 						break
 					}

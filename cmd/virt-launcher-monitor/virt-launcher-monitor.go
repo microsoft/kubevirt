@@ -39,8 +39,8 @@ import (
 	"golang.org/x/sys/unix"
 	"kubevirt.io/client-go/log"
 
+	hypervisorInterface "kubevirt.io/kubevirt/pkg/hypervisor"
 	"kubevirt.io/kubevirt/pkg/util"
-	virtWrap "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/util"
 )
 
 const (
@@ -135,7 +135,7 @@ func main() {
 		}
 	}
 
-	libvirtWrapper := virtWrap.NewLibvirtWrapper(*runWithNonRoot, *hypervisor)
+	libvirtWrapper := hypervisorInterface.NewHypervisorWithUser(*hypervisor, *runWithNonRoot)
 
 	exitCode, err := RunAndMonitor(*containerDiskDir, *uid, libvirtWrapper)
 	if *keepAfterFailure && (exitCode != 0 || err != nil) {
@@ -153,7 +153,7 @@ func main() {
 
 // RunAndMonitor run virt-launcher process and monitor it to give qemu an extra grace period to properly terminate
 // in case of crashes
-func RunAndMonitor(containerDiskDir, uid string, libvirtWrapper virtWrap.LibvirtWrapper) (int, error) {
+func RunAndMonitor(containerDiskDir, uid string, hypervisor hypervisorInterface.Hypervisor) (int, error) {
 	defer removeSerialConsoleTermFile(uid)
 	defer cleanupContainerDiskDirectory(containerDiskDir)
 	defer terminateIstioProxy()
@@ -223,7 +223,7 @@ func RunAndMonitor(containerDiskDir, uid string, libvirtWrapper virtWrap.Libvirt
 
 	dumpLogFile(passtLogFile)
 
-	potentialProcessCommandPrefixes := libvirtWrapper.GetHypervisorCommandPrefix()
+	potentialProcessCommandPrefixes := hypervisor.GetHypervisorCommandPrefix()
 
 	// Iterate through the array potentialProcessCommandPrefixes and check if the process is still running
 

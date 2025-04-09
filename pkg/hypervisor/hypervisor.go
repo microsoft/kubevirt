@@ -16,6 +16,7 @@ import (
 
 	"golang.org/x/sys/unix"
 	"kubevirt.io/client-go/log"
+
 	"kubevirt.io/kubevirt/pkg/util"
 )
 
@@ -76,6 +77,12 @@ type Hypervisor interface {
 	// Setup libvirt for hosting the virtual machine. This function is called during the startup of the virt-launcher.
 	SetupLibvirt(customLogFilters *string) (err error)
 
+	// Start the libvirt daemon, either in modular mode or monolithic mode
+	StartHypervisorDaemon(stopChan chan struct{})
+
+	// Start the virtlogd daemon, which is used to capture logs from the hypervisor
+	StartVirtlog(stopChan chan struct{}, domainName string)
+
 	GetVmm() string
 
 	root() bool
@@ -98,7 +105,14 @@ func NewHypervisor(hypervisor string) Hypervisor {
 
 func NewHypervisorWithUser(hypervisor string, nonRoot bool) Hypervisor {
 	if hypervisor == "qemu" {
-		return &QemuHypervisor{}
+		if nonRoot {
+			return &QemuHypervisor{
+				user: util.NonRootUID,
+			}
+		}
+		return &QemuHypervisor{
+			user: util.RootUser,
+		}
 	} else if hypervisor == "ch" {
 		return &CloudHypervisor{hypervisor, util.RootUser}
 	} else {

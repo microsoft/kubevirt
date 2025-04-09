@@ -10,8 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"libvirt.org/go/libvirt"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter"
-
 	v1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/log"
 
@@ -20,7 +18,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 )
 
-const QEMUSeaBiosDebugPipe = converter.QEMUSeaBiosDebugPipe
 const (
 	vmmConfPathPattern              = "/etc/libvirt/%s.conf"
 	vmmModularDaemonConfPathPattern = "/etc/libvirt/%s.conf"
@@ -79,15 +76,6 @@ var PausedReasonTranslationMap = map[libvirt.DomainPausedReason]api.StateChangeR
 }
 
 var getHookManager = hooks.GetManager
-
-// This interface exposes functions used by virt-launcher to start and configure libvirt. The implementation varies for different hypervisors.
-type LibvirtWrapper interface {
-
-	// Return a list of potential prefixes of the specific hypervisor's process, e.g., qemu-system or cloud-hypervisor
-	GetHypervisorCommandPrefix() []string
-	// Start the virtlogd daemon, which is used to capture logs from the hypervisor
-	StartVirtlog(stopChan chan struct{}, domainName string)
-}
 
 func ConvState(status libvirt.DomainState) api.LifeCycle {
 	return LifeCycleTranslationMap[status]
