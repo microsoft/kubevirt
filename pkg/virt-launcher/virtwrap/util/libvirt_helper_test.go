@@ -14,7 +14,7 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	"kubevirt.io/kubevirt/pkg/hooks"
-	"kubevirt.io/kubevirt/pkg/virt-controller/services"
+	"kubevirt.io/kubevirt/pkg/util"
 
 	"github.com/go-kit/kit/log"
 	"github.com/golang/mock/gomock"
@@ -24,6 +24,7 @@ import (
 	kubevirtlog "kubevirt.io/client-go/log"
 
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
+	"kubevirt.io/kubevirt/pkg/hypervisor"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter"
@@ -278,7 +279,7 @@ var _ = Describe("LibvirtHelper", func() {
 		DescribeTable("should return customLogFilters if defined and not empty with", func(libvirtLogVerbosityEnvVar *string, libvirtDebugLogsEnvVarDefined bool) {
 			customLogFilters := pointer.String("3:remote 4:event 3:util.json 3:util.object 3:util.dbus 3:util.netlink 3:node_device 3:rpc 3:access")
 
-			logFilters, enableDebugLogs := getLibvirtLogFilters(customLogFilters, libvirtLogVerbosityEnvVar, libvirtDebugLogsEnvVarDefined)
+			logFilters, enableDebugLogs := hypervisor.GetLibvirtLogFilters(customLogFilters, libvirtLogVerbosityEnvVar, libvirtDebugLogsEnvVarDefined)
 			Expect(enableDebugLogs).To(BeTrue())
 			Expect(logFilters).To(Equal(*customLogFilters))
 		},
@@ -290,10 +291,10 @@ var _ = Describe("LibvirtHelper", func() {
 
 		Context("with customLogFilters not defined", func() {
 
-			const verbosityThreshold = services.EXT_LOG_VERBOSITY_THRESHOLD
+			const verbosityThreshold = util.EXT_LOG_VERBOSITY_THRESHOLD
 
 			DescribeTable("logs should be enabled if debugLogs env var is defined when", func(libvirtLogVerbosityEnvVar *string) {
-				_, enableDebugLogs := getLibvirtLogFilters(nil, libvirtLogVerbosityEnvVar, true)
+				_, enableDebugLogs := hypervisor.GetLibvirtLogFilters(nil, libvirtLogVerbosityEnvVar, true)
 				Expect(enableDebugLogs).To(BeTrue())
 			},
 				Entry("libvirtLogVerbosityEnvVar defined to 8", pointer.String("8")),
@@ -308,7 +309,7 @@ var _ = Describe("LibvirtHelper", func() {
 					libvirtLogVerbosityEnvVar = pointer.String(fmt.Sprintf("%d", *libvirtLogVerbosity))
 				}
 
-				_, enableDebugLogs := getLibvirtLogFilters(nil, libvirtLogVerbosityEnvVar, false)
+				_, enableDebugLogs := hypervisor.GetLibvirtLogFilters(nil, libvirtLogVerbosityEnvVar, false)
 				Expect(enableDebugLogs).To(Equal(expectedEnableDebugLogs))
 			},
 				Entry("be disabled when libvirt log verbosity is below threshold", pointer.Int(verbosityThreshold-1), false),

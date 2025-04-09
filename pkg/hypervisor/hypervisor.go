@@ -152,7 +152,7 @@ func setupLibvirt(l Hypervisor, customLogFilters *string, shouldConfigureVmmConf
 	}
 	_, libvirtDebugLogsEnvVarDefined := os.LookupEnv(util.ENV_VAR_LIBVIRT_DEBUG_LOGS)
 
-	if logFilters, enableDebugLogs := getLibvirtLogFilters(customLogFilters, libvirtLogVerbosityEnvVar, libvirtDebugLogsEnvVarDefined); enableDebugLogs {
+	if logFilters, enableDebugLogs := GetLibvirtLogFilters(customLogFilters, libvirtLogVerbosityEnvVar, libvirtDebugLogsEnvVarDefined); enableDebugLogs {
 		virtqemudConf, err := os.OpenFile(runtimeVmmDaemonConfPath, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
@@ -210,14 +210,14 @@ func configureVmmConf(vmmConfFilename string) (err error) {
 	return nil
 }
 
-// getLibvirtLogFilters returns libvirt debug log filters that should be enabled if enableDebugLogs is true.
+// GetLibvirtLogFilters returns libvirt debug log filters that should be enabled if enableDebugLogs is true.
 // The decision is based on the following logic:
 //   - If custom log filters are defined - they should be enabled and used.
 //   - If verbosity is defined and beyond threshold then debug logs would be enabled and determined by verbosity level
 //   - If verbosity level is below threshold but debug logs environment variable is defined, debug logs would be enabled
 //     and set to the highest verbosity level.
 //   - If verbosity level is below threshold and debug logs environment variable is not defined - debug logs are disabled.
-func getLibvirtLogFilters(customLogFilters, libvirtLogVerbosityEnvVar *string, libvirtDebugLogsEnvVarDefined bool) (logFilters string, enableDebugLogs bool) {
+func GetLibvirtLogFilters(customLogFilters, libvirtLogVerbosityEnvVar *string, libvirtDebugLogsEnvVarDefined bool) (logFilters string, enableDebugLogs bool) {
 
 	if customLogFilters != nil && *customLogFilters != "" {
 		return *customLogFilters, true
