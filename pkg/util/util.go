@@ -37,6 +37,12 @@ const (
 	memoryDumpOverhead = 100 * 1024 * 1024
 
 	UnprivilegedContainerSELinuxLabel = "system_u:object_r:container_file_t:s0"
+
+	// extensive log verbosity threshold after which libvirt debug logs will be enabled
+	EXT_LOG_VERBOSITY_THRESHOLD         = 5
+	ENV_VAR_LIBVIRT_DEBUG_LOGS          = "LIBVIRT_DEBUG_LOGS"
+	ENV_VAR_VIRTIOFSD_DEBUG_LOGS        = "VIRTIOFSD_DEBUG_LOGS"
+	ENV_VAR_VIRT_LAUNCHER_LOG_VERBOSITY = "VIRT_LAUNCHER_LOG_VERBOSITY"
 )
 
 func IsNonRootVMI(vmi *v1.VirtualMachineInstance) bool {

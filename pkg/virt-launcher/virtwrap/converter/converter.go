@@ -76,8 +76,7 @@ const deviceTypeNotCompatibleFmt = "device %s is of type lun. Not compatible wit
 const defaultIOThread = uint(1)
 
 const (
-	multiQueueMaxQueues  = uint32(256)
-	QEMUSeaBiosDebugPipe = "/var/run/kubevirt-private/QEMUSeaBiosDebugPipe"
+	multiQueueMaxQueues = uint32(256)
 )
 
 var (
@@ -1859,14 +1858,14 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 	}
 
 	if isAMD64(c.Architecture) {
-		virtLauncherLogVerbosity, err := strconv.Atoi(os.Getenv(services.ENV_VAR_VIRT_LAUNCHER_LOG_VERBOSITY))
-		if err == nil && virtLauncherLogVerbosity > services.EXT_LOG_VERBOSITY_THRESHOLD {
+		virtLauncherLogVerbosity, err := strconv.Atoi(os.Getenv(util.ENV_VAR_VIRT_LAUNCHER_LOG_VERBOSITY))
+		if err == nil && virtLauncherLogVerbosity > util.EXT_LOG_VERBOSITY_THRESHOLD {
 			// isa-debugcon device is only for x86_64
 			initializeQEMUCmdAndQEMUArg(domain)
 
 			domain.Spec.QEMUCmd.QEMUArg = append(domain.Spec.QEMUCmd.QEMUArg,
 				api.Arg{Value: "-chardev"},
-				api.Arg{Value: fmt.Sprintf("file,id=firmwarelog,path=%s", QEMUSeaBiosDebugPipe)},
+				api.Arg{Value: fmt.Sprintf("file,id=firmwarelog,path=%s", hypervisor.QEMUSeaBiosDebugPipe)},
 				api.Arg{Value: "-device"},
 				api.Arg{Value: "isa-debugcon,iobase=0x402,chardev=firmwarelog"})
 		}

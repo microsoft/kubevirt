@@ -1,11 +1,17 @@
 package hypervisor
 
-import "regexp"
+import (
+	"regexp"
+
+	"kubevirt.io/kubevirt/pkg/util"
+)
 
 // TODO These global variables should be changed to accessor functions in the Hypervisor interface
 var HypervisorDaemonExecutables []string = []string{"virtqemud", "virtchd"}
 
 type CloudHypervisor struct {
+	vmm  string
+	user uint32
 }
 
 // Implement SupportsMemoryBallooning method for CloudHypervisor
@@ -72,4 +78,40 @@ func (c *CloudHypervisor) GetHypervisorOverhead() string {
 // Implement GetDefaultKernelPath method for CloudHypervisor
 func (c *CloudHypervisor) GetDefaultKernelPath() (string, string) {
 	return "/usr/share/cloud-hypervisor/CLOUDHV_EFI.fd", ""
+}
+
+func (c *CloudHypervisor) SetupLibvirt(customLogFilters *string) (err error) {
+	return setupLibvirt(c, customLogFilters, false)
+}
+
+func (c *CloudHypervisor) GetVmm() string {
+	return "ch"
+}
+
+func (c *CloudHypervisor) root() bool {
+	return c.user == util.RootUser
+}
+
+func (c *CloudHypervisor) GetModularDaemonName() string {
+	return "virtchd"
+}
+
+func (c *CloudHypervisor) StartHypervisorDaemon(stopChan chan struct{}) {
+	startModularLibvirtDaemon(c, stopChan)
+}
+
+func (c *CloudHypervisor) GetPidDir() string {
+	return "/run/libvirt/ch"
+}
+
+func (c *CloudHypervisor) GetLibvirtUriAndUser() (string, string) {
+	return "ch:///system", ""
+}
+
+func (c *CloudHypervisor) GetHypervisorCommandPrefix() []string {
+	return []string{"cloud-hypervisor"}
+}
+
+func (l *CloudHypervisor) StartVirtlog(stopChan chan struct{}, domainName string) {
+	go startVirtlogdLogging("/usr/sbin/virtlogd", stopChan, domainName, l.user != util.RootUser)
 }
