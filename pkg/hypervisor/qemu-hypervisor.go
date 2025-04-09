@@ -37,6 +37,11 @@ func (q *QemuHypervisor) GetDiskDriver() string {
 	return "qemu"
 }
 
+// Implement GetDomainType method for QemuHypervisor
+func (c *QemuHypervisor) GetDomainType() string {
+	return "kvm"
+}
+
 // Implement GetLibvirtSocketPath method for QemuHypervisor
 func (q *QemuHypervisor) GetLibvirtSocketPath() string {
 	return "libvirt/libvirt-sock"

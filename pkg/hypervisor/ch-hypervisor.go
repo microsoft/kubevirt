@@ -29,6 +29,11 @@ func (c *CloudHypervisor) GetDiskDriver() string {
 	return "raw"
 }
 
+// Implement GetDomainType method for CloudHypervisor
+func (c *CloudHypervisor) GetDomainType() string {
+	return "hyperv"
+}
+
 // Implement GetLibvirtSocketPath method for CloudHypervisor
 func (c *CloudHypervisor) GetLibvirtSocketPath() string {
 	return "libvirt/ch-sock" // TODO: Check this
