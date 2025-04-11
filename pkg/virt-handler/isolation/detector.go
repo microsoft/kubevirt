@@ -130,7 +130,7 @@ func (s *socketBasedIsolationDetector) AdjustResources(vm *v1.VirtualMachineInst
 			}
 		}
 
-		if matched {
+		if !matched {
 			continue
 		}
 
