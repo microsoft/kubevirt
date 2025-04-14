@@ -37,11 +37,11 @@ import (
 
 const QEMUSeaBiosDebugPipe = converter.QEMUSeaBiosDebugPipe
 const (
-	qemuConfPath        = "/etc/libvirt/qemu.conf"
-	virtqemudConfPath   = "/etc/libvirt/virtqemud.conf"
-	libvirtRuntimePath  = "/var/run/libvirt"
-	libvirtHomePath     = "/var/run/kubevirt-private/libvirt"
-	qemuNonRootConfPath = libvirtHomePath + "/qemu.conf"
+	vmmConfPathPattern              = "/etc/libvirt/%s.conf"
+	vmmModularDaemonConfPathPattern = "/etc/libvirt/%s.conf"
+	libvirtRuntimePath              = "/var/run/libvirt"
+	libvirtHomePath                 = "/var/run/kubevirt-private/libvirt"
+	vmmNonRootConfPathPattern       = libvirtHomePath + "/%s.conf"
 )
 
 var LifeCycleTranslationMap = map[libvirt.DomainState]api.LifeCycle{
@@ -113,6 +113,8 @@ type LibvirtWrapper interface {
 	GetPidDir() string
 	// Return the modular libvirt daemon for the hypervisor
 	GetModularDaemonName() string
+	// Return the VMM name
+	GetVmm() string
 }
 
 type QemuLibvirtWrapper struct {
@@ -153,6 +155,10 @@ func (q *QemuLibvirtWrapper) GetModularDaemonName() string {
 	return "virtqemud"
 }
 
+func (q *QemuLibvirtWrapper) GetVmm() string {
+	return "qemu"
+}
+
 func (c *CloudHypervisorLibvirtWrapper) GetPidDir() string {
 	return "/run/libvirt/ch"
 }
@@ -169,13 +175,16 @@ func (c *CloudHypervisorLibvirtWrapper) StartHypervisorDaemon(stopChan chan stru
 	startModularLibvirtDaemon(c, stopChan)
 }
 
+func (c *CloudHypervisorLibvirtWrapper) GetVmm() string {
+	return "ch"
+}
+
 type CloudHypervisorLibvirtWrapper struct {
 	user uint32
 }
 
-func (l CloudHypervisorLibvirtWrapper) SetupLibvirt(customLogFilters *string) (err error) {
-	// TODO Need to implement this function
-	return nil
+func (l *CloudHypervisorLibvirtWrapper) SetupLibvirt(customLogFilters *string) (err error) {
+	return setupLibvirt(l, customLogFilters, false)
 }
 
 func (c *CloudHypervisorLibvirtWrapper) GetModularDaemonName() string {
@@ -479,12 +488,12 @@ func startQEMUSeaBiosLogging(stopChan chan struct{}) {
 	}
 }
 
-func (l QemuLibvirtWrapper) StartVirtlog(stopChan chan struct{}, domainName string) {
+func (l *QemuLibvirtWrapper) StartVirtlog(stopChan chan struct{}, domainName string) {
 	go startVirtlogdLogging("/usr/sbin/virtlogd", stopChan, domainName, l.user != util.RootUser)
 	go startQEMUSeaBiosLogging(stopChan)
 }
 
-func (l CloudHypervisorLibvirtWrapper) StartVirtlog(stopChan chan struct{}, domainName string) { // TODO No need for this function when the path to virtlogd has been made consistent with QEMU
+func (l *CloudHypervisorLibvirtWrapper) StartVirtlog(stopChan chan struct{}, domainName string) { // TODO No need for this function when the path to virtlogd has been made consistent with QEMU
 	go startVirtlogdLogging("/usr/sbin/virtlogd", stopChan, domainName, l.user != util.RootUser)
 }
 
@@ -530,23 +539,23 @@ func NewDomainFromName(name string, vmiUID types.UID) *api.Domain {
 	return domain
 }
 
-func configureQemuConf(qemuFilename string) (err error) {
-	qemuConf, err := os.OpenFile(qemuFilename, os.O_APPEND|os.O_WRONLY, 0644)
+func configureVmmConf(vmmConfFilename string) (err error) {
+	vmmConf, err := os.OpenFile(vmmConfFilename, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
-	defer util.CloseIOAndCheckErr(qemuConf, &err)
+	defer util.CloseIOAndCheckErr(vmmConf, &err)
 
 	// If hugepages exist, tell libvirt about them
 	_, err = os.Stat("/dev/hugepages")
 	if err == nil {
-		_, err = qemuConf.WriteString("hugetlbfs_mount = \"/dev/hugepages\"\n")
+		_, err = vmmConf.WriteString("hugetlbfs_mount = \"/dev/hugepages\"\n")
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 
 	if envVarValue, ok := os.LookupEnv("VIRTIOFSD_DEBUG_LOGS"); ok && (envVarValue == "1") {
-		_, err = qemuConf.WriteString("virtiofsd_debug = 1\n")
+		_, err = vmmConf.WriteString("virtiofsd_debug = 1\n")
 		if err != nil {
 			return err
 		}
@@ -571,25 +580,29 @@ func copyFile(from, to string) error {
 	return err
 }
 
-func (l QemuLibvirtWrapper) SetupLibvirt(customLogFilters *string) (err error) {
-	runtimeQemuConfPath := qemuConfPath
-	if !l.root() {
-		runtimeQemuConfPath = qemuNonRootConfPath
+func setupLibvirt(l LibvirtWrapper, customLogFilters *string, shouldConfigureVmmConf bool) (err error) {
+	if shouldConfigureVmmConf {
+		vmmConfPath := fmt.Sprintf(vmmConfPathPattern, l.GetVmm())
+		runtimeVmmConfPath := vmmConfPath
+		if !l.root() {
+			runtimeVmmConfPath = fmt.Sprintf(vmmNonRootConfPathPattern, l.GetVmm())
 
-		if err := os.MkdirAll(libvirtHomePath, 0755); err != nil {
-			return err
+			if err := os.MkdirAll(libvirtHomePath, 0755); err != nil {
+				return err
+			}
+			if err := copyFile(vmmConfPath, runtimeVmmConfPath); err != nil {
+				return err
+			}
 		}
-		if err := copyFile(qemuConfPath, runtimeQemuConfPath); err != nil {
+
+		if err := configureVmmConf(runtimeVmmConfPath); err != nil {
 			return err
 		}
 	}
 
-	if err := configureQemuConf(runtimeQemuConfPath); err != nil {
-		return err
-	}
-
-	runtimeVirtqemudConfPath := path.Join(libvirtRuntimePath, "virtqemud.conf")
-	if err := copyFile(virtqemudConfPath, runtimeVirtqemudConfPath); err != nil {
+	runtimeVmmDaemonConfPath := path.Join(libvirtRuntimePath, fmt.Sprintf("%s.conf", l.GetModularDaemonName()))
+	vmmModularDaemonConfPath := fmt.Sprintf(vmmModularDaemonConfPathPattern, l.GetModularDaemonName())
+	if err := copyFile(vmmModularDaemonConfPath, runtimeVmmDaemonConfPath); err != nil {
 		return err
 	}
 
@@ -600,7 +613,7 @@ func (l QemuLibvirtWrapper) SetupLibvirt(customLogFilters *string) (err error) {
 	_, libvirtDebugLogsEnvVarDefined := os.LookupEnv(services.ENV_VAR_LIBVIRT_DEBUG_LOGS)
 
 	if logFilters, enableDebugLogs := getLibvirtLogFilters(customLogFilters, libvirtLogVerbosityEnvVar, libvirtDebugLogsEnvVarDefined); enableDebugLogs {
-		virtqemudConf, err := os.OpenFile(runtimeVirtqemudConfPath, os.O_APPEND|os.O_WRONLY, 0644)
+		virtqemudConf, err := os.OpenFile(runtimeVmmDaemonConfPath, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
@@ -614,6 +627,10 @@ func (l QemuLibvirtWrapper) SetupLibvirt(customLogFilters *string) (err error) {
 	}
 
 	return nil
+}
+
+func (l *QemuLibvirtWrapper) SetupLibvirt(customLogFilters *string) (err error) {
+	return setupLibvirt(l, customLogFilters, true)
 }
 
 // getLibvirtLogFilters returns libvirt debug log filters that should be enabled if enableDebugLogs is true.
@@ -675,10 +692,10 @@ func getLibvirtLogFilters(customLogFilters, libvirtLogVerbosityEnvVar *string, l
 	return logFilters + allowAllOtherCategories, true
 }
 
-func (l QemuLibvirtWrapper) root() bool {
+func (l *QemuLibvirtWrapper) root() bool {
 	return l.user == util.RootUser
 }
 
-func (l CloudHypervisorLibvirtWrapper) root() bool {
+func (l *CloudHypervisorLibvirtWrapper) root() bool {
 	return l.user == util.RootUser
 }

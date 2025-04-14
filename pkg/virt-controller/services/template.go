@@ -44,7 +44,6 @@ import (
 
 	containerdisk "kubevirt.io/kubevirt/pkg/container-disk"
 	"kubevirt.io/kubevirt/pkg/hooks"
-	"kubevirt.io/kubevirt/pkg/hypervisor"
 	metrics "kubevirt.io/kubevirt/pkg/monitoring/metrics/virt-controller"
 	"kubevirt.io/kubevirt/pkg/network/downwardapi"
 	"kubevirt.io/kubevirt/pkg/network/istio"
@@ -87,6 +86,7 @@ const qemuTimeoutJitterRange = 120
 const (
 	CAP_NET_BIND_SERVICE = "NET_BIND_SERVICE"
 	CAP_SYS_NICE         = "SYS_NICE"
+	CAP_NET_ADMIN        = "NET_ADMIN"
 )
 
 // LibvirtStartupDelay is added to custom liveness and readiness probes initial delay value.
@@ -738,9 +738,7 @@ func (t *templateService) newContainerSpecRenderer(vmi *v1.VirtualMachineInstanc
 		computeContainerOpts = append(computeContainerOpts, WithDropALLCapabilities())
 	}
 
-	hypervisor := hypervisor.NewHypervisor(vmi.Spec.Hypervisor)
-
-	if t.IsPPC64() || hypervisor.ShouldRunPrivileged() {
+	if t.IsPPC64() {
 		computeContainerOpts = append(computeContainerOpts, WithPrivileged())
 	}
 

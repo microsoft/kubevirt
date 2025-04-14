@@ -801,7 +801,7 @@ func Convert_v1_CloudInitSource_To_api_Disk(source v1.VolumeSource, disk *api.Di
 		return fmt.Errorf("Only nocloud and configdrive are valid cloud-init volumes")
 	}
 
-	disk.Source.File = cloudinit.GetCloudInitFilePath(dataSource, c.VirtualMachine.Name, c.VirtualMachine.Namespace, c.Hypervisor)
+	disk.Source.File = cloudinit.GetIsoFilePath(dataSource, c.VirtualMachine.Name, c.VirtualMachine.Namespace)
 	disk.Type = "file"
 	disk.Driver.Type = "raw"
 	disk.Driver.ErrorPolicy = v1.DiskErrorPolicyStop
@@ -1322,7 +1322,7 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 	hypervisorKubeVirtDevice := strings.TrimPrefix(c.Hypervisor.GetHypervisorDevice(), "devices.kubevirt.io/")
 	hypervisorPath := fmt.Sprintf("/dev/%s", hypervisorKubeVirtDevice)
 
-	domain.Spec.Type = "hyperv" // TODO Refactor to use hypervisor type from hypervisor
+	domain.Spec.Type = c.Hypervisor.GetDomainType()
 
 	if softwareEmulation, err := util.UseSoftwareEmulationForDevice(hypervisorPath, c.AllowEmulation); err != nil {
 		return err
@@ -1788,20 +1788,17 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 		})
 
 		var serialPort uint = 0
+		var virtioType string = "virtio"
 
-		/* Cloud-Hypervisor does not support serial console
-		Tracked by this bug: https://dev.azure.com/mariner-org/ECF/_workitems/edit/9044
-
-		var serialType string = "serial"
 		domain.Spec.Devices.Consoles = []api.Console{
 			{
 				Type: "pty",
 				Target: &api.ConsoleTarget{
-					Type: &serialType,
+					Type: &virtioType,
 					Port: &serialPort,
 				},
 			},
-		}*/
+		}
 
 		socketPath := fmt.Sprintf("%s/%s/virt-serial%d", util.VirtPrivateDir, vmi.ObjectMeta.UID, serialPort)
 		domain.Spec.Devices.Serials = []api.Serial{
