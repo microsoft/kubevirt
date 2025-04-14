@@ -144,7 +144,7 @@ func (q *QemuLibvirtWrapper) GetHypervisorCommandPrefix() []string {
 func (q *QemuLibvirtWrapper) GetLibvirtUriAndUser() (string, string) {
 	libvirtUri := "qemu:///system"
 	user := ""
-	if q.root() {
+	if !q.root() {
 		user = putil.NonRootUserString
 		libvirtUri = "qemu+unix:///session?socket=/var/run/libvirt/virtqemud-sock"
 	}
