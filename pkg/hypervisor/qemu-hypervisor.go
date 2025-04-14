@@ -18,7 +18,6 @@ const QEMUSeaBiosDebugPipe = "/var/run/kubevirt-private/QEMUSeaBiosDebugPipe"
 
 // Define QemuHypervisor struct that implements the Hypervisor interface
 type QemuHypervisor struct {
-	vmm  string
 	user uint32
 }
 
@@ -102,7 +101,7 @@ func (q *QemuHypervisor) GetVmm() string {
 	return "qemu"
 }
 
-func (q *QemuHypervisor) root() bool {
+func (q *QemuHypervisor) Root() bool {
 	return q.user == util.RootUser
 }
 
@@ -115,7 +114,7 @@ func (q *QemuHypervisor) StartHypervisorDaemon(stopChan chan struct{}) {
 }
 
 func (q *QemuHypervisor) GetPidDir() string {
-	if q.root() {
+	if q.Root() {
 		return "/run/libvirt/qemu"
 	} else {
 		return "/run/libvirt/qemu/run"
@@ -125,7 +124,7 @@ func (q *QemuHypervisor) GetPidDir() string {
 func (q *QemuHypervisor) GetLibvirtUriAndUser() (string, string) {
 	libvirtUri := "qemu:///system"
 	user := ""
-	if !q.root() {
+	if !q.Root() {
 		user = util.NonRootUserString
 		libvirtUri = "qemu+unix:///session?socket=/var/run/libvirt/virtqemud-sock"
 	}

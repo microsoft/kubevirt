@@ -85,7 +85,7 @@ type Hypervisor interface {
 
 	GetVmm() string
 
-	root() bool
+	Root() bool
 
 	// Return the modular libvirt daemon for the hypervisor
 	GetModularDaemonName() string
@@ -114,7 +114,7 @@ func NewHypervisorWithUser(hypervisor string, nonRoot bool) Hypervisor {
 			user: util.RootUser,
 		}
 	} else if hypervisor == "ch" {
-		return &CloudHypervisor{hypervisor, util.RootUser}
+		return &CloudHypervisor{util.RootUser}
 	} else {
 		return nil
 	}
@@ -124,7 +124,7 @@ func setupLibvirt(l Hypervisor, customLogFilters *string, shouldConfigureVmmConf
 	if shouldConfigureVmmConf {
 		vmmConfPath := fmt.Sprintf(vmmConfPathPattern, l.GetVmm())
 		runtimeVmmConfPath := vmmConfPath
-		if !l.root() {
+		if !l.Root() {
 			runtimeVmmConfPath = fmt.Sprintf(vmmNonRootConfPathPattern, l.GetVmm())
 
 			if err := os.MkdirAll(libvirtHomePath, 0755); err != nil {
@@ -282,7 +282,7 @@ func startModularLibvirtDaemon(l Hypervisor, stopChan chan struct{}) {
 			exitChan := make(chan struct{})
 			args := []string{"-f", fmt.Sprintf("/var/run/libvirt/%s.conf", modularDaemonName)}
 			cmd := exec.Command(fmt.Sprintf("/usr/sbin/%s", modularDaemonName), args...)
-			if !l.root() {
+			if !l.Root() {
 				cmd.SysProcAttr = &syscall.SysProcAttr{
 					AmbientCaps: []uintptr{unix.CAP_NET_BIND_SERVICE},
 				}

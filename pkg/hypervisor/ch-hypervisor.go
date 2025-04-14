@@ -10,7 +10,6 @@ import (
 var HypervisorDaemonExecutables []string = []string{"virtqemud", "virtchd"}
 
 type CloudHypervisor struct {
-	vmm  string
 	user uint32
 }
 
@@ -93,7 +92,7 @@ func (c *CloudHypervisor) GetVmm() string {
 	return "ch"
 }
 
-func (c *CloudHypervisor) root() bool {
+func (c *CloudHypervisor) Root() bool {
 	return c.user == util.RootUser
 }
 
