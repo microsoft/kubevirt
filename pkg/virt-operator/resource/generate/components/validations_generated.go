@@ -7016,7 +7016,8 @@ var CRDsValidation map[string]string = map[string]string{
                   type: string
                 hypervisor:
                   description: The Hypervisor to use for the VMI. Possible values
-                    are "qemu" for QEMU and "ch" for Cloud Hypervisor.
+                    are "qemu" for QEMU and "ch" for Cloud Hypervisor. Default value
+                    is "qemu".
                   type: string
                 livenessProbe:
                   description: |-
@@ -12069,7 +12070,7 @@ var CRDsValidation map[string]string = map[string]string{
           type: string
         hypervisor:
           description: The Hypervisor to use for the VMI. Possible values are "qemu"
-            for QEMU and "ch" for Cloud Hypervisor.
+            for QEMU and "ch" for Cloud Hypervisor. Default value is "qemu".
           type: string
         livenessProbe:
           description: |-
@@ -17629,7 +17630,8 @@ var CRDsValidation map[string]string = map[string]string{
                   type: string
                 hypervisor:
                   description: The Hypervisor to use for the VMI. Possible values
-                    are "qemu" for QEMU and "ch" for Cloud Hypervisor.
+                    are "qemu" for QEMU and "ch" for Cloud Hypervisor. Default value
+                    is "qemu".
                   type: string
                 livenessProbe:
                   description: |-
@@ -22138,6 +22140,7 @@ var CRDsValidation map[string]string = map[string]string{
                         hypervisor:
                           description: The Hypervisor to use for the VMI. Possible
                             values are "qemu" for QEMU and "ch" for Cloud Hypervisor.
+                            Default value is "qemu".
                           type: string
                         livenessProbe:
                           description: |-
@@ -27313,6 +27316,7 @@ var CRDsValidation map[string]string = map[string]string{
                             hypervisor:
                               description: The Hypervisor to use for the VMI. Possible
                                 values are "qemu" for QEMU and "ch" for Cloud Hypervisor.
+                                Default value is "qemu".
                               type: string
                             livenessProbe:
                               description: |-
