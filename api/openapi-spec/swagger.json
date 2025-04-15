@@ -17187,7 +17187,7 @@
       "type": "string"
      },
      "hypervisor": {
-      "description": "The Hypervisor to use for the VMI. Possible values are \"qemu\" for QEMU and \"ch\" for Cloud Hypervisor.",
+      "description": "The Hypervisor to use for the VMI. Possible values are \"qemu\" for QEMU and \"ch\" for Cloud Hypervisor. Default value is \"qemu\".",
       "type": "string"
      },
      "livenessProbe": {

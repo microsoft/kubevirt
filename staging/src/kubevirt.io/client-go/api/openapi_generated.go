@@ -25522,7 +25522,7 @@ func schema_kubevirtio_api_core_v1_VirtualMachineInstanceSpec(ref common.Referen
 				Properties: map[string]spec.Schema{
 					"hypervisor": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The Hypervisor to use for the VMI. Possible values are \"qemu\" for QEMU and \"ch\" for Cloud Hypervisor.",
+							Description: "The Hypervisor to use for the VMI. Possible values are \"qemu\" for QEMU and \"ch\" for Cloud Hypervisor. Default value is \"qemu\".",
 							Type:        []string{"string"},
 							Format:      "",
 						},

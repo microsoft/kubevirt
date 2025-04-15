@@ -21,6 +21,11 @@ import (
 )
 
 const (
+	QemuHypervisorKey  string = "qemu"
+	CloudHypervisorKey string = "ch"
+)
+
+const (
 	vmmConfPathPattern              = "/etc/libvirt/%s.conf"
 	vmmModularDaemonConfPathPattern = "/etc/libvirt/%s.conf"
 	libvirtRuntimePath              = "/var/run/libvirt"
@@ -104,7 +109,7 @@ func NewHypervisor(hypervisor string) Hypervisor {
 }
 
 func NewHypervisorWithUser(hypervisor string, nonRoot bool) Hypervisor {
-	if hypervisor == "qemu" {
+	if hypervisor == QemuHypervisorKey {
 		if nonRoot {
 			return &QemuHypervisor{
 				user: util.NonRootUID,
@@ -113,7 +118,7 @@ func NewHypervisorWithUser(hypervisor string, nonRoot bool) Hypervisor {
 		return &QemuHypervisor{
 			user: util.RootUser,
 		}
-	} else if hypervisor == "ch" {
+	} else if hypervisor == CloudHypervisorKey {
 		return &CloudHypervisor{util.RootUser}
 	} else {
 		return nil

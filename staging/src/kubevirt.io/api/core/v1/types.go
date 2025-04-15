@@ -74,12 +74,13 @@ type StartStrategy string
 
 const (
 	StartStrategyPaused StartStrategy = "Paused"
+	QemuHypervisor      string        = "qemu"
 )
 
 // VirtualMachineInstanceSpec is a description of a VirtualMachineInstance.
 type VirtualMachineInstanceSpec struct {
 
-	// The Hypervisor to use for the VMI. Possible values are "qemu" for QEMU and "ch" for Cloud Hypervisor.
+	// The Hypervisor to use for the VMI. Possible values are "qemu" for QEMU and "ch" for Cloud Hypervisor. Default value is "qemu".
 	Hypervisor string `json:"hypervisor,omitempty"`
 
 	// If specified, indicates the pod's priority.
@@ -181,6 +182,10 @@ func (vmiSpec *VirtualMachineInstanceSpec) UnmarshalJSON(data []byte) error {
 
 	if err := json.Unmarshal(data, &vmiSpecAlias); err != nil {
 		return err
+	}
+
+	if vmiSpecAlias.Hypervisor == "" {
+		vmiSpecAlias.Hypervisor = QemuHypervisor
 	}
 
 	if vmiSpecAlias.DNSConfig != nil {
