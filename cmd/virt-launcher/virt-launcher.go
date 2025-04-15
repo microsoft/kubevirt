@@ -46,6 +46,7 @@ import (
 	ephemeraldisk "kubevirt.io/kubevirt/pkg/ephemeral-disk"
 	"kubevirt.io/kubevirt/pkg/hooks"
 	hotplugdisk "kubevirt.io/kubevirt/pkg/hotplug-disk"
+	hypervisorInterface "kubevirt.io/kubevirt/pkg/hypervisor"
 	"kubevirt.io/kubevirt/pkg/ignition"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
@@ -56,7 +57,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	virtcli "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cmd-server"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/util"
 )
 
 const defaultStartTimeout = 3 * time.Minute
@@ -109,8 +109,8 @@ func startCmdServer(socketPath string,
 	return done
 }
 
-func createLibvirtConnection(libvirtWrapper util.LibvirtWrapper) virtcli.Connection {
-	libvirtUri, user := libvirtWrapper.GetLibvirtUriAndUser()
+func createLibvirtConnection(hypervisor hypervisorInterface.Hypervisor) virtcli.Connection {
+	libvirtUri, user := hypervisor.GetLibvirtUriAndUser()
 
 	domainConn, err := virtcli.NewConnection(libvirtUri, user, "", 10*time.Second)
 	if err != nil {
@@ -399,7 +399,7 @@ func main() {
 	// Start virtqemud, virtlogd, and establish libvirt connection
 	stopChan := make(chan struct{})
 
-	l := util.NewLibvirtWrapper(*runWithNonRoot, *hypervisor)
+	l := hypervisorInterface.NewHypervisorWithUser(*hypervisor, *runWithNonRoot)
 	err = l.SetupLibvirt(libvirtLogFilters)
 	if err != nil {
 		panic(err)

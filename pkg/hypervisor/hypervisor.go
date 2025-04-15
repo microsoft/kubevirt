@@ -1,10 +1,32 @@
 package hypervisor
 
-import "regexp"
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"syscall"
+	"time"
 
-// TODO These global variables should be changed to accessor functions in the Hypervisor interface
-var HypervisorDaemonExecutables []string = []string{"virtqemud", "virtchd"}
-var QemuProcessExecutablePrefixes []string = []string{"qemu-system", "qemu-kvm", "cloud-hypervisor"}
+	"golang.org/x/sys/unix"
+	"kubevirt.io/client-go/log"
+
+	"kubevirt.io/kubevirt/pkg/util"
+)
+
+const (
+	vmmConfPathPattern              = "/etc/libvirt/%s.conf"
+	vmmModularDaemonConfPathPattern = "/etc/libvirt/%s.conf"
+	libvirtRuntimePath              = "/var/run/libvirt"
+	libvirtHomePath                 = "/var/run/kubevirt-private/libvirt"
+	vmmNonRootConfPathPattern       = libvirtHomePath + "/%s.conf"
+)
 
 // Hypervisor interface defines functions needed to tune the virt-launcher pod spec and the libvirt domain XML for a specific hypervisor
 type Hypervisor interface {
@@ -51,164 +73,327 @@ type Hypervisor interface {
 
 	// Return the domain type in Libvirt domain XML
 	GetDomainType() string
-}
 
-// Define QemuHypervisor struct that implements the Hypervisor interface
-type QemuHypervisor struct {
-}
+	// Setup libvirt for hosting the virtual machine. This function is called during the startup of the virt-launcher.
+	SetupLibvirt(customLogFilters *string) (err error)
 
-type CloudHypervisor struct {
-}
+	// Start the libvirt daemon, either in modular mode or monolithic mode
+	StartHypervisorDaemon(stopChan chan struct{})
 
-// Implement GetDomainType method for QemuHypervisor
-func (q *QemuHypervisor) GetDomainType() string {
-	return "kvm"
-}
+	// Start the virtlogd daemon, which is used to capture logs from the hypervisor
+	StartVirtlog(stopChan chan struct{}, domainName string)
 
-// Implement SupportsMemoryBallooning method for QemuHypervisor
-func (q *QemuHypervisor) SupportsMemoryBallooning() bool {
-	return true
-}
+	GetVmm() string
 
-// Implement RequiresBoot order method for QemuHypervisor
-func (q *QemuHypervisor) RequiresBootOrder() bool {
-	return false
-}
+	Root() bool
 
-// Implement GetDiskDriver method for QemuHypervisor
-func (q *QemuHypervisor) GetDiskDriver() string {
-	return "qemu"
-}
+	// Return the modular libvirt daemon for the hypervisor
+	GetModularDaemonName() string
 
-// Implement GetLibvirtSocketPath method for QemuHypervisor
-func (q *QemuHypervisor) GetLibvirtSocketPath() string {
-	return "libvirt/libvirt-sock"
-}
+	// Return the directory where libvirt stores the PID files of the hypervisor processes
+	GetPidDir() string
 
-// Implement GetVcpuRegex method for QemuHypervisor
-func (q *QemuHypervisor) GetVcpuRegex() *regexp.Regexp {
-	// parse thread comm value expression
-	return regexp.MustCompile(`^CPU (\d+)/KVM\n$`) // These threads follow this naming pattern as their command value (/proc/{pid}/task/{taskid}/comm)
-	// QEMU uses threads to represent vCPUs.
-}
+	GetLibvirtUriAndUser() (string, string)
 
-// Implement ShouldRunPrivileged method for QemuHypervisor
-func (q *QemuHypervisor) ShouldRunPrivileged() bool {
-	return false
-}
-
-// Implement GetHypervisorDevice method for QemuHypervisor
-func (q *QemuHypervisor) GetHypervisorDevice() string {
-	return "devices.kubevirt.io/kvm"
-}
-
-// Implement GetVirtLauncherMonitorOverhead method for QemuHypervisor
-func (q *QemuHypervisor) GetVirtLauncherMonitorOverhead() string {
-	return "25Mi"
-}
-
-// Implement GetVirtLauncherOverhead method for QemuHypervisor
-func (q *QemuHypervisor) GetVirtLauncherOverhead() string {
-	return "100Mi"
-}
-
-// Implement GetVirtlogdOverhead method for QemuHypervisor
-func (q *QemuHypervisor) GetVirtlogdOverhead() string {
-	return "20Mi"
-}
-
-// Implement GetHypervisorDaemonOverhead method for QemuHypervisor
-func (q *QemuHypervisor) GetHypervisorDaemonOverhead() string {
-	return "35Mi"
-}
-
-// Implement GetHypervisorOverhead method for QemuHypervisor
-func (q *QemuHypervisor) GetHypervisorOverhead() string {
-	return "30Mi"
-}
-
-// Implement GetDefaultKernelPath method for QemuHypervisor
-func (q *QemuHypervisor) GetDefaultKernelPath() (string, string) {
-	return "", ""
-}
-
-// Implement SupportsMemoryBallooning method for CloudHypervisor
-func (c *CloudHypervisor) SupportsMemoryBallooning() bool {
-	return false
-}
-
-// Implement RequiresBoot order method for CloudHypervisor
-func (c *CloudHypervisor) RequiresBootOrder() bool {
-	return true
-}
-
-// Implement GetDiskDriver method for CloudHypervisor
-func (c *CloudHypervisor) GetDiskDriver() string {
-	return "raw"
-}
-
-// Implement GetLibvirtSocketPath method for CloudHypervisor
-func (c *CloudHypervisor) GetLibvirtSocketPath() string {
-	return "libvirt/ch-sock" // TODO: Check this
-}
-
-// Implement GetVcpuRegex method for CloudHypervisor
-func (c *CloudHypervisor) GetVcpuRegex() *regexp.Regexp {
-	// parse thread comm value expression for MSHV
-	return regexp.MustCompile(`^vcpu(\d+)\n$`) // These threads follow this naming pattern as their command value (/proc/{pid}/task/{taskid}/comm)
-}
-
-// Implement ShouldRunPrivileged method for CloudHypervisor
-func (c *CloudHypervisor) ShouldRunPrivileged() bool {
-	return true
-}
-
-// Implement GetHypervisorDevice method for CloudHypervisor
-func (c *CloudHypervisor) GetHypervisorDevice() string {
-	return "devices.kubevirt.io/mshv"
-}
-
-// Implement GetVirtLauncherMonitorOverhead method for CloudHypervisor
-func (c *CloudHypervisor) GetVirtLauncherMonitorOverhead() string {
-	return "25Mi"
-}
-
-// Implement GetVirtLauncherOverhead method for CloudHypervisor
-func (c *CloudHypervisor) GetVirtLauncherOverhead() string {
-	return "100Mi"
-}
-
-// Implement GetVirtlogdOverhead method for CloudHypervisor
-func (c *CloudHypervisor) GetVirtlogdOverhead() string {
-	return "20Mi"
-}
-
-// Implement GetHypervisorDaemonOverhead method for CloudHypervisor
-func (c *CloudHypervisor) GetHypervisorDaemonOverhead() string {
-	return "35Mi"
-}
-
-// Implement GetHypervisorOverhead method for CloudHypervisor
-func (c *CloudHypervisor) GetHypervisorOverhead() string {
-	return "30Mi"
-}
-
-// Implement GetDefaultKernelPath method for CloudHypervisor
-func (c *CloudHypervisor) GetDefaultKernelPath() (string, string) {
-	return "/usr/share/cloud-hypervisor/CLOUDHV_EFI.fd", ""
-}
-
-// Implement GetDomainType method for CloudHypervisor
-func (c *CloudHypervisor) GetDomainType() string {
-	return "hyperv"
+	// Return a list of potential prefixes of the specific hypervisor's process, e.g., qemu-system or cloud-hypervisor
+	GetHypervisorCommandPrefix() []string
 }
 
 func NewHypervisor(hypervisor string) Hypervisor {
+	return NewHypervisorWithUser(hypervisor, false)
+}
+
+func NewHypervisorWithUser(hypervisor string, nonRoot bool) Hypervisor {
 	if hypervisor == "qemu" {
-		return &QemuHypervisor{}
+		if nonRoot {
+			return &QemuHypervisor{
+				user: util.NonRootUID,
+			}
+		}
+		return &QemuHypervisor{
+			user: util.RootUser,
+		}
 	} else if hypervisor == "ch" {
-		return &CloudHypervisor{}
+		return &CloudHypervisor{util.RootUser}
 	} else {
 		return nil
+	}
+}
+
+func setupLibvirt(l Hypervisor, customLogFilters *string, shouldConfigureVmmConf bool) (err error) {
+	if shouldConfigureVmmConf {
+		vmmConfPath := fmt.Sprintf(vmmConfPathPattern, l.GetVmm())
+		runtimeVmmConfPath := vmmConfPath
+		if !l.Root() {
+			runtimeVmmConfPath = fmt.Sprintf(vmmNonRootConfPathPattern, l.GetVmm())
+
+			if err := os.MkdirAll(libvirtHomePath, 0755); err != nil {
+				return err
+			}
+			if err := copyFile(vmmConfPath, runtimeVmmConfPath); err != nil {
+				return err
+			}
+		}
+
+		if err := configureVmmConf(runtimeVmmConfPath); err != nil {
+			return err
+		}
+	}
+
+	runtimeVmmDaemonConfPath := path.Join(libvirtRuntimePath, fmt.Sprintf("%s.conf", l.GetModularDaemonName()))
+	vmmModularDaemonConfPath := fmt.Sprintf(vmmModularDaemonConfPathPattern, l.GetModularDaemonName())
+	if err := copyFile(vmmModularDaemonConfPath, runtimeVmmDaemonConfPath); err != nil {
+		return err
+	}
+
+	var libvirtLogVerbosityEnvVar *string
+	if envVarValue, envVarDefined := os.LookupEnv(util.ENV_VAR_VIRT_LAUNCHER_LOG_VERBOSITY); envVarDefined {
+		libvirtLogVerbosityEnvVar = &envVarValue
+	}
+	_, libvirtDebugLogsEnvVarDefined := os.LookupEnv(util.ENV_VAR_LIBVIRT_DEBUG_LOGS)
+
+	if logFilters, enableDebugLogs := GetLibvirtLogFilters(customLogFilters, libvirtLogVerbosityEnvVar, libvirtDebugLogsEnvVarDefined); enableDebugLogs {
+		virtqemudConf, err := os.OpenFile(runtimeVmmDaemonConfPath, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		defer util.CloseIOAndCheckErr(virtqemudConf, &err)
+
+		log.Log.Infof("Enabling libvirt log filters: %s", logFilters)
+		_, err = virtqemudConf.WriteString(fmt.Sprintf("log_filters=\"%s\"\n", logFilters))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func copyFile(from, to string) error {
+	f, err := os.OpenFile(from, os.O_RDONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer util.CloseIOAndCheckErr(f, &err)
+	newFile, err := os.OpenFile(to, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer util.CloseIOAndCheckErr(newFile, &err)
+
+	_, err = io.Copy(newFile, f)
+	return err
+}
+
+func configureVmmConf(vmmConfFilename string) (err error) {
+	vmmConf, err := os.OpenFile(vmmConfFilename, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer util.CloseIOAndCheckErr(vmmConf, &err)
+
+	// If hugepages exist, tell libvirt about them
+	_, err = os.Stat("/dev/hugepages")
+	if err == nil {
+		_, err = vmmConf.WriteString("hugetlbfs_mount = \"/dev/hugepages\"\n")
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	if envVarValue, ok := os.LookupEnv("VIRTIOFSD_DEBUG_LOGS"); ok && (envVarValue == "1") {
+		_, err = vmmConf.WriteString("virtiofsd_debug = 1\n")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// GetLibvirtLogFilters returns libvirt debug log filters that should be enabled if enableDebugLogs is true.
+// The decision is based on the following logic:
+//   - If custom log filters are defined - they should be enabled and used.
+//   - If verbosity is defined and beyond threshold then debug logs would be enabled and determined by verbosity level
+//   - If verbosity level is below threshold but debug logs environment variable is defined, debug logs would be enabled
+//     and set to the highest verbosity level.
+//   - If verbosity level is below threshold and debug logs environment variable is not defined - debug logs are disabled.
+func GetLibvirtLogFilters(customLogFilters, libvirtLogVerbosityEnvVar *string, libvirtDebugLogsEnvVarDefined bool) (logFilters string, enableDebugLogs bool) {
+
+	if customLogFilters != nil && *customLogFilters != "" {
+		return *customLogFilters, true
+	}
+
+	var libvirtLogVerbosity int
+	var err error
+
+	if libvirtLogVerbosityEnvVar != nil {
+		libvirtLogVerbosity, err = strconv.Atoi(*libvirtLogVerbosityEnvVar)
+		if err != nil {
+			log.Log.Infof("cannot apply %s value %s - must be a number", util.ENV_VAR_VIRT_LAUNCHER_LOG_VERBOSITY, *libvirtLogVerbosityEnvVar)
+			libvirtLogVerbosity = -1
+		}
+	} else {
+		libvirtLogVerbosity = -1
+	}
+
+	const verbosityThreshold = util.EXT_LOG_VERBOSITY_THRESHOLD
+
+	if libvirtLogVerbosity < verbosityThreshold {
+		if libvirtDebugLogsEnvVarDefined {
+			libvirtLogVerbosity = verbosityThreshold + 5
+		} else {
+			return "", false
+		}
+	}
+
+	// Higher log level means higher verbosity
+	const logsLevel4 = "3:remote 4:event 3:util.json 3:util.object 3:util.dbus 3:util.netlink 3:node_device 3:rpc 3:access"
+	const logsLevel3 = logsLevel4 + " 3:util.threadjob 3:cpu.cpu"
+	const logsLevel2 = logsLevel3 + " 3:qemu.qemu_monitor"
+	const logsLevel1 = logsLevel2 + " 3:qemu.qemu_monitor_json 3:conf.domain_addr"
+	const allowAllOtherCategories = " 1:*"
+
+	switch libvirtLogVerbosity {
+	case verbosityThreshold:
+		logFilters = logsLevel1
+	case verbosityThreshold + 1:
+		logFilters = logsLevel2
+	case verbosityThreshold + 2:
+		logFilters = logsLevel3
+	case verbosityThreshold + 3:
+		logFilters = logsLevel4
+	default:
+		logFilters = logsLevel4
+	}
+
+	return logFilters + allowAllOtherCategories, true
+}
+
+func startModularLibvirtDaemon(l Hypervisor, stopChan chan struct{}) {
+	// we spawn libvirt from virt-launcher in order to ensure the virtqemud+qemu process
+	// doesn't exit until virt-launcher is ready for it to. Virt-launcher traps signals
+	// to perform special shutdown logic. These processes need to live in the same
+	// container.
+
+	modularDaemonName := l.GetModularDaemonName()
+
+	go func() {
+		for {
+			exitChan := make(chan struct{})
+			args := []string{"-f", fmt.Sprintf("/var/run/libvirt/%s.conf", modularDaemonName)}
+			cmd := exec.Command(fmt.Sprintf("/usr/sbin/%s", modularDaemonName), args...)
+			if !l.Root() {
+				cmd.SysProcAttr = &syscall.SysProcAttr{
+					AmbientCaps: []uintptr{unix.CAP_NET_BIND_SERVICE},
+				}
+			}
+
+			// connect libvirt's stderr to our own stdout in order to see the logs in the container logs
+			reader, err := cmd.StderrPipe()
+			if err != nil {
+				log.Log.Reason(err).Error(fmt.Sprintf("failed to start %s", modularDaemonName))
+				panic(err)
+			}
+
+			go func() {
+				scanner := bufio.NewScanner(reader)
+				scanner.Buffer(make([]byte, 1024), 512*1024)
+				for scanner.Scan() {
+					log.LogLibvirtLogLine(log.Log, scanner.Text())
+				}
+
+				if err := scanner.Err(); err != nil {
+					log.Log.Reason(err).Error("failed to read libvirt logs")
+				}
+			}()
+
+			err = cmd.Start()
+			if err != nil {
+				log.Log.Reason(err).Error(fmt.Sprintf("failed to start %s", modularDaemonName))
+				panic(err)
+			}
+
+			go func() {
+				defer close(exitChan)
+				cmd.Wait()
+			}()
+
+			select {
+			case <-stopChan:
+				cmd.Process.Kill()
+				return
+			case <-exitChan:
+				log.Log.Errorf(fmt.Sprintf("%s exited, restarting", modularDaemonName))
+			}
+
+			// this sleep is to avoid consuming all resources in the
+			// event of a virtqemud crash loop.
+			time.Sleep(time.Second)
+		}
+	}()
+}
+
+func startVirtlogdLogging(virtlogdBinaryPath string, stopChan chan struct{}, domainName string, nonRoot bool) {
+	for {
+		cmd := exec.Command(virtlogdBinaryPath, "-f", "/etc/libvirt/virtlogd.conf")
+
+		exitChan := make(chan struct{})
+
+		err := cmd.Start()
+		if err != nil {
+			log.Log.Reason(err).Error("failed to start virtlogd")
+			panic(err)
+		}
+
+		go func() {
+			logfile := fmt.Sprintf("/var/log/libvirt/qemu/%s.log", domainName)
+			if nonRoot {
+				logfile = filepath.Join("/var", "run", "kubevirt-private", "libvirt", "qemu", "log", fmt.Sprintf("%s.log", domainName))
+			}
+
+			// It can take a few seconds to the log file to be created
+			for {
+				_, err = os.Stat(logfile)
+				if !errors.Is(err, os.ErrNotExist) {
+					break
+				}
+				time.Sleep(time.Second)
+			}
+			// #nosec No risk for path injection. logfile has a static basedir
+			file, err := os.Open(logfile)
+			if err != nil {
+				errMsg := fmt.Sprintf("failed to open logfile in path: \"%s\"", logfile)
+				log.Log.Reason(err).Error(errMsg)
+				return
+			}
+			defer util.CloseIOAndCheckErr(file, nil)
+
+			scanner := bufio.NewScanner(file)
+			scanner.Buffer(make([]byte, 1024), 512*1024)
+			for scanner.Scan() {
+				log.LogQemuLogLine(log.Log, scanner.Text())
+			}
+
+			if err := scanner.Err(); err != nil {
+				log.Log.Reason(err).Error("failed to read virtlogd logs")
+			}
+		}()
+
+		go func() {
+			defer close(exitChan)
+			_ = cmd.Wait()
+		}()
+
+		select {
+		case <-stopChan:
+			_ = cmd.Process.Kill()
+			return
+		case <-exitChan:
+			log.Log.Errorf("virtlogd exited, restarting")
+		}
+
+		// this sleep is to avoid consuming all resources in the
+		// event of a virtlogd crash loop.
+		time.Sleep(time.Second)
 	}
 }
