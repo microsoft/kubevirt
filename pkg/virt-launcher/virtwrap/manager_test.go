@@ -58,6 +58,7 @@ import (
 	"kubevirt.io/kubevirt/pkg/util/net/ip"
 	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	launcherCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
@@ -2250,7 +2251,7 @@ var _ = Describe("Manager", func() {
 		})
 
 		Context("on call to GetGuestOSInfo", func() {
-			var libvirtmanager DomainManager
+			var libvirtmanager launcherCommon.DomainManager
 			var agentStore agentpoller.AsyncAgentStore
 
 			BeforeEach(func() {
@@ -2274,7 +2275,7 @@ var _ = Describe("Manager", func() {
 		})
 
 		Context("on call to InterfacesStatus", func() {
-			var libvirtmanager DomainManager
+			var libvirtmanager launcherCommon.DomainManager
 			var agentStore agentpoller.AsyncAgentStore
 
 			BeforeEach(func() {
