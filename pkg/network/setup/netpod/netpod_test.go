@@ -30,7 +30,7 @@ import (
 
 	dutils "kubevirt.io/kubevirt/pkg/ephemeral-disk-utils"
 	kfs "kubevirt.io/kubevirt/pkg/os/fs"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 
 	"kubevirt.io/kubevirt/pkg/pointer"
 

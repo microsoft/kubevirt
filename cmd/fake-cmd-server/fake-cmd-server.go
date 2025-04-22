@@ -10,9 +10,9 @@ import (
 	"kubevirt.io/client-go/log"
 
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher-common/cmd-server"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
-	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cmd-server"
 )
 
 func main() {

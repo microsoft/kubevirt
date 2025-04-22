@@ -40,7 +40,7 @@ import (
 	hooksV1alpha2 "kubevirt.io/kubevirt/pkg/hooks/v1alpha2"
 	hooksV1alpha3 "kubevirt.io/kubevirt/pkg/hooks/v1alpha3"
 	grpcutil "kubevirt.io/kubevirt/pkg/util/net/grpc"
-	virtwrapApi "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	virtwrapApi "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 //go:generate mockgen -source $GOFILE -package=$GOPACKAGE -destination=generated_mock_$GOFILE

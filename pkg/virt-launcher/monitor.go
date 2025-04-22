@@ -29,7 +29,7 @@ import (
 	"syscall"
 	"time"
 
-	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cmd-server"
+	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher-common/cmd-server"
 
 	"kubevirt.io/client-go/log"
 

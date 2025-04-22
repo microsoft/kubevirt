@@ -37,10 +37,10 @@ import (
 
 	diskutils "kubevirt.io/kubevirt/pkg/ephemeral-disk-utils"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
+	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher-common/cmd-server"
 	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cmd-server"
 )
 
 var _ = Describe("Domain informer", func() {

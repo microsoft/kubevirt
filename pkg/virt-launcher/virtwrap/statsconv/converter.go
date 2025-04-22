@@ -24,7 +24,7 @@ package statsconv
 import (
 	"libvirt.org/go/libvirt"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 )
 
 type DomainIdentifier interface {

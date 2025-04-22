@@ -31,7 +31,7 @@ import (
 	"kubevirt.io/kubevirt/pkg/network/cache"
 	netdriver "kubevirt.io/kubevirt/pkg/network/driver"
 	"kubevirt.io/kubevirt/pkg/network/netmachinery"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 const bridgeFakeIP = "169.254.75.1%d/32"

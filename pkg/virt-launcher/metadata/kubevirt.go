@@ -20,7 +20,7 @@
 package metadata
 
 import (
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 // LoadKubevirtMetadata loads and returns all KubeVirt metadata.

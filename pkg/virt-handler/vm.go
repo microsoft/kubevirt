@@ -91,7 +91,7 @@ import (
 	migrationproxy "kubevirt.io/kubevirt/pkg/virt-handler/migration-proxy"
 	multipath_monitor "kubevirt.io/kubevirt/pkg/virt-handler/multipath-monitor"
 	"kubevirt.io/kubevirt/pkg/virt-handler/selinux"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	"kubevirt.io/kubevirt/pkg/virtiofs"
 )
 

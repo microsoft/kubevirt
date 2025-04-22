@@ -28,8 +28,8 @@ import (
 	"kubevirt.io/kubevirt/pkg/handler-launcher-com/notify/info"
 	notifyv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/notify/v1"
 	grpcutil "kubevirt.io/kubevirt/pkg/util/net/grpc"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	agentpoller "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent-poller"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter"
 	domainerrors "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/errors"
@@ -59,6 +59,7 @@ type Notifier struct {
 	totalTimeout    time.Duration
 }
 
+// TODO PLUGINDEV: Do we need to define this struct in the virt-launcher-common pkg and then create subclasses for individual virt-launchers?
 type libvirtEvent struct {
 	Domain     string
 	Event      *libvirt.DomainEventLifecycle
@@ -171,6 +172,9 @@ func (n *Notifier) connect() error {
 	log.Log.Infof("Successfully connected to domain notify socket at %s", socketPath)
 	return nil
 }
+
+// TODO PLUGINDEV: Except the StartDomainNotifier function's bits where interaction w Libvirt etc is present, rest of this file will be part of the common virt-launcher code.
+// TODO PLUGINDEV: SendDomainEvent and SendK8sEvent should be exposed to the diff virt-launchers
 
 func (n *Notifier) SendDomainEvent(event watch.Event) error {
 
@@ -427,6 +431,8 @@ func (n *Notifier) StartDomainNotifier(
 
 		for {
 			select {
+			// TODO PLUGINDEV: eventChan receives all the callbacks registered against LibVirt using its API Calls like Register....
+			// That is why the event is passed as it is to eventCallback
 			case event := <-eventChan:
 				metadataCache.ResetNotification()
 				domainCache = util.NewDomainFromName(event.Domain, vmi.UID)
@@ -439,6 +445,7 @@ func (n *Notifier) StartDomainNotifier(
 						agentPoller.Stop()
 					}
 				}
+				// TODO PLUGINDEV: AgentUpdated is written to whenever AgentPoller calls Store fn to save some info
 			case agentUpdate := <-agentStore.AgentUpdated:
 				metadataCache.ResetNotification()
 				interfaceStatuses = agentUpdate.DomainInfo.Interfaces
@@ -448,6 +455,7 @@ func (n *Notifier) StartDomainNotifier(
 				eventCaller.eventCallback(domainConn, domainCache, libvirtEvent{}, n, deleteNotificationSent,
 					interfaceStatuses, guestOsInfo, vmi, fsFreezeStatus, metadataCache)
 			case <-reconnectChan:
+				// TODO PLUGINDEV: Directly sending the DomainEvent
 				n.SendDomainEvent(newWatchEventError(fmt.Errorf("Libvirt reconnect, domain %s", domainName)))
 
 			case <-metadataCache.Listen():

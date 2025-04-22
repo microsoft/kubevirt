@@ -15,7 +15,7 @@ import (
 	"kubevirt.io/client-go/log"
 
 	v1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 type factoryFunc func(requestedToplogy *api.CPUTopology, nodeTopology *v1.Topology, cpuSet []int) VCPUPool
