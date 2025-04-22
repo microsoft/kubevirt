@@ -21,7 +21,7 @@ package device
 
 import (
 	hwutil "kubevirt.io/kubevirt/pkg/util/hardware"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 func NewPciAddressField(address string) (*api.Address, error) {

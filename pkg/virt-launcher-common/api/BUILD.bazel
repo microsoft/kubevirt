@@ -8,7 +8,7 @@ go_library(
         "doc.go",
         "schema.go",
     ],
-    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api",
+    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher-common/api",
     visibility = ["//visibility:public"],
     deps = [
         "//staging/src/kubevirt.io/api/core/v1:go_default_library",

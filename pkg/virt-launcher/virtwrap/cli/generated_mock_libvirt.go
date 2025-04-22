@@ -7,8 +7,8 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	libvirt "libvirt.org/go/libvirt"
 
-	api "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	stats "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
+	api "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
+	stats "kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 )
 
 // Mock of Connection interface

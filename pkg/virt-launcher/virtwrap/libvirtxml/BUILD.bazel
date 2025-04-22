@@ -6,7 +6,7 @@ go_library(
     importpath = "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/libvirtxml",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/virt-launcher/virtwrap/api:go_default_library",
+        "//pkg/virt-launcher-common/api:go_default_library",
         "//vendor/libvirt.org/go/libvirtxml:go_default_library",
     ],
 )
@@ -19,7 +19,7 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
-        "//pkg/virt-launcher/virtwrap/api:go_default_library",
+        "//pkg/virt-launcher-common/api:go_default_library",
         "//staging/src/kubevirt.io/client-go/testutils:go_default_library",
         "//vendor/github.com/onsi/ginkgo/v2:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",

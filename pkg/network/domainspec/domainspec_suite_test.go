@@ -7,7 +7,7 @@ import (
 	"kubevirt.io/client-go/testutils"
 
 	"kubevirt.io/kubevirt/pkg/libvmi"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 func TestDomainSpec(t *testing.T) {

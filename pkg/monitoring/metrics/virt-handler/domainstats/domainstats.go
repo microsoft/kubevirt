@@ -25,7 +25,7 @@ import (
 	"github.com/machadovilaca/operator-observability/pkg/operatormetrics"
 	k6tv1 "kubevirt.io/api/core/v1"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 )
 
 var (

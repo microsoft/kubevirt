@@ -88,6 +88,9 @@ func getMigrationOptionsFromRequest(request *cmdv1.MigrationRequest) (*cmdclient
 }
 
 func getErrorMessage(err error) string {
+	// TODO PLUGINDEV: Here launcherErrors function is being called.
+	// TODO PLUGINDEV: Here, the error is an instance of the Error interface in Go. This fn. returns a string with LibVirt errno, msg, domainName, all in a human-readable manner. Only works if err is an instance of Libvirt.Error.
+	// TODO PLUGINDEV: We can update the functions in DomainManager to format errors according to the underlying virtstack.
 	if virErr := launcherErrors.FormatLibvirtError(err); virErr != "" {
 		return virErr
 	}
@@ -565,6 +568,8 @@ func (l *Launcher) Exec(ctx context.Context, request *cmdv1.ExecRequest) (*cmdv1
 	stdOut, err := l.domainManager.Exec(request.DomainName, request.Command, request.Args, request.TimeoutSeconds)
 	resp.StdOut = stdOut
 
+	// TODO PLUGINDEV: ExecExitCode needs to be made a common struct.
+	// TODO PLUGINDEV: Ideally all the agent invocation should be agnostic of the guestAgent/virt-stack, but its a longshot.
 	exitCode := agent.ExecExitCode{}
 	if err != nil && !errors.As(err, &exitCode) {
 		resp.Response.Success = false

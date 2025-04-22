@@ -10,7 +10,7 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	cloud_init "kubevirt.io/kubevirt/pkg/cloud-init"
-	api "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	api "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 // Mock of Manager interface

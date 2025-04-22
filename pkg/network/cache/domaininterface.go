@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 
 	"kubevirt.io/kubevirt/pkg/util"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 type DomainInterfaceCache struct {

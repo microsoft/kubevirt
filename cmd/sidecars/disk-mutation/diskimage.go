@@ -33,7 +33,7 @@ import (
 
 	vmSchema "kubevirt.io/api/core/v1"
 
-	domainSchema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	domainSchema "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 const bootDiskImageNameAnnotation = "diskimage.vm.kubevirt.io/bootImageName"

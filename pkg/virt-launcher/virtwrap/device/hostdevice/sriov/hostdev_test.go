@@ -35,7 +35,7 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	netsriov "kubevirt.io/kubevirt/pkg/network/deviceinfo"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device/hostdevice/sriov"
 )
 

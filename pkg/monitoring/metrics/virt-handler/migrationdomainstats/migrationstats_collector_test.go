@@ -27,7 +27,7 @@ import (
 
 	"github.com/machadovilaca/operator-observability/pkg/operatormetrics"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 )
 
 var _ = Describe("migration metrics", func() {

@@ -9,8 +9,8 @@ import (
 
 	v10 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	cmd_client "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
-	api "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	stats "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
+	api "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
+	stats "kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 )
 
 // Mock of DomainManager interface

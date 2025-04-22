@@ -31,7 +31,7 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/monitoring/metrics/testing"
 	"kubevirt.io/kubevirt/pkg/monitoring/metrics/virt-handler/collector"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 )
 
 var _ = Describe("domain stats collector", func() {

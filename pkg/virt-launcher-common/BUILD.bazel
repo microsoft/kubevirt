@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@kubevirt//tools/ginkgo:ginkgo.bzl", "ginkgo_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["managerinterface.go"],
+    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher-common",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/handler-launcher-com/cmd/v1:go_default_library",
+        "//pkg/virt-handler/cmd-client:go_default_library",
+        "//pkg/virt-launcher-common/api:go_default_library",
+        "//pkg/virt-launcher-common/stats:go_default_library",
+        "//staging/src/kubevirt.io/api/core/v1:go_default_library",
+    ],
+)

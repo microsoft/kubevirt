@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 
 	"kubevirt.io/kubevirt/cmd/sidecars/network-slirp-binding/callback"
 )
