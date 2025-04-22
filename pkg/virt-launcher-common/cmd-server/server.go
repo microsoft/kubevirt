@@ -36,7 +36,7 @@ import (
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	grpcutil "kubevirt.io/kubevirt/pkg/util/net/grpc"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
+	launcherCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
 	launcherErrors "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/errors"
 )
@@ -54,7 +54,7 @@ func NewServerOptions(allowEmulation bool) *ServerOptions {
 }
 
 type Launcher struct {
-	domainManager  virtwrap.DomainManager
+	domainManager  launcherCommon.DomainManager
 	allowEmulation bool
 }
 
@@ -597,7 +597,7 @@ func (l *Launcher) GuestPing(ctx context.Context, request *cmdv1.GuestPingReques
 }
 
 func RunServer(socketPath string,
-	domainManager virtwrap.DomainManager,
+	domainManager launcherCommon.DomainManager,
 	stopChan chan struct{},
 	options *ServerOptions) (chan struct{}, error) {
 

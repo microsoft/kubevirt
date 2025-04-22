@@ -76,6 +76,7 @@ import (
 	hw_utils "kubevirt.io/kubevirt/pkg/util/hardware"
 	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	launcherCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
@@ -112,41 +113,6 @@ const maxConcurrentMemoryDumps = 1
 type contextStore struct {
 	ctx    context.Context
 	cancel context.CancelFunc
-}
-
-type DomainManager interface {
-	SyncVMI(*v1.VirtualMachineInstance, bool, *cmdv1.VirtualMachineOptions) (*api.DomainSpec, error)
-	PauseVMI(*v1.VirtualMachineInstance) error
-	UnpauseVMI(*v1.VirtualMachineInstance) error
-	FreezeVMI(*v1.VirtualMachineInstance, int32) error
-	UnfreezeVMI(*v1.VirtualMachineInstance) error
-	ResetVMI(*v1.VirtualMachineInstance) error
-	SoftRebootVMI(*v1.VirtualMachineInstance) error
-	KillVMI(*v1.VirtualMachineInstance) error
-	DeleteVMI(*v1.VirtualMachineInstance) error
-	SignalShutdownVMI(*v1.VirtualMachineInstance) error
-	MarkGracefulShutdownVMI()
-	ListAllDomains() ([]*api.Domain, error)
-	MigrateVMI(*v1.VirtualMachineInstance, *cmdclient.MigrationOptions) error
-	PrepareMigrationTarget(*v1.VirtualMachineInstance, bool, *cmdv1.VirtualMachineOptions) error
-	GetDomainStats() (*stats.DomainStats, error)
-	CancelVMIMigration(*v1.VirtualMachineInstance) error
-	GetGuestInfo() v1.VirtualMachineInstanceGuestAgentInfo
-	GetUsers() []v1.VirtualMachineInstanceGuestOSUser
-	GetFilesystems() []v1.VirtualMachineInstanceFileSystem
-	FinalizeVirtualMachineMigration(*v1.VirtualMachineInstance, *cmdv1.VirtualMachineOptions) error
-	HotplugHostDevices(vmi *v1.VirtualMachineInstance) error
-	InterfacesStatus() []api.InterfaceStatus
-	GetGuestOSInfo() *api.GuestOSInfo
-	Exec(string, string, []string, int32) (string, error)
-	GuestPing(string) error
-	MemoryDump(vmi *v1.VirtualMachineInstance, dumpPath string) error
-	GetQemuVersion() (string, error)
-	UpdateVCPUs(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) error
-	GetSEVInfo() (*v1.SEVPlatformInfo, error)
-	GetLaunchMeasurement(*v1.VirtualMachineInstance) (*v1.SEVMeasurementInfo, error)
-	InjectLaunchSecret(*v1.VirtualMachineInstance, *v1.SEVSecretOptions) error
-	UpdateGuestMemory(vmi *v1.VirtualMachineInstance) error
 }
 
 type LibvirtDomainManager struct {
@@ -208,14 +174,14 @@ func (s pausedVMIs) contains(uid types.UID) bool {
 
 func NewLibvirtDomainManager(connection cli.Connection, virtShareDir, ephemeralDiskDir string, agentStore *agentpoller.AsyncAgentStore,
 	ovmfPath string, ephemeralDiskCreator ephemeraldisk.EphemeralDiskCreatorInterface, metadataCache *metadata.Cache,
-	stopChan chan struct{}, diskMemoryLimitBytes int64, cpuSetGetter func() ([]int, error)) (DomainManager, error) {
+	stopChan chan struct{}, diskMemoryLimitBytes int64, cpuSetGetter func() ([]int, error)) (launcherCommon.DomainManager, error) {
 	directIOChecker := converter.NewDirectIOChecker()
 	return newLibvirtDomainManager(connection, virtShareDir, ephemeralDiskDir, agentStore, ovmfPath, ephemeralDiskCreator, directIOChecker, metadataCache, stopChan, diskMemoryLimitBytes, cpuSetGetter)
 }
 
 func newLibvirtDomainManager(connection cli.Connection, virtShareDir, ephemeralDiskDir string, agentStore *agentpoller.AsyncAgentStore, ovmfPath string,
 	ephemeralDiskCreator ephemeraldisk.EphemeralDiskCreatorInterface, directIOChecker converter.DirectIOChecker, metadataCache *metadata.Cache,
-	stopChan chan struct{}, diskMemoryLimitBytes int64, cpuSetGetter func() ([]int, error)) (DomainManager, error) {
+	stopChan chan struct{}, diskMemoryLimitBytes int64, cpuSetGetter func() ([]int, error)) (launcherCommon.DomainManager, error) {
 	manager := LibvirtDomainManager{
 		diskMemoryLimitBytes: diskMemoryLimitBytes,
 		virConn:              connection,

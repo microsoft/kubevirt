@@ -52,6 +52,7 @@ import (
 	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
+	launcherCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher-common/cmd-server"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
@@ -78,7 +79,7 @@ func markReady() {
 }
 
 func startCmdServer(socketPath string,
-	domainManager virtwrap.DomainManager,
+	domainManager launcherCommon.DomainManager,
 	stopChan chan struct{},
 	options *cmdserver.ServerOptions) chan struct{} {
 	done, err := cmdserver.RunServer(socketPath, domainManager, stopChan, options)
@@ -227,7 +228,7 @@ func initializeDirs(ephemeralDiskDir string,
 	}
 }
 
-func detectDomainWithUUID(domainManager virtwrap.DomainManager) *api.Domain {
+func detectDomainWithUUID(domainManager launcherCommon.DomainManager) *api.Domain {
 	domains, err := domainManager.ListAllDomains()
 	if err != nil {
 		log.Log.Reason(err).Errorf("failed to list domains when detecting UUID")
@@ -241,7 +242,7 @@ func detectDomainWithUUID(domainManager virtwrap.DomainManager) *api.Domain {
 	return nil
 }
 
-func waitForDomainUUID(timeout time.Duration, events chan watch.Event, stop chan struct{}, domainManager virtwrap.DomainManager) *api.Domain {
+func waitForDomainUUID(timeout time.Duration, events chan watch.Event, stop chan struct{}, domainManager launcherCommon.DomainManager) *api.Domain {
 
 	ticker := time.NewTicker(timeout)
 	defer ticker.Stop()
@@ -277,7 +278,7 @@ func waitForDomainUUID(timeout time.Duration, events chan watch.Event, stop chan
 }
 
 func waitForFinalNotify(deleteNotificationSent chan watch.Event,
-	domainManager virtwrap.DomainManager,
+	domainManager launcherCommon.DomainManager,
 	vmi *v1.VirtualMachineInstance) {
 
 	log.Log.Info("Waiting on final notifications to be sent to virt-handler.")

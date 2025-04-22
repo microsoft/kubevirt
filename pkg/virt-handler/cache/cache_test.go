@@ -37,6 +37,7 @@ import (
 
 	diskutils "kubevirt.io/kubevirt/pkg/ephemeral-disk-utils"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	launcherCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher-common/cmd-server"
 	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
@@ -448,7 +449,7 @@ var _ = Describe("Iterable checkpoint manager", func() {
 })
 
 func runCMDServer(wg *sync.WaitGroup, socketPath string,
-	domainManager virtwrap.DomainManager,
+	domainManager launcherCommon.DomainManager,
 	stopChan chan struct{},
 	options *cmdserver.ServerOptions) {
 	wg.Add(1)
