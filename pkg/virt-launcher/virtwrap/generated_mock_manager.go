@@ -17,15 +17,9 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	v10 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
-<<<<<<< HEAD
-	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
-	api "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	stats "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
-=======
-	cmd_client "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	api "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
+	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	stats "kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
->>>>>>> 04e5943d15 (Moved cmd-server, api and stats into virt-launcher-common)
 )
 
 // MockDomainManager is a mock of DomainManager interface.

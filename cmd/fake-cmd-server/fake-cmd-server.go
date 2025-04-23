@@ -10,8 +10,8 @@ import (
 	"kubevirt.io/client-go/log"
 
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	virt_launcher_common "kubevirt.io/kubevirt/pkg/virt-launcher-common"
 	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher-common/cmd-server"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
 )
 
@@ -26,7 +26,7 @@ func main() {
 	stopChan := make(chan struct{})
 	options := cmdserver.NewServerOptions(true)
 
-	domainManager := virtwrap.NewMockDomainManager(gomock.NewController(nil))
+	domainManager := virt_launcher_common.NewMockDomainManager(gomock.NewController(nil))
 	domainManager.EXPECT().Exec(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		AnyTimes().DoAndReturn(func(domainName string, _ string, _ []string) (string, error) {
 		if domainName == "error" {

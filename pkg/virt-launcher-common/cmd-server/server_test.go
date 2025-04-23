@@ -35,14 +35,14 @@ import (
 	"kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/info"
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	virt_launcher_common "kubevirt.io/kubevirt/pkg/virt-launcher-common"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
 )
 
 var _ = Describe("Virt remote commands", func() {
-	var domainManager *virtwrap.MockDomainManager
+	var domainManager *virt_launcher_common.MockDomainManager
 	var client cmdclient.LauncherClient
 
 	var ctrl *gomock.Controller
@@ -61,7 +61,7 @@ var _ = Describe("Virt remote commands", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		ctrl = gomock.NewController(GinkgoT())
-		domainManager = virtwrap.NewMockDomainManager(ctrl)
+		domainManager = virt_launcher_common.NewMockDomainManager(ctrl)
 
 		socketPath := filepath.Join(shareDir, "server.sock")
 
