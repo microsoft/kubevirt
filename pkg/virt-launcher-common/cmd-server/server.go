@@ -38,7 +38,6 @@ import (
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	launcherCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
-	launcherErrors "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/errors"
 )
 
 const (
@@ -87,14 +86,11 @@ func getMigrationOptionsFromRequest(request *cmdv1.MigrationRequest) (*cmdclient
 	return options, nil
 }
 
-func getErrorMessage(err error) string {
-	// TODO PLUGINDEV: Here launcherErrors function is being called.
-	// TODO PLUGINDEV: Here, the error is an instance of the Error interface in Go. This fn. returns a string with LibVirt errno, msg, domainName, all in a human-readable manner. Only works if err is an instance of Libvirt.Error.
-	// TODO PLUGINDEV: We can update the functions in DomainManager to format errors according to the underlying virtstack.
-	if virErr := launcherErrors.FormatLibvirtError(err); virErr != "" {
-		return virErr
-	}
-	return err.Error()
+func (l *Launcher) formatError(err error) string {
+	// Call the DomainManager implementation's FormatError fn to
+	// return an error string formatted appropriately for the impl's
+	// target virtualization stack.
+	return l.domainManager.FormatError(err)
 }
 
 func (l *Launcher) MigrateVirtualMachine(_ context.Context, request *cmdv1.MigrationRequest) (*cmdv1.Response, error) {
@@ -114,7 +110,7 @@ func (l *Launcher) MigrateVirtualMachine(_ context.Context, request *cmdv1.Migra
 	if err := l.domainManager.MigrateVMI(vmi, options); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to migrate vmi")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -132,7 +128,7 @@ func (l *Launcher) CancelVirtualMachineMigration(_ context.Context, request *cmd
 	if err := l.domainManager.CancelVMIMigration(vmi); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to abort live migration")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -168,7 +164,7 @@ func (l *Launcher) SyncMigrationTarget(_ context.Context, request *cmdv1.VMIRequ
 	if err := l.domainManager.PrepareMigrationTarget(vmi, l.allowEmulation, request.Options); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to prepare migration target pod")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -186,7 +182,7 @@ func (l *Launcher) SyncVirtualMachineCPUs(_ context.Context, request *cmdv1.VMIR
 	if err := l.domainManager.UpdateVCPUs(vmi, request.Options); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed update VMI vCPUs")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -204,7 +200,7 @@ func (l *Launcher) SyncVirtualMachine(_ context.Context, request *cmdv1.VMIReque
 	if _, err := l.domainManager.SyncVMI(vmi, l.allowEmulation, request.Options); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to sync vmi")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -221,7 +217,7 @@ func (l *Launcher) PauseVirtualMachine(_ context.Context, request *cmdv1.VMIRequ
 	if err := l.domainManager.PauseVMI(vmi); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to pause vmi")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -238,7 +234,7 @@ func (l *Launcher) UnpauseVirtualMachine(_ context.Context, request *cmdv1.VMIRe
 	if err := l.domainManager.UnpauseVMI(vmi); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to unpause vmi")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -255,7 +251,7 @@ func (l *Launcher) VirtualMachineMemoryDump(_ context.Context, request *cmdv1.Me
 	if err := l.domainManager.MemoryDump(vmi, request.DumpPath); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to Dump vmi memory")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -271,7 +267,7 @@ func (l *Launcher) FreezeVirtualMachine(_ context.Context, request *cmdv1.Freeze
 	if err := l.domainManager.FreezeVMI(vmi, request.UnfreezeTimeoutSeconds); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to freeze vmi")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -288,7 +284,7 @@ func (l *Launcher) UnfreezeVirtualMachine(_ context.Context, request *cmdv1.VMIR
 	if err := l.domainManager.UnfreezeVMI(vmi); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to unfreeze vmi")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -305,7 +301,7 @@ func (l *Launcher) ResetVirtualMachine(_ context.Context, request *cmdv1.VMIRequ
 	if err := l.domainManager.ResetVMI(vmi); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to reset vmi")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -322,7 +318,7 @@ func (l *Launcher) SoftRebootVirtualMachine(_ context.Context, request *cmdv1.VM
 	if err := l.domainManager.SoftRebootVMI(vmi); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to soft reboot vmi")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -340,7 +336,7 @@ func (l *Launcher) KillVirtualMachine(_ context.Context, request *cmdv1.VMIReque
 	if err := l.domainManager.KillVMI(vmi); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to kill vmi")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -358,7 +354,7 @@ func (l *Launcher) ShutdownVirtualMachine(_ context.Context, request *cmdv1.VMIR
 	if err := l.domainManager.SignalShutdownVMI(vmi); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to signal shutdown for vmi")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -376,7 +372,7 @@ func (l *Launcher) DeleteVirtualMachine(_ context.Context, request *cmdv1.VMIReq
 	if err := l.domainManager.DeleteVMI(vmi); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to signal deletion for vmi")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -393,7 +389,7 @@ func (l *Launcher) FinalizeVirtualMachineMigration(_ context.Context, request *c
 	if err := l.domainManager.FinalizeVirtualMachineMigration(vmi, request.Options); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("failed to finalize migration")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -410,7 +406,7 @@ func (l *Launcher) HotplugHostDevices(_ context.Context, request *cmdv1.VMIReque
 	if err := l.domainManager.HotplugHostDevices(vmi); err != nil {
 		log.Log.Object(vmi).Errorf(err.Error())
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -428,7 +424,7 @@ func (l *Launcher) GetDomain(_ context.Context, _ *cmdv1.EmptyRequest) (*cmdv1.D
 	list, err := l.domainManager.ListAllDomains()
 	if err != nil {
 		response.Response.Success = false
-		response.Response.Message = getErrorMessage(err)
+		response.Response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -443,7 +439,7 @@ func (l *Launcher) GetDomain(_ context.Context, _ *cmdv1.EmptyRequest) (*cmdv1.D
 		if domain, err := json.Marshal(domainObj); err != nil {
 			log.Log.Reason(err).Errorf("Failed to marshal domain")
 			response.Response.Success = false
-			response.Response.Message = getErrorMessage(err)
+			response.Response.Message = l.formatError(err)
 			return response, nil
 		} else {
 			response.Domain = string(domain)
@@ -459,7 +455,7 @@ func (l *Launcher) GetQemuVersion(_ context.Context, _ *cmdv1.EmptyRequest) (*cm
 	}
 
 	if version, err := l.domainManager.GetQemuVersion(); err != nil {
-		response.Response.Message = getErrorMessage(err)
+		response.Response.Message = l.formatError(err)
 	} else {
 		response.Response.Success = true
 		response.Version = version
@@ -479,14 +475,14 @@ func (l *Launcher) GetDomainStats(_ context.Context, _ *cmdv1.EmptyRequest) (*cm
 	stats, err := l.domainManager.GetDomainStats()
 	if err != nil {
 		response.Response.Success = false
-		response.Response.Message = getErrorMessage(err)
+		response.Response.Message = l.formatError(err)
 		return response, nil
 	}
 
 	if domainStats, err := json.Marshal(stats); err != nil {
 		log.Log.Reason(err).Errorf("Failed to marshal domain stats")
 		response.Response.Success = false
-		response.Response.Message = getErrorMessage(err)
+		response.Response.Message = l.formatError(err)
 	} else {
 		response.DomainStats = string(domainStats)
 	}
@@ -506,7 +502,7 @@ func (l *Launcher) GetGuestInfo(_ context.Context, _ *cmdv1.EmptyRequest) (*cmdv
 	if jGuestInfo, err := json.Marshal(guestInfo); err != nil {
 		log.Log.Reason(err).Errorf("Failed to marshal agent info")
 		response.Response.Success = false
-		response.Response.Message = getErrorMessage(err)
+		response.Response.Message = l.formatError(err)
 		return response, nil
 	} else {
 		response.GuestInfoResponse = string(jGuestInfo)
@@ -527,7 +523,7 @@ func (l *Launcher) GetUsers(_ context.Context, _ *cmdv1.EmptyRequest) (*cmdv1.Gu
 	if jUsers, err := json.Marshal(users); err != nil {
 		log.Log.Reason(err).Errorf("Failed to marshal guest user list")
 		response.Response.Success = false
-		response.Response.Message = getErrorMessage(err)
+		response.Response.Message = l.formatError(err)
 		return response, nil
 	} else {
 		response.GuestUserListResponse = string(jUsers)
@@ -548,7 +544,7 @@ func (l *Launcher) GetFilesystems(_ context.Context, _ *cmdv1.EmptyRequest) (*cm
 	if jFS, err := json.Marshal(fs); err != nil {
 		log.Log.Reason(err).Errorf("Failed to marshal guest user list")
 		response.Response.Success = false
-		response.Response.Message = getErrorMessage(err)
+		response.Response.Message = l.formatError(err)
 		return response, nil
 	} else {
 		response.GuestFilesystemsResponse = string(jFS)
@@ -671,14 +667,14 @@ func (l *Launcher) GetSEVInfo(_ context.Context, _ *cmdv1.EmptyRequest) (*cmdv1.
 	if err != nil {
 		log.Log.Reason(err).Errorf("Failed to get SEV platform info")
 		sevInfoResponse.Response.Success = false
-		sevInfoResponse.Response.Message = getErrorMessage(err)
+		sevInfoResponse.Response.Message = l.formatError(err)
 		return sevInfoResponse, nil
 	}
 
 	if sevPlatformInfoJson, err := json.Marshal(sevPlatformInfo); err != nil {
 		log.Log.Reason(err).Errorf("Failed to marshal SEV platform info")
 		sevInfoResponse.Response.Success = false
-		sevInfoResponse.Response.Message = getErrorMessage(err)
+		sevInfoResponse.Response.Message = l.formatError(err)
 		return sevInfoResponse, nil
 	} else {
 		sevInfoResponse.SevInfo = sevPlatformInfoJson
@@ -701,14 +697,14 @@ func (l *Launcher) GetLaunchMeasurement(_ context.Context, request *cmdv1.VMIReq
 	if err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to get launch measuement")
 		launchMeasurementResponse.Response.Success = false
-		launchMeasurementResponse.Response.Message = getErrorMessage(err)
+		launchMeasurementResponse.Response.Message = l.formatError(err)
 		return launchMeasurementResponse, nil
 	}
 
 	if sevMeasurementInfoJson, err := json.Marshal(sevMeasurementInfo); err != nil {
 		log.Log.Reason(err).Errorf("Failed to marshal launch measuement info")
 		launchMeasurementResponse.Response.Success = false
-		launchMeasurementResponse.Response.Message = getErrorMessage(err)
+		launchMeasurementResponse.Response.Message = l.formatError(err)
 		return launchMeasurementResponse, nil
 	} else {
 		launchMeasurementResponse.LaunchMeasurement = sevMeasurementInfoJson
@@ -733,7 +729,7 @@ func (l *Launcher) InjectLaunchSecret(_ context.Context, request *cmdv1.InjectLa
 	if err := l.domainManager.InjectLaunchSecret(vmi, &sevSecretOptions); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed to inject SEV launch secret")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 
@@ -755,7 +751,7 @@ func (l *Launcher) SyncVirtualMachineMemory(_ context.Context, request *cmdv1.VM
 	if err := l.domainManager.UpdateGuestMemory(vmi); err != nil {
 		log.Log.Object(vmi).Reason(err).Errorf("Failed update VMI guest memory")
 		response.Success = false
-		response.Message = getErrorMessage(err)
+		response.Message = l.formatError(err)
 		return response, nil
 	}
 

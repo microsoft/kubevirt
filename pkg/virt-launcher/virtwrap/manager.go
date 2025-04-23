@@ -265,6 +265,13 @@ func getAllDomainDisks(dom cli.VirDomain) ([]api.Disk, error) {
 	return devices.Disks, nil
 }
 
+func (l *LibvirtDomainManager) FormatError(err error) string {
+	if virErr := domainerrors.FormatLibvirtError(err); virErr != "" {
+		return virErr
+	}
+	return err.Error()
+}
+
 func (l *LibvirtDomainManager) UpdateGuestMemory(vmi *v1.VirtualMachineInstance) error {
 	l.domainModifyLock.Lock()
 	defer l.domainModifyLock.Unlock()
