@@ -1,5 +1,11 @@
 package virt_launcher_common
 
+//go:generate mockgen -source $GOFILE -package=$GOPACKAGE -destination=generated_mock_$GOFILE
+
+/*
+ ATTENTION: Rerun code generators when interface signatures are modified.
+*/
+
 import (
 	v1 "kubevirt.io/api/core/v1"
 
