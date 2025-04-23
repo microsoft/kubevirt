@@ -223,6 +223,8 @@ func (m *hookManager) OnDefineDomain(domainSpec *virtwrapApi.DomainSpec, vmi *v1
 	return string(domainSpecXML), nil
 }
 
+// TODO PLUGINDEV: The OnDefineDomain hook in sidecar functionality is Libvirt-specific. And possibly needs to be updated for different virt-stacks.
+
 func (m *hookManager) onDefineDomainCallback(callback *callBackClient, domainSpecXML, vmiJSON []byte) ([]byte, error) {
 	conn, err := grpcutil.DialSocketWithTimeout(callback.SocketPath, 1)
 	if err != nil {
