@@ -42,4 +42,5 @@ type DomainManager interface {
 	GetLaunchMeasurement(*v1.VirtualMachineInstance) (*v1.SEVMeasurementInfo, error)
 	InjectLaunchSecret(*v1.VirtualMachineInstance, *v1.SEVSecretOptions) error
 	UpdateGuestMemory(vmi *v1.VirtualMachineInstance) error
+	FormatError(err error) string
 }
