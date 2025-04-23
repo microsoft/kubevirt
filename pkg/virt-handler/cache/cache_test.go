@@ -37,11 +37,10 @@ import (
 
 	diskutils "kubevirt.io/kubevirt/pkg/ephemeral-disk-utils"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
-	launcherCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common"
+	virt_launcher_common "kubevirt.io/kubevirt/pkg/virt-launcher-common"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher-common/cmd-server"
 	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
 )
 
 var _ = Describe("Domain informer", func() {
@@ -52,7 +51,7 @@ var _ = Describe("Domain informer", func() {
 	var stopChan chan struct{}
 	var wg *sync.WaitGroup
 	var ctrl *gomock.Controller
-	var domainManager *virtwrap.MockDomainManager
+	var domainManager *virt_launcher_common.MockDomainManager
 	var socketPath string
 	var resyncPeriod int
 	var ghostRecordStore *GhostRecordStore
@@ -85,7 +84,7 @@ var _ = Describe("Domain informer", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		ctrl = gomock.NewController(GinkgoT())
-		domainManager = virtwrap.NewMockDomainManager(ctrl)
+		domainManager = virt_launcher_common.NewMockDomainManager(ctrl)
 	})
 
 	AfterEach(func() {
@@ -449,7 +448,7 @@ var _ = Describe("Iterable checkpoint manager", func() {
 })
 
 func runCMDServer(wg *sync.WaitGroup, socketPath string,
-	domainManager launcherCommon.DomainManager,
+	domainManager virt_launcher_common.DomainManager,
 	stopChan chan struct{},
 	options *cmdserver.ServerOptions) {
 	wg.Add(1)
