@@ -4,8 +4,8 @@ load("@kubevirt//tools/ginkgo:ginkgo.bzl", "ginkgo_test")
 go_library(
     name = "go_default_library",
     srcs = [
-        "generated_mock_managerinterface.go",
-        "managerinterface.go",
+        "generated_mock_manager.go",
+        "manager.go",
     ],
     importpath = "kubevirt.io/kubevirt/pkg/virt-launcher-common",
     visibility = ["//visibility:public"],
