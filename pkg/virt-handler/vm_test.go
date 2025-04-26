@@ -74,7 +74,7 @@ import (
 	migrationproxy "kubevirt.io/kubevirt/pkg/virt-handler/migration-proxy"
 	notifyserver "kubevirt.io/kubevirt/pkg/virt-handler/notify-server"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
-	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
+	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher-common/notify-client"
 )
 
 var _ = Describe("VirtualMachineInstance", func() {
@@ -3643,7 +3643,7 @@ var _ = Describe("DomainNotifyServerRestarts", func() {
 		var domainPipeStopChan chan struct{}
 		var stoppedPipe bool
 		var eventChan chan watch.Event
-		var client *notifyclient.Notifier
+		var client *notifyclient.NotifyClient
 		var recorder *record.FakeRecorder
 		var vmiStore cache.Store
 
@@ -3702,7 +3702,7 @@ var _ = Describe("DomainNotifyServerRestarts", func() {
 			handleDomainNotifyPipe(domainPipeStopChan, listener, shareDir, vmi)
 			time.Sleep(1)
 
-			client = notifyclient.NewNotifier(pipeDir)
+			client = notifyclient.NewNotifyClient(pipeDir)
 
 			err = client.SendK8sEvent(vmi, eventType, eventReason, eventMessage)
 			Expect(err).ToNot(HaveOccurred())
@@ -3734,7 +3734,7 @@ var _ = Describe("DomainNotifyServerRestarts", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// Client should fail when pipe is offline
-			client = notifyclient.NewNotifier(pipeDir)
+			client = notifyclient.NewNotifyClient(pipeDir)
 
 			client.SetCustomTimeouts(1*time.Second, 1*time.Second, 3*time.Second)
 
@@ -3774,7 +3774,7 @@ var _ = Describe("DomainNotifyServerRestarts", func() {
 			handleDomainNotifyPipe(domainPipeStopChan, listener, shareDir, vmi)
 			time.Sleep(1)
 
-			client = notifyclient.NewNotifier(pipeDir)
+			client = notifyclient.NewNotifyClient(pipeDir)
 
 			for i := 1; i < 5; i++ {
 				// close and wait for server to stop

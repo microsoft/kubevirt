@@ -40,7 +40,7 @@ import (
 	virt_launcher_common "kubevirt.io/kubevirt/pkg/virt-launcher-common"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher-common/cmd-server"
-	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
+	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher-common/notify-client"
 )
 
 var _ = Describe("Domain informer", func() {
@@ -414,7 +414,7 @@ var _ = Describe("Domain informer", func() {
 			runInformer(wg, stopChan, informer)
 			cache.WaitForCacheSync(stopChan, informer.HasSynced)
 
-			client := notifyclient.NewNotifier(shareDir)
+			client := notifyclient.NewNotifyClient(shareDir)
 
 			// verify add
 			err := client.SendDomainEvent(watch.Event{Type: watch.Added, Object: domain})

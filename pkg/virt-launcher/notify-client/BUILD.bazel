@@ -30,10 +30,10 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
-        "//pkg/handler-launcher-com/notify/info:go_default_library",
         "//pkg/testutils:go_default_library",
         "//pkg/virt-handler/notify-server:go_default_library",
         "//pkg/virt-launcher-common/api:go_default_library",
+        "//pkg/virt-launcher-common/notify-client:go_default_library",
         "//pkg/virt-launcher/metadata:go_default_library",
         "//pkg/virt-launcher/virtwrap/cli:go_default_library",
         "//pkg/virt-launcher/virtwrap/util:go_default_library",

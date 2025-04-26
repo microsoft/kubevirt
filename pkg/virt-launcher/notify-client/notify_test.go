@@ -39,10 +39,10 @@ import (
 
 	v1 "kubevirt.io/api/core/v1"
 
-	"kubevirt.io/kubevirt/pkg/handler-launcher-com/notify/info"
 	"kubevirt.io/kubevirt/pkg/testutils"
 	notifyserver "kubevirt.io/kubevirt/pkg/virt-handler/notify-server"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
+	notifyClientCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common/notify-client"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/util"
@@ -57,7 +57,7 @@ var _ = Describe("Notify", func() {
 		var stopped bool
 		var eventChan chan watch.Event
 		var deleteNotificationSent chan watch.Event
-		var client *Notifier
+		var client *notifyClientCommon.NotifyClient
 		var metadataCache *metadata.Cache
 
 		var mockDomain *cli.MockVirDomain
@@ -85,7 +85,7 @@ var _ = Describe("Notify", func() {
 
 			time.Sleep(1 * time.Second)
 
-			client = NewNotifier(shareDir)
+			client = notifyClientCommon.NewNotifyClient(shareDir)
 
 			metadataCache = metadata.NewCache()
 		})
@@ -264,7 +264,7 @@ var _ = Describe("Notify", func() {
 		var stopped bool
 		var eventChan chan watch.Event
 		var deleteNotificationSent chan watch.Event
-		var client *Notifier
+		var client *notifyClientCommon.NotifyClient
 		var recorder *record.FakeRecorder
 		var vmiStore cache.Store
 		var e *eventCaller
@@ -289,7 +289,7 @@ var _ = Describe("Notify", func() {
 
 			time.Sleep(1 * time.Second)
 
-			client = NewNotifier(shareDir)
+			client = notifyClientCommon.NewNotifyClient(shareDir)
 		})
 
 		AfterEach(func() {
@@ -350,32 +350,5 @@ var _ = Describe("Notify", func() {
 			Expect(event).To(Equal(fmt.Sprintf("%s %s %s involvedObject{kind=VirtualMachineInstance,apiVersion=kubevirt.io/v1}", eventType, eventReason, eventMessage)))
 		})
 
-	})
-
-	Describe("Version mismatch", func() {
-
-		var err error
-		var ctrl *gomock.Controller
-		var infoClient *info.MockNotifyInfoClient
-
-		BeforeEach(func() {
-			ctrl = gomock.NewController(GinkgoT())
-			infoClient = info.NewMockNotifyInfoClient(ctrl)
-		})
-
-		It("Should report error when server version mismatches", func() {
-
-			fakeResponse := info.NotifyInfoResponse{
-				SupportedNotifyVersions: []uint32{42},
-			}
-			infoClient.EXPECT().Info(gomock.Any(), gomock.Any()).Return(&fakeResponse, nil)
-
-			By("Initializing the notifier")
-			_, err = negotiateVersion(infoClient)
-
-			Expect(err).To(HaveOccurred(), "Should have returned error about incompatible versions")
-			Expect(err.Error()).To(ContainSubstring("no compatible version found"), "Expected error message to contain 'no compatible version found'")
-
-		})
 	})
 })
