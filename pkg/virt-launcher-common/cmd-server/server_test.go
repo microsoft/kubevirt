@@ -36,9 +36,9 @@ import (
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	virt_launcher_common "kubevirt.io/kubevirt/pkg/virt-launcher-common"
+	agent_common "kubevirt.io/kubevirt/pkg/virt-launcher-common/agent"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
 )
 
 var _ = Describe("Virt remote commands", func() {
@@ -394,12 +394,12 @@ var _ = Describe("Virt remote commands", func() {
 				Expect(resp.Response.Message).To(Equal(testExecErr.Error()))
 			})
 			It("does not return exit code errors", func() {
-				expectExec().Times(1).Return("", agent.ExecExitCode{ExitCode: 1})
+				expectExec().Times(1).Return("", agent_common.ExecExitCode{ExitCode: 1})
 				_, err := server.Exec(context.TODO(), execRequest())
 				Expect(err).ToNot(HaveOccurred())
 			})
 			It("returns non-zero exit code and stdOut if possible", func() {
-				expectExec().Times(1).Return(testStdOut, agent.ExecExitCode{ExitCode: 1})
+				expectExec().Times(1).Return(testStdOut, agent_common.ExecExitCode{ExitCode: 1})
 				resp, err := server.Exec(context.TODO(), execRequest())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.ExitCode).To(BeEquivalentTo(1))
@@ -417,7 +417,7 @@ var _ = Describe("Virt remote commands", func() {
 				// A non-zero exit code does not mean the execution failed, just the command.
 				// An example of a failed execution would be when the guest-agent is not available,
 				// then success should not be true.
-				expectExec().Times(1).Return(testStdOut, agent.ExecExitCode{ExitCode: 1})
+				expectExec().Times(1).Return(testStdOut, agent_common.ExecExitCode{ExitCode: 1})
 				resp, err := server.Exec(context.TODO(), execRequest())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.Response.Success).To(BeTrue())

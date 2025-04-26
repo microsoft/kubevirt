@@ -11,8 +11,8 @@ import (
 
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	virt_launcher_common "kubevirt.io/kubevirt/pkg/virt-launcher-common"
+	agent_common "kubevirt.io/kubevirt/pkg/virt-launcher-common/agent"
 	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher-common/cmd-server"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
 )
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 			return "", errors.New("fake error")
 		}
 		if domainName == "fail" {
-			return "command failed", agent.ExecExitCode{ExitCode: 1}
+			return "command failed", agent_common.ExecExitCode{ExitCode: 1}
 		}
 		return "success", nil
 	})

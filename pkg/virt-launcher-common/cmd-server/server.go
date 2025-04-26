@@ -37,7 +37,7 @@ import (
 	grpcutil "kubevirt.io/kubevirt/pkg/util/net/grpc"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	launcherCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
+	agent_common "kubevirt.io/kubevirt/pkg/virt-launcher-common/agent"
 )
 
 const (
@@ -566,7 +566,7 @@ func (l *Launcher) Exec(ctx context.Context, request *cmdv1.ExecRequest) (*cmdv1
 
 	// TODO PLUGINDEV: ExecExitCode needs to be made a common struct.
 	// TODO PLUGINDEV: Ideally all the agent invocation should be agnostic of the guestAgent/virt-stack, but its a longshot.
-	exitCode := agent.ExecExitCode{}
+	exitCode := agent_common.ExecExitCode{}
 	if err != nil && !errors.As(err, &exitCode) {
 		resp.Response.Success = false
 		resp.Response.Message = err.Error()

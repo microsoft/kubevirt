@@ -6,33 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	agent_common "kubevirt.io/kubevirt/pkg/virt-launcher-common/agent"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 )
-
-type execReturn struct {
-	Return execReturnData `json:"return"`
-}
-type execReturnData struct {
-	Pid int `json:"pid"`
-}
-
-type execStatusReturn struct {
-	Return execStatusReturnData `json:"return"`
-}
-type execStatusReturnData struct {
-	Exited   bool   `json:"exited"`
-	ExitCode int    `json:"exitcode"`
-	OutData  string `json:"out-data"`
-}
-
-// ExecExitCode returned at non-zero return codes
-type ExecExitCode struct {
-	ExitCode int
-}
-
-func (e ExecExitCode) Error() string {
-	return fmt.Sprint("exited with error code:", e.ExitCode)
-}
 
 // GuestExec sends the provided command and args to the guest agent for execution and returns an error on an unsucessful exit code
 // The resulting stdout will be returned as a string
@@ -52,7 +28,7 @@ func GuestExec(virConn cli.Connection, domName string, command string, args []st
 	if err != nil {
 		return "", err
 	}
-	execRes := &execReturn{}
+	execRes := &agent_common.ExecReturn{}
 	err = json.Unmarshal([]byte(output), execRes)
 	if err != nil {
 		return "", err
@@ -74,7 +50,7 @@ func GuestExec(virConn cli.Connection, domName string, command string, args []st
 		if err != nil {
 			return "", err
 		}
-		execStatusRes := &execStatusReturn{}
+		execStatusRes := &agent_common.ExecStatusReturn{}
 		err = json.Unmarshal([]byte(output), execStatusRes)
 		if err != nil {
 			return "", err
@@ -99,7 +75,7 @@ func GuestExec(virConn cli.Connection, domName string, command string, args []st
 	if !exited {
 		return "", fmt.Errorf("Timed out waiting for guest pid [%d] for command [%s] to exit", execRes.Return.Pid, command)
 	} else if exitCode != 0 {
-		return stdOut, ExecExitCode{exitCode}
+		return stdOut, agent_common.ExecExitCode{ExitCode: exitCode}
 	}
 
 	return stdOut, nil
