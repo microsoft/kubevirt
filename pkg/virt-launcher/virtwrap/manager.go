@@ -1923,7 +1923,7 @@ func (l *LibvirtDomainManager) DeleteVMI(vmi *v1.VirtualMachineInstance) error {
 }
 
 func (l *LibvirtDomainManager) ListAllDomains() ([]*api.Domain, error) {
-
+	// TODO PLUGINDEV: This is where the conversion should happen from virt-stack-specific Domain spec to a Domain spec that is generic and understood by Kubevirt in general.
 	doms, err := l.virConn.ListAllDomains(libvirt.CONNECT_LIST_DOMAINS_ACTIVE | libvirt.CONNECT_LIST_DOMAINS_INACTIVE)
 	if err != nil {
 		return nil, err
