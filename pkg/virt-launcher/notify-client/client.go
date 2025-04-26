@@ -264,7 +264,8 @@ func (e *eventCaller) updateStatus(status *api.DomainStatus) {
 func (e *eventCaller) eventCallback(c cli.Connection, domain *api.Domain, libvirtEvent libvirtEvent, client *Notifier, events chan watch.Event,
 	interfaceStatus []api.InterfaceStatus, osInfo *api.GuestOSInfo, vmi *v1.VirtualMachineInstance, fsFreezeStatus *api.FSFreeze,
 	metadataCache *metadata.Cache) {
-
+	// TODO PLUGINDEV: LookupDomainByName returns a Libvirt object.
+	// TODO PLUGINDEV: Later, the state/reason of the api.Domain is set by converting the Libvirt state/reason
 	d, err := c.LookupDomainByName(util.DomainFromNamespaceName(domain.ObjectMeta.Namespace, domain.ObjectMeta.Name))
 	if err != nil {
 		if !domainerrors.IsNotFound(err) {
@@ -290,6 +291,7 @@ func (e *eventCaller) eventCallback(c cli.Connection, domain *api.Domain, libvir
 		}
 
 		kubevirtMetadata := metadata.LoadKubevirtMetadata(metadataCache)
+		// TODO PLUGINDEV: Getting the Domain XML from Libvirt and using it to set the api.Domain.Spec field.
 		spec, err := util.GetDomainSpecWithRuntimeInfo(d)
 		if err != nil {
 			// NOTE: Getting domain metadata for a live-migrating VM isn't allowed
@@ -303,14 +305,17 @@ func (e *eventCaller) eventCallback(c cli.Connection, domain *api.Domain, libvir
 
 		if spec != nil {
 			spec.Metadata.KubeVirt = kubevirtMetadata
-			domain.Spec = *spec
+			domain.Spec = *spec // TODO PLUGINDEV: Here, we should be converting from virt-stack-specific spec to api.Domain.Spec
 		}
 
 		e.printStatus(&domain.Status)
 		e.updateStatus(&domain.Status)
 	}
 
-	switch domain.Status.Reason {
+	// TODO PLUGINDEV: By this point, the virtstack-specific code should have converted the cli.VirDomain to api.Domain.
+	// TODO PLUGINDEV: Now they just need to send the event.
+
+	switch domain.Status.Reason { // TODO PLUGINDEV: This could be changed to check virtstack-specific Status/Reason
 	case api.ReasonNonExistent:
 		now := metav1.Now()
 		domain.ObjectMeta.DeletionTimestamp = &now
