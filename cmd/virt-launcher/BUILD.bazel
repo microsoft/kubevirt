@@ -31,6 +31,7 @@ go_library(
         "//pkg/virt-launcher-common:go_default_library",
         "//pkg/virt-launcher-common/api:go_default_library",
         "//pkg/virt-launcher-common/cmd-server:go_default_library",
+        "//pkg/virt-launcher-common/notify-client:go_default_library",
         "//pkg/virt-launcher/metadata:go_default_library",
         "//pkg/virt-launcher/notify-client:go_default_library",
         "//pkg/virt-launcher/virtwrap:go_default_library",
