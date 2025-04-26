@@ -55,8 +55,9 @@ import (
 	launcherCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher-common/cmd-server"
+	notifyClientCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common/notify-client"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
-	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
+	libvirtnotifier "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
 	agentpoller "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent-poller"
 	virtcli "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
@@ -130,7 +131,7 @@ func createLibvirtConnection(runWithNonRoot bool) virtcli.Connection {
 }
 
 func startDomainEventMonitoring(
-	notifier *notifyclient.Notifier,
+	notifyClient *notifyClientCommon.NotifyClient,
 	domainConn virtcli.Connection,
 	deleteNotificationSent chan watch.Event,
 	vmi *v1.VirtualMachineInstance,
@@ -152,7 +153,7 @@ func startDomainEventMonitoring(
 		}
 	}()
 
-	err := notifier.StartDomainNotifier(domainConn, deleteNotificationSent, vmi, domainName, agentStore, qemuAgentSysInterval, qemuAgentFileInterval, qemuAgentUserInterval, qemuAgentVersionInterval, qemuAgentFSFreezeStatusInterval, metadataCache)
+	err := libvirtnotifier.StartLibvirtNotifier(notifyClient, domainConn, deleteNotificationSent, vmi, domainName, agentStore, qemuAgentSysInterval, qemuAgentFileInterval, qemuAgentUserInterval, qemuAgentVersionInterval, qemuAgentFSFreezeStatusInterval, metadataCache)
 	if err != nil {
 		panic(err)
 	}
@@ -422,7 +423,7 @@ func main() {
 
 	var agentStore = agentpoller.NewAsyncAgentStore()
 
-	notifier := notifyclient.NewNotifier(*virtShareDir)
+	notifier := notifyClientCommon.NewNotifyClient(*virtShareDir)
 	defer notifier.Close()
 
 	metadataCache := metadata.NewCache()
