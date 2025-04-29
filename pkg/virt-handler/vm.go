@@ -3592,6 +3592,8 @@ func (c *VirtualMachineController) updateMachineType(vmi *v1.VirtualMachineInsta
 		return
 	}
 	if domain.Spec.OS.Type.Machine != "" {
+		// TODO PLUGINDEV: domain.Spec.OS.Type.Machine is set by converter.go
+		// TODO PLUGINDEV: But if not set explicitly, this function still updates the resultant machineType in VMI status.
 		vmi.Status.Machine = &v1.Machine{Type: domain.Spec.OS.Type.Machine}
 	}
 }
