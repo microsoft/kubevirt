@@ -67,6 +67,8 @@ function up() {
 
     # Set server and disable tls check
     export KUBECONFIG=${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubeconfig
+    # TODO: Fix permissions in a better place.
+    chmod +x ${KUBEVIRTCI_CONFIG_PATH}/$KUBEVIRT_PROVIDER/.kubectl
     _kubectl config set-cluster kubernetes --server="https://$(_main_ip):$(_port k8s)"
     _kubectl config set-cluster kubernetes --insecure-skip-tls-verify=true
 
