@@ -2087,6 +2087,32 @@ type KubeVirtSpec struct {
 	Workloads *ComponentConfig `json:"workloads,omitempty"`
 
 	CustomizeComponents CustomizeComponents `json:"customizeComponents,omitempty"`
+
+	// list of VirtualizationStacks on which
+	// this KubeVirt cluster should be deployed
+	// +listType=atomic
+	VirtualizationStacks []VirtualizationStack `json:"virtualizationstacks,omitempty"`
+}
+
+type VirtualizationStack struct {
+	// virtLauncherCapabilities specifies the capabilities of the virt-launcher.
+	// +listType=atomic
+	VirtLauncherCapabilities []string `json:"virtLauncherCapabilities,omitempty"`
+
+	// virtLauncherOverhead specifies the overhead associated with the virt-launcher.
+	VirtLauncherOverhead string `json:"virtLauncherOverhead,omitempty"`
+
+	// HypervisorDevice specifies the path to the hypervisor device.
+	HypervisorDevice string `json:"hypervisorDevice,omitempty"`
+
+	// VCPURegex defines the regular expression used to identify vCPU devices.
+	VCPURegex string `json:"vCpuRegex,omitempty"`
+
+	// VMMDaemonProcess specifies the name of the VMM daemon process.
+	VMMDaemonProcess string `json:"vmmDaemonProcess,omitempty"`
+
+	// VMMProcessExecutable specifies the path to the VMM process executable.
+	VMMProcessExecutable string `json:"vmmProcessExecutable,omitempty"`
 }
 
 type CustomizeComponents struct {
