@@ -21760,7 +21760,7 @@ func schema_kubevirtio_api_core_v1_KubeVirtSpec(ref common.ReferenceCallback) co
 							Ref:     ref("kubevirt.io/api/core/v1.CustomizeComponents"),
 						},
 					},
-					"virtualizationstacks": {
+					"virtualizationStacks": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
 								"x-kubernetes-list-type": "atomic",
@@ -27447,6 +27447,13 @@ func schema_kubevirtio_api_core_v1_VirtualizationStack(ref common.ReferenceCallb
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the virtualization stack",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"virtLauncherCapabilities": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{

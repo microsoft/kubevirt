@@ -401,8 +401,9 @@ spec:
   productVersion: productVersionValue
   serviceMonitorNamespace: serviceMonitorNamespaceValue
   uninstallStrategy: uninstallStrategyValue
-  virtualizationstacks:
+  virtualizationStacks:
   - hypervisorDevice: hypervisorDeviceValue
+    name: nameValue
     vCpuRegex: vCpuRegexValue
     virtLauncherCapabilities:
     - virtLauncherCapabilitiesValue

@@ -2727,7 +2727,7 @@ var CRDsValidation map[string]string = map[string]string{
             Specifies if kubevirt can be deleted if workloads are still present.
             This is mainly a precaution to avoid accidental data loss
           type: string
-        virtualizationstacks:
+        virtualizationStacks:
           description: |-
             list of VirtualizationStacks on which
             this KubeVirt cluster should be deployed
@@ -2736,6 +2736,9 @@ var CRDsValidation map[string]string = map[string]string{
               hypervisorDevice:
                 description: HypervisorDevice specifies the path to the hypervisor
                   device.
+                type: string
+              name:
+                description: Name of the virtualization stack
                 type: string
               vCpuRegex:
                 description: VCPURegex defines the regular expression used to identify
