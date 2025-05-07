@@ -2116,6 +2116,9 @@ type VirtualizationStack struct {
 
 	// VMMProcessExecutable specifies the path to the VMM process executable.
 	VMMProcessExecutable string `json:"vmmProcessExecutable,omitempty"`
+
+	// Container image URI for virt-launcher for the given virtualization stack.
+	VirtLauncherImage string `json:"virtLauncherImage,omitempty"`
 }
 
 type CustomizeComponents struct {

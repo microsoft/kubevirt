@@ -43,6 +43,7 @@ import (
 const (
 	customImageExample   = "Examples: some.registry.com@sha256:abcdefghijklmnop, other.registry.com:tag1"
 	shaEnvDeprecationMsg = "This argument is deprecated. Please use virt-*-image instead"
+	VirtLauncherName     = "virt-launcher"
 )
 
 type templateData struct {
@@ -251,6 +252,17 @@ func main() {
 			}
 			data.GeneratedManifests[manifest.Name()] = string(b)
 		}
+	}
+
+	// Setting the virt-launcher image here because we don't want it in the virt-operator spec. For plugin-model, all control-plane entities are decoupled from the virt-launcher image, which is virtstack-specific.
+	virtLauncherVersion := data.DockerTag
+	if data.VirtLauncherSha != "" {
+		virtLauncherVersion = data.VirtLauncherSha
+	}
+	virtLauncherVersion = components.AddVersionSeparatorPrefix(virtLauncherVersion)
+
+	if data.VirtLauncherImage == "" {
+		data.VirtLauncherImage = fmt.Sprintf("%s/%s%s%s", data.DockerPrefix, data.ImagePrefix, VirtLauncherName, virtLauncherVersion)
 	}
 
 	tmpl := template.Must(template.ParseFiles(*inputFile))
