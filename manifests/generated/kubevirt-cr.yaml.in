@@ -25,4 +25,5 @@ spec:
     virtLauncherOverhead: 100Mi
     vmmDaemonProcess: virtqemud
     vmmProcessExecutable: qemu-system-x86
+    virtLauncherImage: {{.VirtLauncherImage}}
   workloadUpdateStrategy: {}
