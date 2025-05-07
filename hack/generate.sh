@@ -193,7 +193,8 @@ ResourceDir=${KUBEVIRT_DIR}/manifests/generated
 ${KUBEVIRT_DIR}/tools/resource-generator/resource-generator --type=priorityclass >${ResourceDir}/kubevirt-priority-class.yaml
 ${KUBEVIRT_DIR}/tools/resource-generator/resource-generator --type=kv >${ResourceDir}/kv-resource.yaml
 ${KUBEVIRT_DIR}/tools/resource-generator/resource-generator --type=kv-cr --namespace='{{.Namespace}}' --pullPolicy='{{.ImagePullPolicy}}' \
-    --featureGates='{{.FeatureGates}}' --infraReplicas='{{.InfraReplicas}}' >${ResourceDir}/kubevirt-cr.yaml.in
+    --featureGates='{{.FeatureGates}}' --infraReplicas='{{.InfraReplicas}}' \
+    --virtLauncherImage='{{.VirtLauncherImage}}' >${ResourceDir}/kubevirt-cr.yaml.in
 ${KUBEVIRT_DIR}/tools/resource-generator/resource-generator --type=operator-rbac --namespace='{{.Namespace}}' >${ResourceDir}/rbac-operator.authorization.k8s.yaml.in
 
 # used for Image fields in manifests

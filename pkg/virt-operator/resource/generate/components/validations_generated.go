@@ -2757,6 +2757,10 @@ var CRDsValidation map[string]string = map[string]string{
                   type: string
                 type: array
                 x-kubernetes-list-type: atomic
+              virtLauncherImage:
+                description: Container image URI for virt-launcher for the given virtualization
+                  stack.
+                type: string
               virtLauncherOverhead:
                 description: virtLauncherOverhead specifies the overhead associated
                   with the virt-launcher.

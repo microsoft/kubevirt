@@ -142,6 +142,8 @@ func main() {
 	pullPolicy := flag.String("pullPolicy", "IfNotPresent", "ImagePullPolicy to use.")
 	featureGates := flag.String("featureGates", "", "Feature gates to enable.")
 	infraReplicas := flag.String("infraReplicas", "2", "Number of replicas for virt-controller and virt-api")
+	// TODO PLUGINDEV: Possibly change the name of this argument to be Libvirt VirtLauncherImage
+	virtLauncherImage := flag.String("virtLauncherImage", "", "Container image URI of virt-launcher")
 
 	flag.Parse()
 
@@ -168,6 +170,7 @@ func main() {
 			VCPURegex:                "KVM",
 			VMMDaemonProcess:         "virtqemud",
 			VMMProcessExecutable:     "qemu-system-x86",
+			VirtLauncherImage:        *virtLauncherImage,
 		}
 		generateKubeVirtCR(namespace, imagePullPolicy, featureGates, infraReplicas, qemuVirtualizationStack)
 	case "operator-rbac":
