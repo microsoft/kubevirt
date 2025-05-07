@@ -403,8 +403,9 @@ spec:
   serviceMonitorNamespace: serviceMonitorNamespaceValue
   synchronizationPort: synchronizationPortValue
   uninstallStrategy: uninstallStrategyValue
-  virtualizationstacks:
+  virtualizationStacks:
   - hypervisorDevice: hypervisorDeviceValue
+    name: nameValue
     vCpuRegex: vCpuRegexValue
     virtLauncherCapabilities:
     - virtLauncherCapabilitiesValue

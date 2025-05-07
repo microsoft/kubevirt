@@ -2229,10 +2229,13 @@ type KubeVirtSpec struct {
 	// list of VirtualizationStacks on which
 	// this KubeVirt cluster should be deployed
 	// +listType=atomic
-	VirtualizationStacks []VirtualizationStack `json:"virtualizationstacks,omitempty"`
+	VirtualizationStacks []VirtualizationStack `json:"virtualizationStacks,omitempty"`
 }
 
 type VirtualizationStack struct {
+	// Name of the virtualization stack
+	Name string `json:"name,omitempty"`
+
 	// virtLauncherCapabilities specifies the capabilities of the virt-launcher.
 	// +listType=atomic
 	VirtLauncherCapabilities []string `json:"virtLauncherCapabilities,omitempty"`

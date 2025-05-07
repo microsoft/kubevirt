@@ -884,8 +884,9 @@
         }
       }
     },
-    "virtualizationstacks": [
+    "virtualizationStacks": [
       {
+        "name": "nameValue",
         "virtLauncherCapabilities": [
           "virtLauncherCapabilitiesValue"
         ],
