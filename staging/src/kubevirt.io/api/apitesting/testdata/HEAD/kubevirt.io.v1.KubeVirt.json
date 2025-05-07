@@ -881,7 +881,19 @@
           "handlerKey": "handlerValue"
         }
       }
-    }
+    },
+    "virtualizationstacks": [
+      {
+        "virtLauncherCapabilities": [
+          "virtLauncherCapabilitiesValue"
+        ],
+        "virtLauncherOverhead": "virtLauncherOverheadValue",
+        "hypervisorDevice": "hypervisorDeviceValue",
+        "vCpuRegex": "vCpuRegexValue",
+        "vmmDaemonProcess": "vmmDaemonProcessValue",
+        "vmmProcessExecutable": "vmmProcessExecutableValue"
+      }
+    ]
   },
   "status": {
     "phase": "phaseValue",

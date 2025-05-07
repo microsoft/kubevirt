@@ -14784,6 +14784,15 @@
       "description": "Specifies if kubevirt can be deleted if workloads are still present. This is mainly a precaution to avoid accidental data loss",
       "type": "string"
      },
+     "virtualizationstacks": {
+      "description": "list of VirtualizationStacks on which this KubeVirt cluster should be deployed",
+      "type": "array",
+      "items": {
+       "default": {},
+       "$ref": "#/definitions/v1.VirtualizationStack"
+      },
+      "x-kubernetes-list-type": "atomic"
+     },
      "workloadUpdateStrategy": {
       "description": "WorkloadUpdateStrategy defines at the cluster level how to handle automated workload updates",
       "default": {},
@@ -17865,6 +17874,40 @@
      "removeVolumeOptions": {
       "description": "RemoveVolumeOptions when set indicates a volume should be removed. The details within this field specify how to add the volume",
       "$ref": "#/definitions/v1.RemoveVolumeOptions"
+     }
+    }
+   },
+   "v1.VirtualizationStack": {
+    "type": "object",
+    "properties": {
+     "hypervisorDevice": {
+      "description": "HypervisorDevice specifies the path to the hypervisor device.",
+      "type": "string"
+     },
+     "vCpuRegex": {
+      "description": "VCPURegex defines the regular expression used to identify vCPU devices.",
+      "type": "string"
+     },
+     "virtLauncherCapabilities": {
+      "description": "virtLauncherCapabilities specifies the capabilities of the virt-launcher.",
+      "type": "array",
+      "items": {
+       "type": "string",
+       "default": ""
+      },
+      "x-kubernetes-list-type": "atomic"
+     },
+     "virtLauncherOverhead": {
+      "description": "virtLauncherOverhead specifies the overhead associated with the virt-launcher.",
+      "type": "string"
+     },
+     "vmmDaemonProcess": {
+      "description": "VMMDaemonProcess specifies the name of the VMM daemon process.",
+      "type": "string"
+     },
+     "vmmProcessExecutable": {
+      "description": "VMMProcessExecutable specifies the path to the VMM process executable.",
+      "type": "string"
      }
     }
    },

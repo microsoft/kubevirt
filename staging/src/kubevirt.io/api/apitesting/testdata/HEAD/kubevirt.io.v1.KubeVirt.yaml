@@ -401,6 +401,14 @@ spec:
   productVersion: productVersionValue
   serviceMonitorNamespace: serviceMonitorNamespaceValue
   uninstallStrategy: uninstallStrategyValue
+  virtualizationstacks:
+  - hypervisorDevice: hypervisorDeviceValue
+    vCpuRegex: vCpuRegexValue
+    virtLauncherCapabilities:
+    - virtLauncherCapabilitiesValue
+    virtLauncherOverhead: virtLauncherOverheadValue
+    vmmDaemonProcess: vmmDaemonProcessValue
+    vmmProcessExecutable: vmmProcessExecutableValue
   workloadUpdateStrategy:
     batchEvictionInterval: 1ns
     batchEvictionSize: -17

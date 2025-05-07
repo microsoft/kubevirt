@@ -554,6 +554,18 @@ func (KubeVirtSpec) SwaggerDoc() map[string]string {
 		"configuration":           "holds kubevirt configurations.\nsame as the virt-configMap",
 		"infra":                   "selectors and tolerations that should apply to KubeVirt infrastructure components\n+optional",
 		"workloads":               "selectors and tolerations that should apply to KubeVirt workloads\n+optional",
+		"virtualizationstacks":    "list of VirtualizationStacks on which\nthis KubeVirt cluster should be deployed\n+listType=atomic",
+	}
+}
+
+func (VirtualizationStack) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"virtLauncherCapabilities": "virtLauncherCapabilities specifies the capabilities of the virt-launcher.\n+listType=atomic",
+		"virtLauncherOverhead":     "virtLauncherOverhead specifies the overhead associated with the virt-launcher.",
+		"hypervisorDevice":         "HypervisorDevice specifies the path to the hypervisor device.",
+		"vCpuRegex":                "VCPURegex defines the regular expression used to identify vCPU devices.",
+		"vmmDaemonProcess":         "VMMDaemonProcess specifies the name of the VMM daemon process.",
+		"vmmProcessExecutable":     "VMMProcessExecutable specifies the path to the VMM process executable.",
 	}
 }
 

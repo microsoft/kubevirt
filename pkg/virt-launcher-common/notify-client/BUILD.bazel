@@ -26,7 +26,10 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = ["notify_test.go"],
+    srcs = [
+        "notify_client_suite_test.go",
+        "notify_test.go",
+    ],
     embed = [":go_default_library"],
     deps = [
         "//pkg/handler-launcher-com/notify/info:go_default_library",
