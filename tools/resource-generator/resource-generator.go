@@ -44,7 +44,7 @@ const (
 	infraReplicasPlaceholder = 255
 )
 
-func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates string, infraReplicas uint8) *virtv1.KubeVirt {
+func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates string, infraReplicas uint8, qemuVirtStack virtv1.VirtualizationStack) *virtv1.KubeVirt {
 	cr := &virtv1.KubeVirt{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: virtv1.GroupVersion.String(),
@@ -71,10 +71,12 @@ func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates stri
 		Replicas: &infraReplicas,
 	}
 
+	cr.Spec.VirtualizationStacks = []virtv1.VirtualizationStack{qemuVirtStack}
+
 	return cr
 }
 
-func generateKubeVirtCR(namespace *string, imagePullPolicy v1.PullPolicy, featureGatesFlag *string, infraReplicasFlag *string) {
+func generateKubeVirtCR(namespace *string, imagePullPolicy v1.PullPolicy, featureGatesFlag *string, infraReplicasFlag *string, qemuVirtStack virtv1.VirtualizationStack) {
 	var featureGates string
 	if strings.HasPrefix(*featureGatesFlag, "{{") {
 		featureGates = featureGatesPlaceholder
@@ -92,7 +94,7 @@ func generateKubeVirtCR(namespace *string, imagePullPolicy v1.PullPolicy, featur
 		infraReplicas = uint8(val)
 	}
 	var buf bytes.Buffer
-	err := util.MarshallObject(newKubeVirtCR(*namespace, imagePullPolicy, featureGates, infraReplicas), &buf)
+	err := util.MarshallObject(newKubeVirtCR(*namespace, imagePullPolicy, featureGates, infraReplicas, qemuVirtStack), &buf)
 	if err != nil {
 		panic(err)
 	}
@@ -156,7 +158,18 @@ func main() {
 			panic(err)
 		}
 	case "kv-cr":
-		generateKubeVirtCR(namespace, imagePullPolicy, featureGates, infraReplicas)
+		// TODO PLUGINDEV: Move the below struct defn to a better place.
+		// TODO PLUGINDEV: Possibly under virt-launcher.
+		qemuVirtualizationStack := virtv1.VirtualizationStack{
+			Name:                     "qemu-kvm",
+			VirtLauncherCapabilities: []string{"CAP_SYS_ADMIN"},
+			VirtLauncherOverhead:     "100Mi",
+			HypervisorDevice:         "/dev/mshv",
+			VCPURegex:                "KVM",
+			VMMDaemonProcess:         "virtqemud",
+			VMMProcessExecutable:     "qemu-system-x86",
+		}
+		generateKubeVirtCR(namespace, imagePullPolicy, featureGates, infraReplicas, qemuVirtualizationStack)
 	case "operator-rbac":
 		all := rbac.GetAllOperator(*namespace)
 		for _, r := range all {
