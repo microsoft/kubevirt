@@ -567,6 +567,7 @@ func (VirtualizationStack) SwaggerDoc() map[string]string {
 		"vCpuRegex":                "VCPURegex defines the regular expression used to identify vCPU devices.",
 		"vmmDaemonProcess":         "VMMDaemonProcess specifies the name of the VMM daemon process.",
 		"vmmProcessExecutable":     "VMMProcessExecutable specifies the path to the VMM process executable.",
+		"virtLauncherImage":        "Container image URI for virt-launcher for the given virtualization stack.",
 	}
 }
 

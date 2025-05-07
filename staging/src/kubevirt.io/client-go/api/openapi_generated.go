@@ -27509,6 +27509,13 @@ func schema_kubevirtio_api_core_v1_VirtualizationStack(ref common.ReferenceCallb
 							Format:      "",
 						},
 					},
+					"virtLauncherImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Container image URI for virt-launcher for the given virtualization stack.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},

@@ -407,6 +407,7 @@ spec:
     vCpuRegex: vCpuRegexValue
     virtLauncherCapabilities:
     - virtLauncherCapabilitiesValue
+    virtLauncherImage: virtLauncherImageValue
     virtLauncherOverhead: virtLauncherOverheadValue
     vmmDaemonProcess: vmmDaemonProcessValue
     vmmProcessExecutable: vmmProcessExecutableValue

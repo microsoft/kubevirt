@@ -22,8 +22,8 @@ spec:
     vCpuRegex: KVM
     virtLauncherCapabilities:
     - CAP_SYS_ADMIN
+    virtLauncherImage: {{.VirtLauncherImage}}
     virtLauncherOverhead: 100Mi
     vmmDaemonProcess: virtqemud
     vmmProcessExecutable: qemu-system-x86
-    virtLauncherImage: {{.VirtLauncherImage}}
   workloadUpdateStrategy: {}

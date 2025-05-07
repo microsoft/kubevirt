@@ -892,7 +892,8 @@
         "hypervisorDevice": "hypervisorDeviceValue",
         "vCpuRegex": "vCpuRegexValue",
         "vmmDaemonProcess": "vmmDaemonProcessValue",
-        "vmmProcessExecutable": "vmmProcessExecutableValue"
+        "vmmProcessExecutable": "vmmProcessExecutableValue",
+        "virtLauncherImage": "virtLauncherImageValue"
       }
     ]
   },
