@@ -16,4 +16,13 @@ spec:
   imagePullPolicy: {{.ImagePullPolicy}}{{if .InfraReplicas}}
   infra:
     replicas: {{.InfraReplicas}}{{end}}
+  virtualizationStacks:
+  - hypervisorDevice: /dev/mshv
+    name: qemu-kvm
+    vCpuRegex: KVM
+    virtLauncherCapabilities:
+    - CAP_SYS_ADMIN
+    virtLauncherOverhead: 100Mi
+    vmmDaemonProcess: virtqemud
+    vmmProcessExecutable: qemu-system-x86
   workloadUpdateStrategy: {}
