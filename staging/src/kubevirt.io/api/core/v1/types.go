@@ -170,6 +170,9 @@ type VirtualMachineInstanceSpec struct {
 	AccessCredentials []AccessCredential `json:"accessCredentials,omitempty"`
 	// Specifies the architecture of the vm guest you are attempting to run. Defaults to the compiled architecture of the KubeVirt components
 	Architecture string `json:"architecture,omitempty"`
+
+	// Virtualization Stack on which to create the VM.
+	VirtualizationStack VirtualizationStack `json:"virtualizationStack,omitempty"`
 }
 
 func (vmiSpec *VirtualMachineInstanceSpec) UnmarshalJSON(data []byte) error {
@@ -2091,10 +2094,10 @@ type KubeVirtSpec struct {
 	// list of VirtualizationStacks on which
 	// this KubeVirt cluster should be deployed
 	// +listType=atomic
-	VirtualizationStacks []VirtualizationStack `json:"virtualizationStacks,omitempty"`
+	VirtualizationStacks []VirtualizationStackSpec `json:"virtualizationStacks,omitempty"`
 }
 
-type VirtualizationStack struct {
+type VirtualizationStackSpec struct {
 	// Name of the virtualization stack
 	Name string `json:"name,omitempty"`
 

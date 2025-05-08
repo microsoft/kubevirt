@@ -7593,6 +7593,9 @@ var CRDsValidation map[string]string = map[string]string{
                   - topologyKey
                   - whenUnsatisfiable
                   x-kubernetes-list-type: map
+                virtualizationStack:
+                  description: Virtualization Stack on which to create the VM.
+                  type: string
                 volumes:
                   description: List of volumes that can be mounted by disks belonging
                     to the vmi.
@@ -12883,6 +12886,9 @@ var CRDsValidation map[string]string = map[string]string{
           - topologyKey
           - whenUnsatisfiable
           x-kubernetes-list-type: map
+        virtualizationStack:
+          description: Virtualization Stack on which to create the VM.
+          type: string
         volumes:
           description: List of volumes that can be mounted by disks belonging to the
             vmi.
@@ -18556,6 +18562,9 @@ var CRDsValidation map[string]string = map[string]string{
                   - topologyKey
                   - whenUnsatisfiable
                   x-kubernetes-list-type: map
+                virtualizationStack:
+                  description: Virtualization Stack on which to create the VM.
+                  type: string
                 volumes:
                   description: List of volumes that can be mounted by disks belonging
                     to the vmi.
@@ -23082,6 +23091,10 @@ var CRDsValidation map[string]string = map[string]string{
                           - topologyKey
                           - whenUnsatisfiable
                           x-kubernetes-list-type: map
+                        virtualizationStack:
+                          description: Virtualization Stack on which to create the
+                            VM.
+                          type: string
                         volumes:
                           description: List of volumes that can be mounted by disks
                             belonging to the vmi.
@@ -28297,6 +28310,10 @@ var CRDsValidation map[string]string = map[string]string{
                               - topologyKey
                               - whenUnsatisfiable
                               x-kubernetes-list-type: map
+                            virtualizationStack:
+                              description: Virtualization Stack on which to create
+                                the VM.
+                              type: string
                             volumes:
                               description: List of volumes that can be mounted by
                                 disks belonging to the vmi.

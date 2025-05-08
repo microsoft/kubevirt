@@ -39,6 +39,7 @@ func (VirtualMachineInstanceSpec) SwaggerDoc() map[string]string {
 		"dnsConfig":                     "Specifies the DNS parameters of a pod.\nParameters specified here will be merged to the generated DNS\nconfiguration based on DNSPolicy.\n+optional",
 		"accessCredentials":             "Specifies a set of public keys to inject into the vm guest\n+listType=atomic\n+optional\n+kubebuilder:validation:MaxItems:=256",
 		"architecture":                  "Specifies the architecture of the vm guest you are attempting to run. Defaults to the compiled architecture of the KubeVirt components",
+		"virtualizationStack":           "Virtualization Stack on which to create the VM.",
 	}
 }
 
@@ -558,7 +559,7 @@ func (KubeVirtSpec) SwaggerDoc() map[string]string {
 	}
 }
 
-func (VirtualizationStack) SwaggerDoc() map[string]string {
+func (VirtualizationStackSpec) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"name":                     "Name of the virtualization stack",
 		"virtLauncherCapabilities": "virtLauncherCapabilities specifies the capabilities of the virt-launcher.\n+listType=atomic",

@@ -27,6 +27,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+type VirtualizationStack string
+
+const QemuKvmVirtualizationStack VirtualizationStack = "qemu-kvm"
+
 type IOThreadsPolicy string
 
 const (

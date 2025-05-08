@@ -566,7 +566,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/api/core/v1.VirtualMachineStateChangeRequest":                                   schema_kubevirtio_api_core_v1_VirtualMachineStateChangeRequest(ref),
 		"kubevirt.io/api/core/v1.VirtualMachineStatus":                                               schema_kubevirtio_api_core_v1_VirtualMachineStatus(ref),
 		"kubevirt.io/api/core/v1.VirtualMachineVolumeRequest":                                        schema_kubevirtio_api_core_v1_VirtualMachineVolumeRequest(ref),
-		"kubevirt.io/api/core/v1.VirtualizationStack":                                                schema_kubevirtio_api_core_v1_VirtualizationStack(ref),
+		"kubevirt.io/api/core/v1.VirtualizationStackSpec":                                            schema_kubevirtio_api_core_v1_VirtualizationStackSpec(ref),
 		"kubevirt.io/api/core/v1.Volume":                                                             schema_kubevirtio_api_core_v1_Volume(ref),
 		"kubevirt.io/api/core/v1.VolumeMigrationState":                                               schema_kubevirtio_api_core_v1_VolumeMigrationState(ref),
 		"kubevirt.io/api/core/v1.VolumeSnapshotStatus":                                               schema_kubevirtio_api_core_v1_VolumeSnapshotStatus(ref),
@@ -21773,7 +21773,7 @@ func schema_kubevirtio_api_core_v1_KubeVirtSpec(ref common.ReferenceCallback) co
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("kubevirt.io/api/core/v1.VirtualizationStack"),
+										Ref:     ref("kubevirt.io/api/core/v1.VirtualizationStackSpec"),
 									},
 								},
 							},
@@ -21783,7 +21783,7 @@ func schema_kubevirtio_api_core_v1_KubeVirtSpec(ref common.ReferenceCallback) co
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.LocalObjectReference", "kubevirt.io/api/core/v1.ComponentConfig", "kubevirt.io/api/core/v1.CustomizeComponents", "kubevirt.io/api/core/v1.KubeVirtCertificateRotateStrategy", "kubevirt.io/api/core/v1.KubeVirtConfiguration", "kubevirt.io/api/core/v1.KubeVirtWorkloadUpdateStrategy", "kubevirt.io/api/core/v1.VirtualizationStack"},
+			"k8s.io/api/core/v1.LocalObjectReference", "kubevirt.io/api/core/v1.ComponentConfig", "kubevirt.io/api/core/v1.CustomizeComponents", "kubevirt.io/api/core/v1.KubeVirtCertificateRotateStrategy", "kubevirt.io/api/core/v1.KubeVirtConfiguration", "kubevirt.io/api/core/v1.KubeVirtWorkloadUpdateStrategy", "kubevirt.io/api/core/v1.VirtualizationStackSpec"},
 	}
 }
 
@@ -26681,6 +26681,13 @@ func schema_kubevirtio_api_core_v1_VirtualMachineInstanceSpec(ref common.Referen
 							Format:      "",
 						},
 					},
+					"virtualizationStack": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Virtualization Stack on which to create the VM.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"domain"},
 			},
@@ -27441,7 +27448,7 @@ func schema_kubevirtio_api_core_v1_VirtualMachineVolumeRequest(ref common.Refere
 	}
 }
 
-func schema_kubevirtio_api_core_v1_VirtualizationStack(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_kubevirtio_api_core_v1_VirtualizationStackSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{

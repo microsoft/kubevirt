@@ -14789,7 +14789,7 @@
       "type": "array",
       "items": {
        "default": {},
-       "$ref": "#/definitions/v1.VirtualizationStack"
+       "$ref": "#/definitions/v1.VirtualizationStackSpec"
       },
       "x-kubernetes-list-type": "atomic"
      },
@@ -17437,6 +17437,10 @@
       "x-kubernetes-patch-merge-key": "topologyKey",
       "x-kubernetes-patch-strategy": "merge"
      },
+     "virtualizationStack": {
+      "description": "Virtualization Stack on which to create the VM.",
+      "type": "string"
+     },
      "volumes": {
       "description": "List of volumes that can be mounted by disks belonging to the vmi.",
       "type": "array",
@@ -17877,7 +17881,7 @@
      }
     }
    },
-   "v1.VirtualizationStack": {
+   "v1.VirtualizationStackSpec": {
     "type": "object",
     "properties": {
      "hypervisorDevice": {

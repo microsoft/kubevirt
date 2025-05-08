@@ -44,7 +44,7 @@ const (
 	infraReplicasPlaceholder = 255
 )
 
-func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates string, infraReplicas uint8, qemuVirtStack virtv1.VirtualizationStack) *virtv1.KubeVirt {
+func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates string, infraReplicas uint8, qemuVirtStack virtv1.VirtualizationStackSpec) *virtv1.KubeVirt {
 	cr := &virtv1.KubeVirt{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: virtv1.GroupVersion.String(),
@@ -71,12 +71,12 @@ func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates stri
 		Replicas: &infraReplicas,
 	}
 
-	cr.Spec.VirtualizationStacks = []virtv1.VirtualizationStack{qemuVirtStack}
+	cr.Spec.VirtualizationStacks = []virtv1.VirtualizationStackSpec{qemuVirtStack}
 
 	return cr
 }
 
-func generateKubeVirtCR(namespace *string, imagePullPolicy v1.PullPolicy, featureGatesFlag *string, infraReplicasFlag *string, qemuVirtStack virtv1.VirtualizationStack) {
+func generateKubeVirtCR(namespace *string, imagePullPolicy v1.PullPolicy, featureGatesFlag *string, infraReplicasFlag *string, qemuVirtStack virtv1.VirtualizationStackSpec) {
 	var featureGates string
 	if strings.HasPrefix(*featureGatesFlag, "{{") {
 		featureGates = featureGatesPlaceholder
@@ -162,7 +162,7 @@ func main() {
 	case "kv-cr":
 		// TODO PLUGINDEV: Move the below struct defn to a better place.
 		// TODO PLUGINDEV: Possibly under virt-launcher.
-		qemuVirtualizationStack := virtv1.VirtualizationStack{
+		qemuVirtualizationStack := virtv1.VirtualizationStackSpec{
 			Name:                     "qemu-kvm",
 			VirtLauncherCapabilities: []string{"CAP_SYS_ADMIN"},
 			VirtLauncherOverhead:     "100Mi",
