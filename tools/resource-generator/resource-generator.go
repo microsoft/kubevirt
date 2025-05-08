@@ -59,19 +59,17 @@ func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates stri
 		},
 	}
 
+	cr.Spec.Configuration.VirtualizationStacks = []virtv1.VirtualizationStackSpec{qemuVirtStack}
+
 	if featureGates != "" {
-		cr.Spec.Configuration = virtv1.KubeVirtConfiguration{
-			DeveloperConfiguration: &virtv1.DeveloperConfiguration{
-				FeatureGates: strings.Split(featureGates, ","),
-			},
+		cr.Spec.Configuration.DeveloperConfiguration = &virtv1.DeveloperConfiguration{
+			FeatureGates: strings.Split(featureGates, ","),
 		}
 	}
 
 	cr.Spec.Infra = &virtv1.ComponentConfig{
 		Replicas: &infraReplicas,
 	}
-
-	cr.Spec.VirtualizationStacks = []virtv1.VirtualizationStackSpec{qemuVirtStack}
 
 	return cr
 }
