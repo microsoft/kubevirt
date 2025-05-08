@@ -107,6 +107,10 @@ func SetDefaults_VirtualMachineInstance(obj *VirtualMachineInstance) {
 		obj.Spec.Domain.Features = &Features{}
 	}
 
+	if obj.Spec.VirtualizationStack == "" {
+		obj.Spec.VirtualizationStack = QemuKvmVirtualizationStack
+	}
+
 	setDefaults_Disk(obj)
 	setDefaults_Input(obj)
 	SetDefaults_Probe(obj.Spec.ReadinessProbe)

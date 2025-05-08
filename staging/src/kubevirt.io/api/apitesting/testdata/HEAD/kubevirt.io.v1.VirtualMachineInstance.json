@@ -873,7 +873,8 @@
         }
       }
     ],
-    "architecture": "architectureValue"
+    "architecture": "architectureValue",
+    "virtualizationStack": "virtualizationStackValue"
   },
   "status": {
     "nodeName": "nodeNameValue",
