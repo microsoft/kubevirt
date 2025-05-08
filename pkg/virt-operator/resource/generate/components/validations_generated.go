@@ -1568,6 +1568,49 @@ var CRDsValidation map[string]string = map[string]string{
                     The value can be individually overridden for each VM, not relevant if AutoattachSerialConsole is disabled.
                   type: object
               type: object
+            virtualizationStacks:
+              description: |-
+                list of VirtualizationStacks on which
+                this KubeVirt cluster should be deployed
+              items:
+                properties:
+                  hypervisorDevice:
+                    description: HypervisorDevice specifies the path to the hypervisor
+                      device.
+                    type: string
+                  name:
+                    description: Name of the virtualization stack
+                    type: string
+                  vCpuRegex:
+                    description: VCPURegex defines the regular expression used to
+                      identify vCPU devices.
+                    type: string
+                  virtLauncherCapabilities:
+                    description: virtLauncherCapabilities specifies the capabilities
+                      of the virt-launcher.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  virtLauncherImage:
+                    description: Container image URI for virt-launcher for the given
+                      virtualization stack.
+                    type: string
+                  virtLauncherOverhead:
+                    description: virtLauncherOverhead specifies the overhead associated
+                      with the virt-launcher.
+                    type: string
+                  vmmDaemonProcess:
+                    description: VMMDaemonProcess specifies the name of the VMM daemon
+                      process.
+                    type: string
+                  vmmProcessExecutable:
+                    description: VMMProcessExecutable specifies the path to the VMM
+                      process executable.
+                    type: string
+                type: object
+              type: array
+              x-kubernetes-list-type: atomic
             vmRolloutStrategy:
               description: |-
                 VMRolloutStrategy defines how live-updatable fields, like CPU sockets, memory,
@@ -2727,49 +2770,6 @@ var CRDsValidation map[string]string = map[string]string{
             Specifies if kubevirt can be deleted if workloads are still present.
             This is mainly a precaution to avoid accidental data loss
           type: string
-        virtualizationStacks:
-          description: |-
-            list of VirtualizationStacks on which
-            this KubeVirt cluster should be deployed
-          items:
-            properties:
-              hypervisorDevice:
-                description: HypervisorDevice specifies the path to the hypervisor
-                  device.
-                type: string
-              name:
-                description: Name of the virtualization stack
-                type: string
-              vCpuRegex:
-                description: VCPURegex defines the regular expression used to identify
-                  vCPU devices.
-                type: string
-              virtLauncherCapabilities:
-                description: virtLauncherCapabilities specifies the capabilities of
-                  the virt-launcher.
-                items:
-                  type: string
-                type: array
-                x-kubernetes-list-type: atomic
-              virtLauncherImage:
-                description: Container image URI for virt-launcher for the given virtualization
-                  stack.
-                type: string
-              virtLauncherOverhead:
-                description: virtLauncherOverhead specifies the overhead associated
-                  with the virt-launcher.
-                type: string
-              vmmDaemonProcess:
-                description: VMMDaemonProcess specifies the name of the VMM daemon
-                  process.
-                type: string
-              vmmProcessExecutable:
-                description: VMMProcessExecutable specifies the path to the VMM process
-                  executable.
-                type: string
-            type: object
-          type: array
-          x-kubernetes-list-type: atomic
         workloadUpdateStrategy:
           description: |-
             WorkloadUpdateStrategy defines at the cluster level how to handle

@@ -12,18 +12,18 @@ spec:
       {{- range .FeatureGates}}
       - {{.}}
       {{- end}}{{else}} []{{end}}
+    virtualizationStacks:
+    - hypervisorDevice: /dev/mshv
+      name: qemu-kvm
+      vCpuRegex: KVM
+      virtLauncherCapabilities:
+      - CAP_SYS_ADMIN
+      virtLauncherImage: {{.VirtLauncherImage}}
+      virtLauncherOverhead: 100Mi
+      vmmDaemonProcess: virtqemud
+      vmmProcessExecutable: qemu-system-x86
   customizeComponents: {}
   imagePullPolicy: {{.ImagePullPolicy}}{{if .InfraReplicas}}
   infra:
     replicas: {{.InfraReplicas}}{{end}}
-  virtualizationStacks:
-  - hypervisorDevice: /dev/mshv
-    name: qemu-kvm
-    vCpuRegex: KVM
-    virtLauncherCapabilities:
-    - CAP_SYS_ADMIN
-    virtLauncherImage: {{.VirtLauncherImage}}
-    virtLauncherOverhead: 100Mi
-    vmmDaemonProcess: virtqemud
-    vmmProcessExecutable: qemu-system-x86
   workloadUpdateStrategy: {}

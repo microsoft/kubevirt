@@ -228,6 +228,16 @@ spec:
     virtualMachineOptions:
       disableFreePageReporting: {}
       disableSerialConsoleLog: {}
+    virtualizationStacks:
+    - hypervisorDevice: hypervisorDeviceValue
+      name: nameValue
+      vCpuRegex: vCpuRegexValue
+      virtLauncherCapabilities:
+      - virtLauncherCapabilitiesValue
+      virtLauncherImage: virtLauncherImageValue
+      virtLauncherOverhead: virtLauncherOverheadValue
+      vmmDaemonProcess: vmmDaemonProcessValue
+      vmmProcessExecutable: vmmProcessExecutableValue
     vmRolloutStrategy: vmRolloutStrategyValue
     vmStateStorageClass: vmStateStorageClassValue
     webhookConfiguration:
@@ -401,16 +411,6 @@ spec:
   productVersion: productVersionValue
   serviceMonitorNamespace: serviceMonitorNamespaceValue
   uninstallStrategy: uninstallStrategyValue
-  virtualizationStacks:
-  - hypervisorDevice: hypervisorDeviceValue
-    name: nameValue
-    vCpuRegex: vCpuRegexValue
-    virtLauncherCapabilities:
-    - virtLauncherCapabilitiesValue
-    virtLauncherImage: virtLauncherImageValue
-    virtLauncherOverhead: virtLauncherOverheadValue
-    vmmDaemonProcess: vmmDaemonProcessValue
-    vmmProcessExecutable: vmmProcessExecutableValue
   workloadUpdateStrategy:
     batchEvictionInterval: 1ns
     batchEvictionSize: -17

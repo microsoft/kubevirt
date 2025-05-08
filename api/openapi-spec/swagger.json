@@ -14644,6 +14644,15 @@
      "virtualMachineOptions": {
       "$ref": "#/definitions/v1.VirtualMachineOptions"
      },
+     "virtualizationStacks": {
+      "description": "list of VirtualizationStacks on which this KubeVirt cluster should be deployed",
+      "type": "array",
+      "items": {
+       "default": {},
+       "$ref": "#/definitions/v1.VirtualizationStackSpec"
+      },
+      "x-kubernetes-list-type": "atomic"
+     },
      "vmRolloutStrategy": {
       "description": "VMRolloutStrategy defines how live-updatable fields, like CPU sockets, memory, tolerations, and affinity, are propagated from a VM to its VMI.",
       "type": "string"
@@ -14783,15 +14792,6 @@
      "uninstallStrategy": {
       "description": "Specifies if kubevirt can be deleted if workloads are still present. This is mainly a precaution to avoid accidental data loss",
       "type": "string"
-     },
-     "virtualizationStacks": {
-      "description": "list of VirtualizationStacks on which this KubeVirt cluster should be deployed",
-      "type": "array",
-      "items": {
-       "default": {},
-       "$ref": "#/definitions/v1.VirtualizationStackSpec"
-      },
-      "x-kubernetes-list-type": "atomic"
      },
      "workloadUpdateStrategy": {
       "description": "WorkloadUpdateStrategy defines at the cluster level how to handle automated workload updates",

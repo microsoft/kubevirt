@@ -555,7 +555,6 @@ func (KubeVirtSpec) SwaggerDoc() map[string]string {
 		"configuration":           "holds kubevirt configurations.\nsame as the virt-configMap",
 		"infra":                   "selectors and tolerations that should apply to KubeVirt infrastructure components\n+optional",
 		"workloads":               "selectors and tolerations that should apply to KubeVirt workloads\n+optional",
-		"virtualizationStacks":    "list of VirtualizationStacks on which\nthis KubeVirt cluster should be deployed\n+listType=atomic",
 	}
 }
 
@@ -808,6 +807,7 @@ func (KubeVirtConfiguration) SwaggerDoc() map[string]string {
 		"vmRolloutStrategy":                  "VMRolloutStrategy defines how live-updatable fields, like CPU sockets, memory,\ntolerations, and affinity, are propagated from a VM to its VMI.\n+nullable\n+kubebuilder:validation:Enum=Stage;LiveUpdate",
 		"commonInstancetypesDeployment":      "CommonInstancetypesDeployment controls the deployment of common-instancetypes resources\n+nullable",
 		"instancetype":                       "Instancetype configuration\n+nullable",
+		"virtualizationStacks":               "list of VirtualizationStacks on which\nthis KubeVirt cluster should be deployed\n+listType=atomic",
 	}
 }
 

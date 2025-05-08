@@ -2090,11 +2090,6 @@ type KubeVirtSpec struct {
 	Workloads *ComponentConfig `json:"workloads,omitempty"`
 
 	CustomizeComponents CustomizeComponents `json:"customizeComponents,omitempty"`
-
-	// list of VirtualizationStacks on which
-	// this KubeVirt cluster should be deployed
-	// +listType=atomic
-	VirtualizationStacks []VirtualizationStackSpec `json:"virtualizationStacks,omitempty"`
 }
 
 type VirtualizationStackSpec struct {
@@ -2641,6 +2636,11 @@ type KubeVirtConfiguration struct {
 	// Instancetype configuration
 	// +nullable
 	Instancetype *InstancetypeConfiguration `json:"instancetype,omitempty"`
+
+	// list of VirtualizationStacks on which
+	// this KubeVirt cluster should be deployed
+	// +listType=atomic
+	VirtualizationStacks []VirtualizationStackSpec `json:"virtualizationStacks,omitempty"`
 }
 
 type InstancetypeConfiguration struct {

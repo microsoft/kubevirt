@@ -363,7 +363,21 @@
       },
       "instancetype": {
         "referencePolicy": "referencePolicyValue"
-      }
+      },
+      "virtualizationStacks": [
+        {
+          "name": "nameValue",
+          "virtLauncherCapabilities": [
+            "virtLauncherCapabilitiesValue"
+          ],
+          "virtLauncherOverhead": "virtLauncherOverheadValue",
+          "hypervisorDevice": "hypervisorDeviceValue",
+          "vCpuRegex": "vCpuRegexValue",
+          "vmmDaemonProcess": "vmmDaemonProcessValue",
+          "vmmProcessExecutable": "vmmProcessExecutableValue",
+          "virtLauncherImage": "virtLauncherImageValue"
+        }
+      ]
     },
     "infra": {
       "nodePlacement": {
@@ -881,21 +895,7 @@
           "handlerKey": "handlerValue"
         }
       }
-    },
-    "virtualizationStacks": [
-      {
-        "name": "nameValue",
-        "virtLauncherCapabilities": [
-          "virtLauncherCapabilitiesValue"
-        ],
-        "virtLauncherOverhead": "virtLauncherOverheadValue",
-        "hypervisorDevice": "hypervisorDeviceValue",
-        "vCpuRegex": "vCpuRegexValue",
-        "vmmDaemonProcess": "vmmDaemonProcessValue",
-        "vmmProcessExecutable": "vmmProcessExecutableValue",
-        "virtLauncherImage": "virtLauncherImageValue"
-      }
-    ]
+    }
   },
   "status": {
     "phase": "phaseValue",
