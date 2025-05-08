@@ -98,14 +98,14 @@ func WithPrivileged() Option {
 	}
 }
 
-func WithCapabilities(vmi *v1.VirtualMachineInstance) Option {
+func WithCapabilities(vmi *v1.VirtualMachineInstance, virtStackRequiredCapabilities []string) Option {
 	return func(renderer *ContainerSpecRenderer) {
 		if renderer.capabilities == nil {
 			renderer.capabilities = &k8sv1.Capabilities{
-				Add: requiredCapabilities(vmi),
+				Add: requiredCapabilities(vmi, virtStackRequiredCapabilities),
 			}
 		} else {
-			renderer.capabilities.Add = requiredCapabilities(vmi)
+			renderer.capabilities.Add = requiredCapabilities(vmi, virtStackRequiredCapabilities)
 		}
 	}
 }
@@ -279,9 +279,15 @@ func wrapExecProbeWithVirtProbe(vmi *v1.VirtualMachineInstance, probe *k8sv1.Pro
 	probe.TimeoutSeconds += 1
 }
 
-func requiredCapabilities(vmi *v1.VirtualMachineInstance) []k8sv1.Capability {
+func requiredCapabilities(vmi *v1.VirtualMachineInstance, virtStackRequiredCapabilities []string) []k8sv1.Capability {
 	// These capabilies are always required because we set them on virt-launcher binary
-	capabilities := []k8sv1.Capability{CAP_NET_BIND_SERVICE}
+
+	// TODO PLUGINDEV Move the virtStackRequiredCapabilities population to the WithCapabilities function, outside requiredCapabilities
+	// TODO PLUGINDEV This function should now be called vmiSpecificCapabilities
+	capabilities := []k8sv1.Capability{}
+	for _, capability := range virtStackRequiredCapabilities {
+		capabilities = append(capabilities, k8sv1.Capability(capability))
+	}
 
 	if !util.IsNonRootVMI(vmi) {
 		// add a CAP_SYS_NICE capability to allow setting cpu affinity

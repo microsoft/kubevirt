@@ -17,7 +17,7 @@ spec:
       name: qemu-kvm
       vCpuRegex: KVM
       virtLauncherCapabilities:
-      - CAP_SYS_ADMIN
+      - NET_BIND_SERVICE
       virtLauncherImage: {{.VirtLauncherImage}}
       virtLauncherOverhead: 100Mi
       vmmDaemonProcess: virtqemud

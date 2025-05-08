@@ -779,13 +779,29 @@ func (t *templateService) newInitContainerRenderer(vmiSpec *v1.VirtualMachineIns
 }
 
 func (t *templateService) newContainerSpecRenderer(vmi *v1.VirtualMachineInstance, volumeRenderer *VolumeRenderer, resources k8sv1.ResourceRequirements, userId int64) *ContainerSpecRenderer {
+	// TODO PLUGINDEV: Provide the default capabilities for the virtstack here.
+	// Use the t.virtClient to query the KubeVirt CR installed in the cluster
+	kubeVirtList, err := t.virtClient.KubeVirt(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		log.Log.Errorf("Failed to list KubeVirt CRs: %v", err)
+		return nil
+	}
+	if len(kubeVirtList.Items) == 0 {
+		panic("No KubeVirt CRs found in the cluster")
+	} else if len(kubeVirtList.Items) > 1 {
+		panic(fmt.Sprintf("Found %d KubeVirt CR(s) in the cluster, which is unexpectedly > 1", len(kubeVirtList.Items)))
+	}
+
+	kubeVirt := kubeVirtList.Items[0]
+	stack := kubeVirt.Spec.Configuration.VirtualizationStacks[0]
+
 	computeContainerOpts := []Option{
 		WithVolumeDevices(volumeRenderer.VolumeDevices()...),
 		WithVolumeMounts(volumeRenderer.Mounts()...),
 		WithSharedFilesystems(volumeRenderer.SharedFilesystemPaths()...),
 		WithResourceRequirements(resources),
 		WithPorts(vmi),
-		WithCapabilities(vmi),
+		WithCapabilities(vmi, stack.VirtLauncherCapabilities),
 	}
 	if util.IsNonRootVMI(vmi) {
 		computeContainerOpts = append(computeContainerOpts, WithNonRoot(userId))
