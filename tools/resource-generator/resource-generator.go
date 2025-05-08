@@ -162,7 +162,7 @@ func main() {
 		// TODO PLUGINDEV: Possibly under virt-launcher.
 		qemuVirtualizationStack := virtv1.VirtualizationStackSpec{
 			Name:                     "qemu-kvm",
-			VirtLauncherCapabilities: []string{"CAP_SYS_ADMIN"},
+			VirtLauncherCapabilities: []string{"NET_BIND_SERVICE"},
 			VirtLauncherOverhead:     "100Mi",
 			HypervisorDevice:         "/dev/mshv",
 			VCPURegex:                "KVM",
