@@ -26,6 +26,8 @@ import (
 
 	k8sv1 "k8s.io/api/core/v1"
 
+	virtv1 "kubevirt.io/api/core/v1"
+
 	"kubevirt.io/kubevirt/pkg/safepath"
 	storagetypes "kubevirt.io/kubevirt/pkg/storage/types"
 	"kubevirt.io/kubevirt/pkg/virt-handler/isolation"
@@ -184,10 +186,14 @@ func newAllowedDeviceRule(devicePath *safepath.Path) (*devices.Rule, error) {
 	}, nil
 }
 
-func GenerateDefaultDeviceRules() []*devices.Rule {
+func GetDefaultDeviceRules() []*devices.Rule {
+	return defaultDeviceRules
+}
+
+func GenerateDefaultDeviceRules(virtualizationStacks []virtv1.VirtualizationStackSpec) {
 	if len(defaultDeviceRules) > 0 {
 		// To avoid re-computing default device rules
-		return defaultDeviceRules
+		return
 	}
 
 	const toAllow = true
@@ -214,13 +220,6 @@ func GenerateDefaultDeviceRules() []*devices.Rule {
 			Permissions: permissions,
 			Allow:       toAllow,
 		},
-		{ // /dev/kvm (hardware virtualization extensions)
-			Type:        devices.CharDevice,
-			Major:       10,
-			Minor:       232,
-			Permissions: permissions,
-			Allow:       toAllow,
-		},
 		{ // /dev/net/tun (TAP/TUN network device)
 			Type:        devices.CharDevice,
 			Major:       10,
@@ -235,6 +234,17 @@ func GenerateDefaultDeviceRules() []*devices.Rule {
 			Permissions: permissions,
 			Allow:       toAllow,
 		},
+	}
+
+	// TODO PLUGINDEV: Need to deduplicate the Major:Minor list
+	for _, virtstack := range virtualizationStacks {
+		defaultRules = append(defaultRules, &devices.Rule{
+			Type:        devices.CharDevice,
+			Major:       virtstack.HypervisorDeviceMajorNumber,
+			Minor:       virtstack.HypervisorDeviceMinorNumber,
+			Permissions: permissions,
+			Allow:       toAllow,
+		})
 	}
 
 	// Add PTY slaves. See this for more info:
@@ -254,8 +264,6 @@ func GenerateDefaultDeviceRules() []*devices.Rule {
 	}
 
 	defaultDeviceRules = defaultRules
-
-	return defaultRules
 }
 
 // execVirtChrootCgroups executes virt-chroot cgroups command to apply changes via virt-chroot.

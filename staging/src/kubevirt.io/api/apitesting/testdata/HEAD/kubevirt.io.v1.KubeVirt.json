@@ -374,6 +374,8 @@
           ],
           "virtLauncherOverhead": "virtLauncherOverheadValue",
           "hypervisorDevice": "hypervisorDeviceValue",
+          "hypervisorDeviceMajorNumber": -27,
+          "hypervisorDeviceMinorNumber": -27,
           "vCpuRegex": "vCpuRegexValue",
           "vmmDaemonProcess": "vmmDaemonProcessValue",
           "vmmProcessExecutable": "vmmProcessExecutableValue",
