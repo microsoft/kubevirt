@@ -17888,6 +17888,14 @@
       "description": "HypervisorDevice specifies the path to the hypervisor device.",
       "type": "string"
      },
+     "hypervisorDeviceMajorNumber": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "hypervisorDeviceMinorNumber": {
+      "type": "integer",
+      "format": "int64"
+     },
      "name": {
       "description": "Name of the virtualization stack",
       "type": "string"

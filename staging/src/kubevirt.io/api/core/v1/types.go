@@ -2106,6 +2106,10 @@ type VirtualizationStackSpec struct {
 	// HypervisorDevice specifies the path to the hypervisor device.
 	HypervisorDevice string `json:"hypervisorDevice,omitempty"`
 
+	HypervisorDeviceMajorNumber int64 `json:"hypervisorDeviceMajorNumber,omitempty"`
+
+	HypervisorDeviceMinorNumber int64 `json:"hypervisorDeviceMinorNumber,omitempty"`
+
 	// VCPURegex defines the regular expression used to identify vCPU devices.
 	VCPURegex string `json:"vCpuRegex,omitempty"`
 

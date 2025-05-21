@@ -1578,6 +1578,12 @@ var CRDsValidation map[string]string = map[string]string{
                     description: HypervisorDevice specifies the path to the hypervisor
                       device.
                     type: string
+                  hypervisorDeviceMajorNumber:
+                    format: int64
+                    type: integer
+                  hypervisorDeviceMinorNumber:
+                    format: int64
+                    type: integer
                   name:
                     description: Name of the virtualization stack
                     type: string

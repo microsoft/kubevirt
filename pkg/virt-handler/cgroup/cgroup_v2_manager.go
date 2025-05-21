@@ -45,7 +45,7 @@ func newCustomizedV2Manager(
 		runcManager,
 		runcManager.GetPaths()[""],
 		isRootless,
-		append(deviceRules, GenerateDefaultDeviceRules()...),
+		append(deviceRules, GetDefaultDeviceRules()...),
 		execVirtChroot,
 	}
 

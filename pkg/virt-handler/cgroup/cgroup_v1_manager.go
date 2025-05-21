@@ -64,7 +64,7 @@ func (v *v1Manager) Set(r *runc_configs.Resources) error {
 	resourcesToSet := *r
 
 	//Add default rules
-	resourcesToSet.Devices = append(resourcesToSet.Devices, GenerateDefaultDeviceRules()...)
+	resourcesToSet.Devices = append(resourcesToSet.Devices, GetDefaultDeviceRules()...)
 
 	// Adding current rules, see addCurrentRules's documentation for more info
 	CurrentlyDefinedRules, err := v.getCurrentlyDefinedRules(v.Manager)

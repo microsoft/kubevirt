@@ -27495,6 +27495,18 @@ func schema_kubevirtio_api_core_v1_VirtualizationStackSpec(ref common.ReferenceC
 							Format:      "",
 						},
 					},
+					"hypervisorDeviceMajorNumber": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"hypervisorDeviceMinorNumber": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
 					"vCpuRegex": {
 						SchemaProps: spec.SchemaProps{
 							Description: "VCPURegex defines the regular expression used to identify vCPU devices.",

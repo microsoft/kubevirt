@@ -33,6 +33,7 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/instancetype/revision"
 	"kubevirt.io/kubevirt/pkg/liveupdate/memory"
+	"kubevirt.io/kubevirt/pkg/virt-handler/cgroup"
 
 	netadmitter "kubevirt.io/kubevirt/pkg/network/admitter"
 	"kubevirt.io/kubevirt/pkg/network/vmispec"
@@ -270,6 +271,19 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) {
 
 	// Wait for cache sync before we start the controller
 	cache.WaitForCacheSync(stopCh, c.hasSynced)
+
+	kubeVirtList, err := c.clientset.KubeVirt(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("Failed to list KubeVirt CRs: %v", err))
+	}
+	if len(kubeVirtList.Items) == 0 {
+		panic("No KubeVirt CRs found in the cluster")
+	} else if len(kubeVirtList.Items) > 1 {
+		panic(fmt.Sprintf("Found %d KubeVirt CR(s) in the cluster, which is unexpectedly > 1", len(kubeVirtList.Items)))
+	}
+
+	kubeVirt := kubeVirtList.Items[0]
+	cgroup.GenerateDefaultDeviceRules(kubeVirt.Spec.Configuration.VirtualizationStacks)
 
 	// Start the actual work
 	for i := 0; i < threadiness; i++ {
