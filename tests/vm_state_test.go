@@ -113,7 +113,9 @@ var _ = Describe("[sig-compute]VM state", func() {
 			}, 10)).To(Succeed(), "expected efivar is missing")
 		}
 
-		DescribeTable("should persist VM state of", decorators.RequiresTwoSchedulableNodes, func(withTPM, withEFI, shouldBeRWX bool, ops ...string) {
+		// Quarantining this test due to repeated flaky failures in Azure DevOps pipeline.
+		// Remove Quarantine decorator once bug has been resolved: https://dev.azure.com/mariner-org/ECF/_workitems/edit/12432
+		DescribeTable("[QUARANTINE] should persist VM state of", decorators.Quarantine, decorators.RequiresTwoSchedulableNodes, func(withTPM, withEFI, shouldBeRWX bool, ops ...string) {
 			By("Creating a migratable Fedora VM with UEFI")
 			vmi := libvmifact.NewFedora(
 				libvmi.WithInterface(libvmi.InterfaceDeviceWithMasqueradeBinding()),
