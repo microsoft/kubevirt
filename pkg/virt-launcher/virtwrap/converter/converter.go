@@ -1418,7 +1418,10 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 	}
 
 	kvmPath := "/dev/kvm"
-	if _, err := os.Stat(kvmPath); errors.Is(err, os.ErrNotExist) {
+	_, errKvm := os.Stat(kvmPath)
+	mshvPath := "/dev/mshv"
+	_, errMshv := os.Stat(mshvPath)
+	if errors.Is(errKvm, os.ErrNotExist) && errors.Is(errMshv, os.ErrNotExist) {
 		if c.AllowEmulation {
 			logger := log.DefaultLogger()
 			logger.Infof("Hardware emulation device '%s' not present. Using software emulation.", kvmPath)
@@ -1426,8 +1429,10 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 		} else {
 			return fmt.Errorf("hardware emulation device '%s' not present", kvmPath)
 		}
-	} else if err != nil {
-		return err
+	} else if errKvm != nil {
+		return errKvm
+	} else if errMshv != nil {
+		return errMshv
 	}
 
 	newChannel := Add_Agent_To_api_Channel()

@@ -2795,6 +2795,10 @@ func (c *VirtualMachineController) vmUpdateHelperMigrationTarget(origVMI *v1.Vir
 	if err != nil {
 		return fmt.Errorf("failed to set up file ownership for /dev/kvm: %v", err)
 	}
+	err = c.claimDeviceOwnership(virtLauncherRootMount, "mshv")
+	if err != nil {
+		return fmt.Errorf("failed to set up file ownership for /dev/mshv: %v", err)
+	}
 	if virtutil.IsAutoAttachVSOCK(vmi) {
 		if err := c.claimDeviceOwnership(virtLauncherRootMount, "vhost-vsock"); err != nil {
 			return fmt.Errorf("failed to set up file ownership for /dev/vhost-vsock: %v", err)

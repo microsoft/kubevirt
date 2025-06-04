@@ -106,6 +106,7 @@ func (c *controlledDevice) GetName() string {
 func PermanentHostDevicePlugins(maxDevices int, permissions string) []Device {
 	var permanentDevicePluginPaths = map[string]string{
 		"kvm":       "/dev/kvm",
+		"mshv":      "/dev/mshv",
 		"tun":       "/dev/net/tun",
 		"vhost-net": "/dev/vhost-net",
 	}

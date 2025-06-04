@@ -406,12 +406,14 @@ func main() {
 	// Start virtqemud, virtlogd, and establish libvirt connection
 	stopChan := make(chan struct{})
 
+	// [jocelynb] TODO: replace the following two calls with openVMM calls
 	l := util.NewLibvirtWrapper(*runWithNonRoot)
 	err = l.SetupLibvirt(libvirtLogFilters)
 	if err != nil {
 		panic(err)
 	}
 
+	// [jocelynb] TODO: replace the following two calls with openVMM calls
 	l.StartVirtqemud(stopChan)
 	// only single domain should be present
 	domainName := api.VMINamespaceKeyFunc(vmi)
