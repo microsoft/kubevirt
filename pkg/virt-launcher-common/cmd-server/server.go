@@ -501,7 +501,7 @@ func (l *Launcher) GetDomainDirtyRateStats(_ context.Context, _ *cmdv1.EmptyRequ
 	stats, err := l.domainManager.GetDomainDirtyRateStats(dirtyRateCalculationTime)
 	if err != nil {
 		response.Response.Success = false
-		response.Response.Message = getErrorMessage(err)
+		response.Response.Message = l.formatError(err)
 		return response, nil
 	}
 
