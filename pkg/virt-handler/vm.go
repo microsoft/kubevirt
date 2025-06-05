@@ -3114,6 +3114,11 @@ func (c *VirtualMachineController) setupDevicesOwnerships(vmi *v1.VirtualMachine
 		return fmt.Errorf("failed to set up file ownership for /dev/kvm: %v", err)
 	}
 
+	err = c.claimDeviceOwnership(virtLauncherRootMount, "mshv")
+	if err != nil {
+		return fmt.Errorf("failed to set up file ownership for /dev/mshv: %v", err)
+	}
+
 	if virtutil.IsAutoAttachVSOCK(vmi) {
 		if err := c.claimDeviceOwnership(virtLauncherRootMount, "vhost-vsock"); err != nil {
 			return fmt.Errorf("failed to set up file ownership for /dev/vhost-vsock: %v", err)
@@ -3531,7 +3536,7 @@ func (c *VirtualMachineController) claimDeviceOwnership(virtLauncherRootMount *s
 	softwareEmulation := c.clusterConfig.AllowEmulation()
 	devicePath, err := safepath.JoinNoFollow(virtLauncherRootMount, filepath.Join("dev", deviceName))
 	if err != nil {
-		if softwareEmulation && deviceName == "kvm" {
+		if softwareEmulation && (deviceName == "kvm" || deviceName == "mshv") {
 			return nil
 		}
 		return err
