@@ -26,12 +26,15 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = ["notify_test.go"],
+    srcs = [
+        "notify_client_suite_test.go",
+        "notify_test.go",
+    ],
     embed = [":go_default_library"],
     deps = [
         "//pkg/handler-launcher-com/notify/info:go_default_library",
-        "//vendor/github.com/golang/mock/gomock:go_default_library",
         "//vendor/github.com/onsi/ginkgo/v2:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",
+        "//vendor/go.uber.org/mock/gomock:go_default_library",
     ],
 )
