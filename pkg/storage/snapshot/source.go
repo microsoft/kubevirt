@@ -47,7 +47,7 @@ import (
 	storageutils "kubevirt.io/kubevirt/pkg/storage/utils"
 	utils "kubevirt.io/kubevirt/pkg/util"
 	watchutil "kubevirt.io/kubevirt/pkg/virt-controller/watch/util"
-	launcherapi "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	launcherapi "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 const (

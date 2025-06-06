@@ -9,6 +9,7 @@ FOLDERS="${KUBEVIRT_DIR}/cmd/ ${KUBEVIRT_DIR}/pkg/ ${KUBEVIRT_DIR}/staging/src/k
 ginkgobin=$(realpath _out/tests/ginkgo)
 # Find every folder containing tests
 for dir in $(find ${FOLDERS} -type f -name '*_test.go' -printf '%h\n' | sort -u); do
+    #echo "Processing dir = $dir"
     # If there is no file ending with _suite_test.go, bootstrap ginkgo
     SUITE_FILE=$(find $dir -maxdepth 1 -type f -name '*_suite_test.go')
     if [ -z "$SUITE_FILE" ]; then

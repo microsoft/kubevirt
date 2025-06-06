@@ -40,7 +40,7 @@ import (
 	hooksV1alpha2 "kubevirt.io/kubevirt/pkg/hooks/v1alpha2"
 	hooksV1alpha3 "kubevirt.io/kubevirt/pkg/hooks/v1alpha3"
 	grpcutil "kubevirt.io/kubevirt/pkg/util/net/grpc"
-	virtwrapApi "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	virtwrapApi "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 //go:generate mockgen -source $GOFILE -package=$GOPACKAGE -destination=generated_mock_$GOFILE
@@ -252,6 +252,8 @@ func (m *hookManager) OnDefineDomain(domainSpec *virtwrapApi.DomainSpec, vmi *v1
 
 	return string(domainSpecXML), nil
 }
+
+// TODO PLUGINDEV: The OnDefineDomain hook in sidecar functionality is Libvirt-specific. And possibly needs to be updated for different virt-stacks.
 
 func (m *hookManager) onDefineDomainCallback(callback *callBackClient, domainSpecXML, vmiJSON []byte) ([]byte, error) {
 	conn, err := grpcutil.DialSocketWithTimeout(callback.SocketPath, 1)

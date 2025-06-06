@@ -19,12 +19,6 @@
 
 package virtwrap
 
-//go:generate mockgen -source $GOFILE -package=$GOPACKAGE -destination=generated_mock_$GOFILE
-
-/*
- ATTENTION: Rerun code generators when interface signatures are modified.
-*/
-
 import (
 	"context"
 	"crypto/sha256"
@@ -78,11 +72,13 @@ import (
 	hw_utils "kubevirt.io/kubevirt/pkg/util/hardware"
 	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	launcherCommon "kubevirt.io/kubevirt/pkg/virt-launcher-common"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
 	accesscredentials "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/access-credentials"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
 	agentpoller "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent-poller"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/arch"
@@ -93,7 +89,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device/hostdevice/sriov"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/efi"
 	domainerrors "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/errors"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/util"
 	virtcache "kubevirt.io/kubevirt/tools/cache"
 )
@@ -114,42 +109,6 @@ const maxConcurrentMemoryDumps = 1
 type contextStore struct {
 	ctx    context.Context
 	cancel context.CancelFunc
-}
-
-type DomainManager interface {
-	SyncVMI(*v1.VirtualMachineInstance, bool, *cmdv1.VirtualMachineOptions) (*api.DomainSpec, error)
-	PauseVMI(*v1.VirtualMachineInstance) error
-	UnpauseVMI(*v1.VirtualMachineInstance) error
-	FreezeVMI(*v1.VirtualMachineInstance, int32) error
-	UnfreezeVMI(*v1.VirtualMachineInstance) error
-	ResetVMI(*v1.VirtualMachineInstance) error
-	SoftRebootVMI(*v1.VirtualMachineInstance) error
-	KillVMI(*v1.VirtualMachineInstance) error
-	DeleteVMI(*v1.VirtualMachineInstance) error
-	SignalShutdownVMI(*v1.VirtualMachineInstance) error
-	MarkGracefulShutdownVMI()
-	ListAllDomains() ([]*api.Domain, error)
-	MigrateVMI(*v1.VirtualMachineInstance, *cmdclient.MigrationOptions) error
-	PrepareMigrationTarget(*v1.VirtualMachineInstance, bool, *cmdv1.VirtualMachineOptions) error
-	GetDomainStats() (*stats.DomainStats, error)
-	CancelVMIMigration(*v1.VirtualMachineInstance) error
-	GetGuestInfo() v1.VirtualMachineInstanceGuestAgentInfo
-	GetUsers() []v1.VirtualMachineInstanceGuestOSUser
-	GetFilesystems() []v1.VirtualMachineInstanceFileSystem
-	FinalizeVirtualMachineMigration(*v1.VirtualMachineInstance, *cmdv1.VirtualMachineOptions) error
-	HotplugHostDevices(vmi *v1.VirtualMachineInstance) error
-	InterfacesStatus() []api.InterfaceStatus
-	GetGuestOSInfo() *api.GuestOSInfo
-	Exec(string, string, []string, int32) (string, error)
-	GuestPing(string) error
-	MemoryDump(vmi *v1.VirtualMachineInstance, dumpPath string) error
-	GetQemuVersion() (string, error)
-	UpdateVCPUs(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) error
-	GetSEVInfo() (*v1.SEVPlatformInfo, error)
-	GetLaunchMeasurement(*v1.VirtualMachineInstance) (*v1.SEVMeasurementInfo, error)
-	InjectLaunchSecret(*v1.VirtualMachineInstance, *v1.SEVSecretOptions) error
-	UpdateGuestMemory(vmi *v1.VirtualMachineInstance) error
-	GetDomainDirtyRateStats(calculationDuration time.Duration) (*stats.DomainStatsDirtyRate, error)
 }
 
 type LibvirtDomainManager struct {
@@ -213,14 +172,14 @@ func (s pausedVMIs) contains(uid types.UID) bool {
 
 func NewLibvirtDomainManager(connection cli.Connection, virtShareDir, ephemeralDiskDir string, agentStore *agentpoller.AsyncAgentStore,
 	ovmfPath string, ephemeralDiskCreator ephemeraldisk.EphemeralDiskCreatorInterface, metadataCache *metadata.Cache,
-	stopChan chan struct{}, diskMemoryLimitBytes int64, cpuSetGetter func() ([]int, error), imageVolumeEnabled bool) (DomainManager, error) {
+	stopChan chan struct{}, diskMemoryLimitBytes int64, cpuSetGetter func() ([]int, error), imageVolumeEnabled bool) (launcherCommon.DomainManager, error) {
 	directIOChecker := converter.NewDirectIOChecker()
 	return newLibvirtDomainManager(connection, virtShareDir, ephemeralDiskDir, agentStore, ovmfPath, ephemeralDiskCreator, directIOChecker, metadataCache, stopChan, diskMemoryLimitBytes, cpuSetGetter, imageVolumeEnabled)
 }
 
 func newLibvirtDomainManager(connection cli.Connection, virtShareDir, ephemeralDiskDir string, agentStore *agentpoller.AsyncAgentStore, ovmfPath string,
 	ephemeralDiskCreator ephemeraldisk.EphemeralDiskCreatorInterface, directIOChecker converter.DirectIOChecker, metadataCache *metadata.Cache,
-	stopChan chan struct{}, diskMemoryLimitBytes int64, cpuSetGetter func() ([]int, error), imageVolumeEnabled bool) (DomainManager, error) {
+	stopChan chan struct{}, diskMemoryLimitBytes int64, cpuSetGetter func() ([]int, error), imageVolumeEnabled bool) (launcherCommon.DomainManager, error) {
 	manager := LibvirtDomainManager{
 		diskMemoryLimitBytes: diskMemoryLimitBytes,
 		virConn:              connection,
@@ -303,6 +262,13 @@ func getAllDomainDisks(dom cli.VirDomain) ([]api.Disk, error) {
 	}
 
 	return devices.Disks, nil
+}
+
+func (l *LibvirtDomainManager) FormatError(err error) string {
+	if virErr := domainerrors.FormatLibvirtError(err); virErr != "" {
+		return virErr
+	}
+	return err.Error()
 }
 
 func (l *LibvirtDomainManager) UpdateGuestMemory(vmi *v1.VirtualMachineInstance) error {
@@ -1983,7 +1949,7 @@ func (l *LibvirtDomainManager) DeleteVMI(vmi *v1.VirtualMachineInstance) error {
 }
 
 func (l *LibvirtDomainManager) ListAllDomains() ([]*api.Domain, error) {
-
+	// TODO PLUGINDEV: This is where the conversion should happen from virt-stack-specific Domain spec to a Domain spec that is generic and understood by Kubevirt in general.
 	doms, err := l.virConn.ListAllDomains(libvirt.CONNECT_LIST_DOMAINS_ACTIVE | libvirt.CONNECT_LIST_DOMAINS_INACTIVE)
 	if err != nil {
 		return nil, err

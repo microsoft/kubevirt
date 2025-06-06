@@ -32,7 +32,7 @@ import (
 
 	domstatsCollector "kubevirt.io/kubevirt/pkg/monitoring/metrics/virt-handler/collector"
 	"kubevirt.io/kubevirt/pkg/monitoring/metrics/virt-handler/domainstats"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 )
 
 const (

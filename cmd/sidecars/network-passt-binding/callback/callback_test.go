@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 var _ = Describe("passt hook callback handler", func() {

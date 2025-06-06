@@ -24,11 +24,11 @@ import (
 
 	"libvirt.org/go/libvirtxml"
 
-	api "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	api "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 // This package provides the methods to convert the types defined in
-// kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api to the types defined in
+// kubevirt.io/kubevirt/pkg/virt-launcher-common/api to the types defined in
 // libvirt.org/go/libvirtxml package.
 //
 // The libvirtxml package provides 100% coverage to Libvirt XML schemas and we

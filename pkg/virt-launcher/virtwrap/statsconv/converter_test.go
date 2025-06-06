@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"libvirt.org/go/libvirt"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/statsconv/util"
 )
 

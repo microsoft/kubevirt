@@ -10,9 +10,9 @@ import (
 	"kubevirt.io/client-go/log"
 
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
-	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cmd-server"
+	virt_launcher_common "kubevirt.io/kubevirt/pkg/virt-launcher-common"
+	agent_common "kubevirt.io/kubevirt/pkg/virt-launcher-common/agent"
+	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher-common/cmd-server"
 )
 
 func main() {
@@ -26,14 +26,14 @@ func main() {
 	stopChan := make(chan struct{})
 	options := cmdserver.NewServerOptions(true)
 
-	domainManager := virtwrap.NewMockDomainManager(gomock.NewController(nil))
+	domainManager := virt_launcher_common.NewMockDomainManager(gomock.NewController(nil))
 	domainManager.EXPECT().Exec(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		AnyTimes().DoAndReturn(func(domainName string, _ string, _ []string) (string, error) {
 		if domainName == "error" {
 			return "", errors.New("fake error")
 		}
 		if domainName == "fail" {
-			return "command failed", agent.ExecExitCode{ExitCode: 1}
+			return "command failed", agent_common.ExecExitCode{ExitCode: 1}
 		}
 		return "success", nil
 	})

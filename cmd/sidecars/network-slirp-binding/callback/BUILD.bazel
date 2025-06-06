@@ -5,7 +5,7 @@ go_library(
     srcs = ["callback.go"],
     importpath = "kubevirt.io/kubevirt/cmd/sidecars/network-slirp-binding/callback",
     visibility = ["//visibility:public"],
-    deps = ["//pkg/virt-launcher/virtwrap/api:go_default_library"],
+    deps = ["//pkg/virt-launcher-common/api:go_default_library"],
 )
 
 go_test(
@@ -16,7 +16,7 @@ go_test(
     ],
     deps = [
         ":go_default_library",
-        "//pkg/virt-launcher/virtwrap/api:go_default_library",
+        "//pkg/virt-launcher-common/api:go_default_library",
         "//staging/src/kubevirt.io/client-go/testutils:go_default_library",
         "//vendor/github.com/onsi/ginkgo/v2:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",
