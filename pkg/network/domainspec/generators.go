@@ -30,7 +30,7 @@ import (
 
 	netdriver "kubevirt.io/kubevirt/pkg/network/driver"
 	virtnetlink "kubevirt.io/kubevirt/pkg/network/link"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 const linkIfaceFailFmt = "failed to get a link for interface: %s"

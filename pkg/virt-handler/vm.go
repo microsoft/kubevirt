@@ -91,7 +91,7 @@ import (
 	migrationproxy "kubevirt.io/kubevirt/pkg/virt-handler/migration-proxy"
 	multipath_monitor "kubevirt.io/kubevirt/pkg/virt-handler/multipath-monitor"
 	"kubevirt.io/kubevirt/pkg/virt-handler/selinux"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 	"kubevirt.io/kubevirt/pkg/virtiofs"
 )
 
@@ -3645,6 +3645,8 @@ func (c *VirtualMachineController) updateMachineType(vmi *v1.VirtualMachineInsta
 		return
 	}
 	if domain.Spec.OS.Type.Machine != "" {
+		// TODO PLUGINDEV: domain.Spec.OS.Type.Machine is set by converter.go
+		// TODO PLUGINDEV: But if not set explicitly, this function still updates the resultant machineType in VMI status.
 		vmi.Status.Machine = &v1.Machine{Type: domain.Spec.OS.Type.Machine}
 	}
 }

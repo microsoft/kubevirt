@@ -129,7 +129,7 @@ ${KUBEVIRT_DIR}/hack/build-go.sh generate ${WHAT}
 deepcopy-gen \
     --output-file deepcopy_generated.go \
     --go-header-file ${KUBEVIRT_DIR}/hack/boilerplate/boilerplate.go.txt \
-    ./pkg/virt-launcher/virtwrap/api
+    ./pkg/virt-launcher-common/api
 
 # Generate validation with controller-gen and create go file for them
 (

@@ -40,7 +40,7 @@ import (
 
 	notifyv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/notify/v1"
 	grpcutil "kubevirt.io/kubevirt/pkg/util/net/grpc"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 type Notify struct {

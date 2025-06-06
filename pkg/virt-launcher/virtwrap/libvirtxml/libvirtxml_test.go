@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	api "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	api "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 
 	"libvirt.org/go/libvirtxml"
 )

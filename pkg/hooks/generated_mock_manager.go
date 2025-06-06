@@ -17,7 +17,7 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	cloudinit "kubevirt.io/kubevirt/pkg/cloud-init"
-	api "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	api "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 // MockManager is a mock of Manager interface.

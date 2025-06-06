@@ -27,7 +27,7 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/monitoring/metrics/virt-handler/collector"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/stats"
 )
 
 type DomainDirtyRateStatsScraper struct {

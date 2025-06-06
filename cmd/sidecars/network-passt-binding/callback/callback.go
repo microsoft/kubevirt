@@ -23,7 +23,7 @@ import (
 	"encoding/xml"
 	"fmt"
 
-	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 // TODO: move to Kubevirt domain API package

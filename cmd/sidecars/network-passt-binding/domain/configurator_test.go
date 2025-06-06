@@ -29,7 +29,7 @@ import (
 
 	"kubevirt.io/kubevirt/cmd/sidecars/network-passt-binding/domain"
 
-	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 )
 
 type defaultNetLinkStub struct{}

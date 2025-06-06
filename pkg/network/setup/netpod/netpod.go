@@ -39,7 +39,7 @@ import (
 	"kubevirt.io/kubevirt/pkg/network/setup/netpod/masquerade"
 	"kubevirt.io/kubevirt/pkg/network/vmispec"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-common/api"
 
 	"kubevirt.io/client-go/log"
 
