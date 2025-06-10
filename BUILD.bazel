@@ -524,16 +524,6 @@ genrule(
 )
 
 genrule(
-    name = "build-node-labeller",
-    srcs = [
-        "//cmd/node-labeller",
-    ],
-    outs = ["node-labeller"],
-    cmd = "echo '#!/bin/sh\n\ncp -f $(SRCS) $$1' > \"$@\"",
-    executable = 1,
-)
-
-genrule(
     name = "build-virtctl-amd64",
     srcs = [
         "//cmd/virtctl:virtctl-amd64",
