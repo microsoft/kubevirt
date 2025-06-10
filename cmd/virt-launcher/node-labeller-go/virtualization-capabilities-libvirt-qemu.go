@@ -9,6 +9,14 @@ import (
 
 	v1 "kubevirt.io/api/core/v1"
 	"libvirt.org/go/libvirtxml"
+
+	virt_capabilities "kubevirt.io/kubevirt/pkg/virt-launcher-common/virt-capabilities"
+)
+
+const (
+	isSupported string = "yes"
+	isUnusable  string = "no"
+	isRequired  string = "require"
 )
 
 // VirtualizationCapabilitiesLibvirtQemu is a dummy implementation of VirtualizationCapabilitiesInterface.
@@ -20,13 +28,13 @@ type VirtualizationCapabilitiesLibvirtQemu struct {
 	// capabilities.xml path
 	CapabilitiesPath string
 
-	HostDomCapabilities   HostDomCapabilities
+	HostDomCapabilities   virt_capabilities.HostDomCapabilities
 	SupportedHostFeatures []string
 	NodeCapabilities      libvirtxml.Caps
 
 	cpuModelVendor string
 
-	hostCPUModel hostCPUModel
+	hostCPUModel virt_capabilities.HostCPUModel
 }
 
 func NewVirtualizationCapabilitiesLibvirtQemu(supportedFeaturesPath string, domainCapabilitiesPath string, capabilitiesPath string) *VirtualizationCapabilitiesLibvirtQemu {
@@ -45,7 +53,7 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) loadAll() {
 }
 
 func (v *VirtualizationCapabilitiesLibvirtQemu) loadSupportedFeatures() {
-	hostFeatures := SupportedHostFeature{}
+	hostFeatures := virt_capabilities.SupportedHostFeature{}
 	err := v.getStructureFromXMLFile(v.SupportedFeaturesPath, &hostFeatures)
 	if err != nil {
 		fmt.Printf("Error loading supported features: %v\n", err)
@@ -54,7 +62,7 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) loadSupportedFeatures() {
 
 	usableFeatures := make([]string, 0)
 	for _, f := range hostFeatures.Feature {
-		if f.Policy == RequirePolicy {
+		if f.Policy == isRequired {
 			usableFeatures = append(usableFeatures, f.Name)
 		}
 	}
@@ -63,7 +71,7 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) loadSupportedFeatures() {
 }
 
 func (v *VirtualizationCapabilitiesLibvirtQemu) loadDomainCapabilities() {
-	hostDomCapabilities := HostDomCapabilities{}
+	hostDomCapabilities := virt_capabilities.HostDomCapabilities{}
 	err := v.getStructureFromXMLFile(v.DomainCapabilitiesPath, &hostDomCapabilities)
 	if err != nil {
 		fmt.Printf("Error loading domain capabilities: %v\n", err)
@@ -164,7 +172,7 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuModels() ([]strin
 }
 
 // GetHostCpuModelInfo returns dummy host CPU model information.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetHostCpuModelInfo() (hostCPUModel, error) {
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetHostCpuModelInfo() (virt_capabilities.HostCPUModel, error) {
 	return v.hostCPUModel, nil
 }
 
@@ -174,16 +182,16 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuFeatures() ([]str
 }
 
 // GetNodeTscInfo returns dummy node TSC information.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeTscInfo() (TscConfig, error) {
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeTscInfo() (virt_capabilities.TscConfig, error) {
 	counter := v.NodeCapabilities.Host.CPU.Counter
 	if counter != nil && counter.Name == "tsc" {
-		return TscConfig{
+		return virt_capabilities.TscConfig{
 			HasTscCounter: true,
 			Frequency:     fmt.Sprintf("%d", counter.Frequency),
 			Scalable:      fmt.Sprintf("%t", counter.Scaling == "yes"),
 		}, nil
 	}
-	return TscConfig{
+	return virt_capabilities.TscConfig{
 		HasTscCounter: false}, nil
 }
 
@@ -193,7 +201,7 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) NodeSupportsRealTime() (bool, er
 }
 
 // GetNodeSevFeatures returns a dummy list of SEV features.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeSevFeatures() (SEVConfiguration, error) {
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeSevFeatures() (virt_capabilities.SEVConfiguration, error) {
 	return v.HostDomCapabilities.SEV, nil
 }
 
@@ -216,10 +224,10 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) getStructureFromXMLFile(path str
 // workloads at peak performance.
 
 func isNodeRealtimeCapable() (bool, error) {
-	ret, err := exec.Command("sysctl", kernelSchedRealtimeRuntimeInMicrosecods).CombinedOutput()
+	ret, err := exec.Command("sysctl", virt_capabilities.KernelSchedRealtimeRuntimeInMicroseconds).CombinedOutput()
 	if err != nil {
 		return false, err
 	}
 	st := strings.Trim(string(ret), "\n")
-	return fmt.Sprintf("%s = -1", kernelSchedRealtimeRuntimeInMicrosecods) == st, nil
+	return fmt.Sprintf("%s = -1", virt_capabilities.KernelSchedRealtimeRuntimeInMicroseconds) == st, nil
 }

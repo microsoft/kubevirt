@@ -1,11 +1,11 @@
-package main
+package virt_capabilities
 
 import (
 	"encoding/json"
 	"os"
 )
 
-func exportVirtualizationCapabilities(v VirtualizationCapabilitiesInterface, filename string) {
+func ExportVirtualizationCapabilities(v VirtualizationCapabilitiesInterface, filename string) {
 	virtCaps := make(map[string]interface{})
 	virtCaps[HypervFeaturesKey], _ = v.GetHypervFeatures()
 	virtCaps[SupportedMachineTypeKeys], _ = v.GetSupportedMachineTypes()

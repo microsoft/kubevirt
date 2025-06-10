@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	virt_capabilities "kubevirt.io/kubevirt/pkg/virt-launcher-common/virt-capabilities"
 )
 
 const (
@@ -115,5 +117,5 @@ func main() {
 
 	capabilityExtractor := NewVirtualizationCapabilitiesLibvirtQemu(fmt.Sprintf("%s/supported_features.xml", XmlBasePath), fmt.Sprintf("%s/virsh_domcapabilities.xml", XmlBasePath), fmt.Sprintf("%s/capabilities.xml", XmlBasePath))
 
-	exportVirtualizationCapabilities(capabilityExtractor, fmt.Sprintf("%s/virtualization_capabilities.json", XmlBasePath))
+	virt_capabilities.ExportVirtualizationCapabilities(capabilityExtractor, fmt.Sprintf("%s/virtualization_capabilities.json", XmlBasePath))
 }

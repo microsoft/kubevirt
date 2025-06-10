@@ -1,6 +1,6 @@
-package main
+package virt_capabilities
 
-const kernelSchedRealtimeRuntimeInMicrosecods = "kernel.sched_rt_runtime_us"
+const KernelSchedRealtimeRuntimeInMicroseconds = "kernel.sched_rt_runtime_us"
 
 const (
 	HypervFeaturesKey        = "hyperv-features"
@@ -25,7 +25,7 @@ type VirtualizationCapabilitiesInterface interface {
 	GetSupportedCpuModels() ([]string, error)
 
 	// GetHostCpuModelInfo returns host CPU model information.
-	GetHostCpuModelInfo() (hostCPUModel, error)
+	GetHostCpuModelInfo() (HostCPUModel, error)
 
 	// GetSupportedCpuFeatures returns supported CPU features.
 	GetSupportedCpuFeatures() ([]string, error)

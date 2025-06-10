@@ -1,6 +1,6 @@
-package main
+package virt_capabilities
 
-type hostCPUModel struct {
+type HostCPUModel struct {
 	Name             string
 	Fallback         string
 	RequiredFeatures []string
