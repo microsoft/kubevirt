@@ -2,9 +2,19 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["node-labeller.go"],
+    srcs = [
+        "model.go",
+        "node-labeller.go",
+        "util.go",
+        "virtualization-capabilities-interface.go",
+        "virtualization-capabilities-libvirt-qemu.go",
+    ],
     importpath = "kubevirt.io/kubevirt/cmd/virt-launcher/node-labeller-go",
     visibility = ["//visibility:private"],
+    deps = [
+        "//staging/src/kubevirt.io/api/core/v1:go_default_library",
+        "//vendor/libvirt.org/go/libvirtxml:go_default_library",
+    ],
 )
 
 go_binary(

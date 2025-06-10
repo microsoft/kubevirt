@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+const (
+	XmlBasePath = "/var/lib/kubevirt-node-labeller/"
+)
+
 func executeCommand(command string) (string, error) {
 	cmd := exec.Command("bash", "-c", command)
 	output, err := cmd.Output()
@@ -77,7 +81,7 @@ func main() {
 		executeCommand("chmod o+rw /dev/kvm")
 	}
 
-	cmd := exec.Command("virtqemud", "-d")
+	cmd := exec.Command("libvirtd", "-d")
 	err = cmd.Start()
 	if err != nil {
 		fmt.Printf("Failed to start virtqemud: %v\n", err)
@@ -85,29 +89,27 @@ func main() {
 	}
 	fmt.Println("virtqemud started in daemon mode")
 
-	domainCapabilitiesOut, err := executeCommand(fmt.Sprintf("virsh domcapabilities --machine %s --arch %s --virttype %s", machine, arch, virttype))
+	executeCommand(fmt.Sprintf("mkdir -p %s", XmlBasePath)) // TODO Remove this later, this is just for testing
+
+	_, err = executeCommand(fmt.Sprintf("virsh domcapabilities --machine %s --arch %s --virttype %s > %s/virsh_domcapabilities.xml", machine, arch, virttype, XmlBasePath))
 
 	if err != nil {
 		fmt.Printf("Failed to get domain capabilities: %v\n", err)
 		return
 	}
-	fmt.Println("Domain capabilities retrieved successfully. Length = ", len(domainCapabilitiesOut))
 
 	if arch == "x86_64" || arch == "s390x" {
-		cmd := fmt.Sprintf("virsh domcapabilities --machine %s --arch %s --virttype %s | virsh hypervisor-cpu-baseline --features /dev/stdin --machine %s --arch %s --virttype %s", machine, arch, virttype, machine, arch, virttype)
-		supportedFeatures, err := executeCommand(cmd)
+		cmd := fmt.Sprintf("virsh domcapabilities --machine %s --arch %s --virttype %s | virsh hypervisor-cpu-baseline --features /dev/stdin --machine %s --arch %s --virttype %s > %s/supported_features.xml", machine, arch, virttype, machine, arch, virttype, XmlBasePath)
+		_, err := executeCommand(cmd)
 		if err != nil {
 			fmt.Printf("Failed to get supported features: %v\n", err)
 			return
 		}
-		fmt.Println("Supported features retrieved successfully. Length = ", len(supportedFeatures))
 	}
 
-	nodeCapabilities, err := executeCommand("virsh capabilities")
+	_, err = executeCommand(fmt.Sprintf("virsh capabilities > %s/capabilities.xml", XmlBasePath))
 	if err != nil {
 		fmt.Printf("Failed to get node capabilities: %v\n", err)
 		return
 	}
-	fmt.Println("Node capabilities retrieved successfully. Length = ", len(nodeCapabilities))
-
 }
