@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"k8s.io/client-go/tools/record"
-	"libvirt.org/go/libvirtxml"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -43,6 +42,7 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/apimachinery/patch"
 	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
+	virt_capabilities "kubevirt.io/kubevirt/pkg/virt-launcher-common/virt-capabilities"
 )
 
 var nodeLabellerLabels = []string{
@@ -62,30 +62,23 @@ var nodeLabellerLabels = []string{
 
 // NodeLabeller struct holds information needed to run node-labeller
 type NodeLabeller struct {
-	recorder                record.EventRecorder
-	nodeClient              k8scli.NodeInterface
-	host                    string
-	logger                  *log.FilteredLogger
-	clusterConfig           *virtconfig.ClusterConfig
-	hypervFeatures          supportedFeatures
-	hostCapabilities        supportedFeatures
-	queue                   workqueue.TypedRateLimitingInterface[string]
-	supportedFeatures       []string
-	cpuModelVendor          string
-	volumePath              string
-	domCapabilitiesFileName string
-	cpuCounter              *libvirtxml.CapsHostCPUCounter
-	guestCaps               []libvirtxml.CapsGuest
-	hostCPUModel            hostCPUModel
-	SEV                     SEVConfiguration
-	arch                    archLabeller
+	recorder       record.EventRecorder
+	nodeClient     k8scli.NodeInterface
+	host           string
+	logger         *log.FilteredLogger
+	clusterConfig  *virtconfig.ClusterConfig
+	hypervFeatures supportedFeatures
+	queue          workqueue.TypedRateLimitingInterface[string]
+	volumePath     string
+	virtCaps       virt_capabilities.VirtualizationCapabilities
+	arch           archLabeller
 }
 
-func NewNodeLabeller(clusterConfig *virtconfig.ClusterConfig, nodeClient k8scli.NodeInterface, host string, recorder record.EventRecorder, cpuCounter *libvirtxml.CapsHostCPUCounter, guestCaps []libvirtxml.CapsGuest) (*NodeLabeller, error) {
-	return newNodeLabeller(clusterConfig, nodeClient, host, NodeLabellerVolumePath, recorder, cpuCounter, guestCaps)
+func NewNodeLabeller(clusterConfig *virtconfig.ClusterConfig, nodeClient k8scli.NodeInterface, host string, recorder record.EventRecorder, virtCaps virt_capabilities.VirtualizationCapabilities) (*NodeLabeller, error) {
+	return newNodeLabeller(clusterConfig, nodeClient, host, NodeLabellerVolumePath, recorder, virtCaps)
 
 }
-func newNodeLabeller(clusterConfig *virtconfig.ClusterConfig, nodeClient k8scli.NodeInterface, host, volumePath string, recorder record.EventRecorder, cpuCounter *libvirtxml.CapsHostCPUCounter, guestCaps []libvirtxml.CapsGuest) (*NodeLabeller, error) {
+func newNodeLabeller(clusterConfig *virtconfig.ClusterConfig, nodeClient k8scli.NodeInterface, host, volumePath string, recorder record.EventRecorder, virtCaps virt_capabilities.VirtualizationCapabilities) (*NodeLabeller, error) {
 	n := &NodeLabeller{
 		recorder:      recorder,
 		nodeClient:    nodeClient,
@@ -96,18 +89,11 @@ func newNodeLabeller(clusterConfig *virtconfig.ClusterConfig, nodeClient k8scli.
 			workqueue.DefaultTypedControllerRateLimiter[string](),
 			workqueue.TypedRateLimitingQueueConfig[string]{Name: "virt-handler-node-labeller"},
 		),
-		volumePath:              volumePath,
-		domCapabilitiesFileName: "virsh_domcapabilities.xml",
-		cpuCounter:              cpuCounter,
-		guestCaps:               guestCaps,
-		hostCPUModel:            hostCPUModel{requiredFeatures: make(map[string]bool)},
-		arch:                    newArchLabeller(runtime.GOARCH),
+		volumePath: volumePath,
+		virtCaps:   virtCaps,
+		arch:       newArchLabeller(runtime.GOARCH),
 	}
 
-	err := n.loadAll()
-	if err != nil {
-		return n, err
-	}
 	return n, nil
 }
 
@@ -157,28 +143,6 @@ func (n *NodeLabeller) execute() bool {
 	return true
 }
 
-func (n *NodeLabeller) loadAll() error {
-	// host supported features is only available on AMD64 and S390X nodes.
-	// This is because hypervisor-cpu-baseline virsh command doesnt work for ARM64 architecture.
-	if n.arch.hasHostSupportedFeatures() {
-		err := n.loadHostSupportedFeatures()
-		if err != nil {
-			n.logger.Errorf("node-labeller could not load supported features: " + err.Error())
-			return err
-		}
-	}
-
-	err := n.loadDomCapabilities()
-	if err != nil {
-		n.logger.Errorf("node-labeller could not load host dom capabilities: " + err.Error())
-		return err
-	}
-
-	n.loadHypervFeatures()
-
-	return nil
-}
-
 func (n *NodeLabeller) run() error {
 	originalNode, err := n.nodeClient.Get(context.Background(), n.host, metav1.GetOptions{})
 	if err != nil {
@@ -224,6 +188,7 @@ func (n *NodeLabeller) patchNode(originalNode, node *v1.Node) error {
 	return err
 }
 
+// TODO: Need to implement this in the Libvirt-QEMU-KVM virtualization capabilities exporter
 func (n *NodeLabeller) loadHypervFeatures() {
 	n.hypervFeatures.items = getCapLabels()
 }
@@ -248,8 +213,8 @@ func (n *NodeLabeller) prepareLabels(node *v1.Node) map[string]string {
 		}
 	}
 
-	for _, machine := range n.getSupportedMachines() {
-		labelKey := kubevirtv1.SupportedMachineTypeLabel + machine.Name
+	for _, machine := range n.virtCaps.SupportedMachineTypes {
+		labelKey := kubevirtv1.SupportedMachineTypeLabel + machine
 		newLabels[labelKey] = "true"
 	}
 
@@ -258,8 +223,8 @@ func (n *NodeLabeller) prepareLabels(node *v1.Node) map[string]string {
 	}
 
 	if n.hasTSCCounter() {
-		newLabels[kubevirtv1.CPUTimerLabel+"tsc-frequency"] = fmt.Sprintf("%d", n.cpuCounter.Frequency)
-		newLabels[kubevirtv1.CPUTimerLabel+"tsc-scalable"] = fmt.Sprintf("%t", n.cpuCounter.Scaling == "yes")
+		newLabels[kubevirtv1.CPUTimerLabel+"tsc-frequency"] = n.virtCaps.NodeTscInfo.Frequency
+		newLabels[kubevirtv1.CPUTimerLabel+"tsc-scalable"] = n.virtCaps.NodeTscInfo.Scalable
 	}
 
 	if n.arch.supportsHostModel() {
@@ -273,27 +238,23 @@ func (n *NodeLabeller) prepareLabels(node *v1.Node) map[string]string {
 			}
 		}
 
-		for feature := range hostCpuModel.requiredFeatures {
+		for _, feature := range hostCpuModel.RequiredFeatures {
 			newLabels[kubevirtv1.HostModelRequiredFeaturesLabel+feature] = "true"
 		}
 
-		newLabels[kubevirtv1.CPUModelVendorLabel+n.cpuModelVendor] = "true"
+		newLabels[kubevirtv1.CPUModelVendorLabel+n.virtCaps.HostCpuModelInfo.Vendor] = "true"
 		newLabels[kubevirtv1.HostModelCPULabel+hostCpuModel.Name] = "true"
 	}
 
-	capable, err := isNodeRealtimeCapable()
-	if err != nil {
-		n.logger.Reason(err).Error("failed to identify if a node is capable of running realtime workloads")
-	}
-	if capable {
+	if n.virtCaps.NodeSupportsRealTime {
 		newLabels[kubevirtv1.RealtimeLabel] = ""
 	}
 
-	if n.SEV.Supported == "yes" {
+	if n.virtCaps.NodeSevFeatures.Supported == "yes" {
 		newLabels[kubevirtv1.SEVLabel] = ""
 	}
 
-	if n.SEV.SupportedES == "yes" {
+	if n.virtCaps.NodeSevFeatures.SupportedES == "yes" {
 		newLabels[kubevirtv1.SEVESLabel] = ""
 	}
 
@@ -349,13 +310,5 @@ func (n *NodeLabeller) alertIfHostModelIsObsolete(originalNode *v1.Node, hostMod
 }
 
 func (n *NodeLabeller) hasTSCCounter() bool {
-	return n.cpuCounter != nil && n.cpuCounter.Name == "tsc"
-}
-
-func (n *NodeLabeller) getSupportedMachines() []libvirtxml.CapsGuestMachine {
-	var supportedMachines []libvirtxml.CapsGuestMachine
-	for _, guest := range n.guestCaps {
-		supportedMachines = append(supportedMachines, guest.Arch.Machines...)
-	}
-	return supportedMachines
+	return n.virtCaps.NodeTscInfo.HasTscCounter
 }

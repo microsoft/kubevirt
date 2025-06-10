@@ -149,6 +149,7 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuModels() []string
 			hostCpuModel := mode.Model[0]
 			v.hostCPUModel.Name = hostCpuModel.Name
 			v.hostCPUModel.Fallback = hostCpuModel.Fallback
+			v.hostCPUModel.Vendor = v.cpuModelVendor
 
 			for _, feature := range mode.Feature {
 				if feature.Policy == isRequired {
@@ -178,6 +179,10 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) GetHostCpuModelInfo() virt_capab
 
 // GetSupportedCpuFeatures returns a dummy list of supported CPU features.
 func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuFeatures() []string {
+	// TODO The below condition was in the virt-handlr code. Implementation should check which architecture this is and based on that expose SupportedHostFeatures.
+	// host supported features is only available on AMD64 and S390X nodes.
+	// This is because hypervisor-cpu-baseline virsh command doesnt work for ARM64 architecture.
+	// if n.arch.hasHostSupportedFeatures() {
 	return v.SupportedHostFeatures
 }
 
@@ -204,6 +209,7 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) NodeSupportsRealTime() bool {
 // GetNodeSevFeatures returns a dummy list of SEV features.
 func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeSevFeatures() virt_capabilities.SEVConfiguration {
 	sevCfg := virt_capabilities.SEVConfiguration{
+		Supported:   v.HostDomCapabilities.SEV.Supported,
 		SupportedES: v.HostDomCapabilities.SEV.SupportedES,
 	}
 	return sevCfg

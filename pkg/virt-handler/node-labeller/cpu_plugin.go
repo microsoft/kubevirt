@@ -20,15 +20,8 @@
 package nodelabeller
 
 import (
-	"encoding/xml"
-	"fmt"
-	"os"
-	"path/filepath"
-
-	v1 "kubevirt.io/api/core/v1"
-	"kubevirt.io/client-go/log"
-
 	"kubevirt.io/kubevirt/pkg/virt-handler/node-labeller/util"
+	virt_capabilities "kubevirt.io/kubevirt/pkg/virt-launcher-common/virt-capabilities"
 )
 
 const (
@@ -36,8 +29,6 @@ const (
 	isUnusable             string = "no"
 	isRequired             string = "require"
 	NodeLabellerVolumePath        = "/var/lib/kubevirt-node-labeller/"
-
-	supportedFeaturesXml = "supported_features.xml"
 )
 
 func (n *NodeLabeller) getSupportedCpuModels(obsoleteCPUsx86 map[string]bool) []string {
@@ -47,7 +38,7 @@ func (n *NodeLabeller) getSupportedCpuModels(obsoleteCPUsx86 map[string]bool) []
 		obsoleteCPUsx86 = util.DefaultObsoleteCPUModels
 	}
 
-	for _, model := range n.hostCapabilities.items {
+	for _, model := range n.virtCaps.SupportedCPUModels {
 		if _, ok := obsoleteCPUsx86[model]; ok {
 			continue
 		}
@@ -60,116 +51,13 @@ func (n *NodeLabeller) getSupportedCpuModels(obsoleteCPUsx86 map[string]bool) []
 func (n *NodeLabeller) getSupportedCpuFeatures() cpuFeatures {
 	supportedCpuFeatures := make(cpuFeatures)
 
-	for _, feature := range n.supportedFeatures {
+	for _, feature := range n.virtCaps.SupportedCpuFeatures {
 		supportedCpuFeatures[feature] = true
 	}
 
 	return supportedCpuFeatures
 }
 
-func (n *NodeLabeller) GetHostCpuModel() hostCPUModel {
-	return n.hostCPUModel
-}
-
-// loadDomCapabilities loads info about cpu models, which can host emulate
-func (n *NodeLabeller) loadDomCapabilities() error {
-	hostDomCapabilities, err := n.getDomCapabilities()
-	if err != nil {
-		return err
-	}
-
-	usableModels := make([]string, 0)
-	for _, mode := range hostDomCapabilities.CPU.Mode {
-		if mode.Name == v1.CPUModeHostModel {
-			if !n.arch.supportsHostModel() {
-				log.Log.Warningf("host-model cpu mode is not supported for %s architecture", n.arch.arch())
-				continue
-			}
-
-			n.cpuModelVendor = mode.Vendor.Name
-			if n.cpuModelVendor == "" {
-				n.cpuModelVendor = n.arch.defaultVendor()
-			}
-
-			if len(mode.Model) < 1 {
-				return fmt.Errorf("host model mode is expected to contain a model")
-			}
-			if len(mode.Model) > 1 {
-				log.Log.Warning("host model mode is expected to contain only one model")
-			}
-
-			hostCpuModel := mode.Model[0]
-			n.hostCPUModel.Name = hostCpuModel.Name
-			n.hostCPUModel.fallback = hostCpuModel.Fallback
-
-			for _, feature := range mode.Feature {
-				if feature.Policy == isRequired {
-					n.hostCPUModel.requiredFeatures[feature.Name] = true
-				}
-			}
-		}
-
-		for _, model := range mode.Model {
-			if model.Usable == isUnusable || model.Usable == "" {
-				continue
-			}
-			usableModels = append(usableModels, model.Name)
-		}
-	}
-
-	n.hostCapabilities.items = usableModels
-	n.SEV = hostDomCapabilities.SEV
-
-	return nil
-}
-
-// loadHostSupportedFeatures loads supported features
-func (n *NodeLabeller) loadHostSupportedFeatures() error {
-	featuresFile := filepath.Join(n.volumePath, supportedFeaturesXml)
-
-	hostFeatures := SupportedHostFeature{}
-	err := n.getStructureFromXMLFile(featuresFile, &hostFeatures)
-	if err != nil {
-		return err
-	}
-
-	usableFeatures := make([]string, 0)
-	for _, f := range hostFeatures.Feature {
-		if n.arch.requirePolicy(f.Policy) {
-			usableFeatures = append(usableFeatures, f.Name)
-		}
-	}
-
-	n.supportedFeatures = usableFeatures
-	return nil
-}
-
-func (n *NodeLabeller) getDomCapabilities() (HostDomCapabilities, error) {
-	domCapabilitiesFile := filepath.Join(n.volumePath, n.domCapabilitiesFileName)
-	hostDomCapabilities := HostDomCapabilities{}
-	err := n.getStructureFromXMLFile(domCapabilitiesFile, &hostDomCapabilities)
-	if err != nil {
-		return hostDomCapabilities, err
-	}
-
-	if hostDomCapabilities.SEV.Supported == "yes" && hostDomCapabilities.SEV.MaxESGuests > 0 {
-		hostDomCapabilities.SEV.SupportedES = "yes"
-	} else {
-		hostDomCapabilities.SEV.SupportedES = "no"
-	}
-
-	return hostDomCapabilities, err
-}
-
-// GetStructureFromXMLFile load data from xml file and unmarshals them into given structure
-// Given structure has to be pointer
-func (n *NodeLabeller) getStructureFromXMLFile(path string, structure interface{}) error {
-	rawFile, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	n.logger.V(4).Infof("node-labeller - loading data from xml file: %#v", string(rawFile))
-
-	return xml.Unmarshal(rawFile, structure)
+func (n *NodeLabeller) GetHostCpuModel() virt_capabilities.HostCPUModel {
+	return n.virtCaps.HostCpuModelInfo
 }

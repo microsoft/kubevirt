@@ -4,6 +4,7 @@ type HostCPUModel struct {
 	Name             string   `json:"name"`
 	Fallback         string   `json:"fallback"`
 	RequiredFeatures []string `json:"requiredFeatures"`
+	Vendor           string   `json:"vendor"`
 }
 
 type TscConfig struct {
@@ -13,6 +14,7 @@ type TscConfig struct {
 }
 
 type SEVConfiguration struct {
+	Supported   string
 	SupportedES string
 }
 

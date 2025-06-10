@@ -22,6 +22,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -83,6 +84,7 @@ import (
 	nodelabeller "kubevirt.io/kubevirt/pkg/virt-handler/node-labeller"
 	"kubevirt.io/kubevirt/pkg/virt-handler/rest"
 	"kubevirt.io/kubevirt/pkg/virt-handler/selinux"
+	virt_capabilities "kubevirt.io/kubevirt/pkg/virt-launcher-common/virt-capabilities"
 )
 
 const (
@@ -290,6 +292,16 @@ func (app *virtHandlerApp) Run() {
 
 	stop := make(chan struct{})
 	defer close(stop)
+
+	var virtCaps virt_capabilities.VirtualizationCapabilities
+	virtCapsFile, err := os.ReadFile(filepath.Join(nodelabeller.NodeLabellerVolumePath, "virtualization_capabilities.json"))
+	if err != nil {
+		panic(err)
+	}
+	if err := json.Unmarshal(virtCapsFile, &virtCaps); err != nil {
+		panic(err)
+	}
+
 	var capabilities libvirtxml.Caps
 	var hostCpuModel string
 
@@ -307,8 +319,7 @@ func (app *virtHandlerApp) Run() {
 		app.virtCli.CoreV1().Nodes(),
 		app.HostOverride,
 		nodeLabellerrecorder,
-		capabilities.Host.CPU.Counter,
-		capabilities.Guests,
+		virtCaps,
 	)
 	if err != nil {
 		panic(err)
