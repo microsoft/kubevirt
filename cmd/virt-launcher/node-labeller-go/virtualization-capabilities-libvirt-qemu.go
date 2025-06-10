@@ -4,6 +4,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 
 	v1 "kubevirt.io/api/core/v1"
 	"libvirt.org/go/libvirtxml"
@@ -31,8 +33,7 @@ func NewVirtualizationCapabilitiesLibvirtQemu(supportedFeaturesPath string, doma
 	cap := VirtualizationCapabilitiesLibvirtQemu{
 		SupportedFeaturesPath:  supportedFeaturesPath,
 		DomainCapabilitiesPath: domainCapabilitiesPath,
-		CapabilitiesPath:       capabilitiesPath,
-		hostCPUModel:           hostCPUModel{requiredFeatures: make(map[string]bool)}}
+		CapabilitiesPath:       capabilitiesPath}
 	cap.loadAll()
 	return &cap
 }
@@ -114,7 +115,8 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedMachineTypes() ([]st
 
 // GetSupportedCpuModels returns a dummy list of supported CPU models.
 func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuModels() ([]string, error) {
-	// TODO Incorporate obsolete CPU models logic
+	// TODO Incorporate obsolete CPU models logic.
+	// TODO This can also be done in the virt-handler itself.
 
 	usableModels := make([]string, 0)
 	for _, mode := range v.HostDomCapabilities.CPU.Mode {
@@ -138,13 +140,16 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuModels() ([]strin
 
 			hostCpuModel := mode.Model[0]
 			v.hostCPUModel.Name = hostCpuModel.Name
-			v.hostCPUModel.fallback = hostCpuModel.Fallback
+			v.hostCPUModel.Fallback = hostCpuModel.Fallback
 
 			for _, feature := range mode.Feature {
 				if feature.Policy == isRequired {
-					v.hostCPUModel.requiredFeatures[feature.Name] = true
+					v.hostCPUModel.RequiredFeatures = append(v.hostCPUModel.RequiredFeatures, feature.Name)
 				}
 			}
+
+			fmt.Println("Host CPU Model : ", v.hostCPUModel)
+
 		}
 
 		for _, model := range mode.Model {
@@ -159,28 +164,37 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuModels() ([]strin
 }
 
 // GetHostCpuModelInfo returns dummy host CPU model information.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetHostCpuModelInfo() (interface{}, error) {
-	return map[string]interface{}{"model": "Intel", "vendor": "GenuineIntel"}, nil
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetHostCpuModelInfo() (hostCPUModel, error) {
+	return v.hostCPUModel, nil
 }
 
 // GetSupportedCpuFeatures returns a dummy list of supported CPU features.
 func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuFeatures() ([]string, error) {
-	return []string{"vmx", "aes", "fma"}, nil
+	return v.SupportedHostFeatures, nil
 }
 
 // GetNodeTscInfo returns dummy node TSC information.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeTscInfo() (interface{}, error) {
-	return map[string]interface{}{"frequency": 2500000000}, nil
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeTscInfo() (TscConfig, error) {
+	counter := v.NodeCapabilities.Host.CPU.Counter
+	if counter != nil && counter.Name == "tsc" {
+		return TscConfig{
+			HasTscCounter: true,
+			Frequency:     fmt.Sprintf("%d", counter.Frequency),
+			Scalable:      fmt.Sprintf("%t", counter.Scaling == "yes"),
+		}, nil
+	}
+	return TscConfig{
+		HasTscCounter: false}, nil
 }
 
 // NodeSupportsRealTime returns a dummy value indicating real-time support.
 func (v *VirtualizationCapabilitiesLibvirtQemu) NodeSupportsRealTime() (bool, error) {
-	return true, nil
+	return isNodeRealtimeCapable()
 }
 
 // GetNodeSevFeatures returns a dummy list of SEV features.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeSevFeatures() ([]string, error) {
-	return []string{"sev", "sev-es"}, nil
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeSevFeatures() (SEVConfiguration, error) {
+	return v.HostDomCapabilities.SEV, nil
 }
 
 // GetStructureFromXMLFile load data from xml file and unmarshals them into given structure
@@ -194,4 +208,18 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) getStructureFromXMLFile(path str
 	//fmt.Printf("node-labeller - loading data from xml file: %#v\n", string(rawFile))
 
 	return xml.Unmarshal(rawFile, structure)
+}
+
+// isNodeRealtimeCapable Checks if a node is capable of running realtime workloads. Currently by validating if the kernel system setting value
+// for `kernel.sched_rt_runtime_us` is set to allow running realtime scheduling with unlimited time (==-1)
+// TODO: This part should be improved to validate against key attributes that determine best if a host is able to run realtime
+// workloads at peak performance.
+
+func isNodeRealtimeCapable() (bool, error) {
+	ret, err := exec.Command("sysctl", kernelSchedRealtimeRuntimeInMicrosecods).CombinedOutput()
+	if err != nil {
+		return false, err
+	}
+	st := strings.Trim(string(ret), "\n")
+	return fmt.Sprintf("%s = -1", kernelSchedRealtimeRuntimeInMicrosecods) == st, nil
 }

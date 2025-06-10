@@ -2,15 +2,21 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 )
 
 func exportVirtualizationCapabilities(v VirtualizationCapabilitiesInterface, filename string) {
+	virtCaps := make(map[string]interface{})
+	virtCaps[HypervFeaturesKey], _ = v.GetHypervFeatures()
+	virtCaps[SupportedMachineTypeKeys], _ = v.GetSupportedMachineTypes()
+	virtCaps[SupportedCpuModelsKey], _ = v.GetSupportedCpuModels()
+	virtCaps[HostCpuModelInfoKey], _ = v.GetHostCpuModelInfo()
+	virtCaps[SupportedCpuFeaturesKey], _ = v.GetSupportedCpuFeatures()
+	virtCaps[NodeTscInfoKey], _ = v.GetNodeTscInfo()
+	virtCaps[NodeSupportsRealTimeKey], _ = v.NodeSupportsRealTime()
+	virtCaps[NodeSevFeaturesKey], _ = v.GetNodeSevFeatures()
 
-	machines, _ := v.GetSupportedMachineTypes()
-	fmt.Println("Supported machine types:", machines)
-	data, err := json.MarshalIndent(machines, "", "  ")
+	data, err := json.MarshalIndent(virtCaps, "", "  ")
 	if err != nil {
 		panic(err)
 	}

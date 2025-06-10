@@ -1,12 +1,22 @@
 package main
 
+const kernelSchedRealtimeRuntimeInMicrosecods = "kernel.sched_rt_runtime_us"
+
+const (
+	HypervFeaturesKey        = "hyperv-features"
+	SupportedMachineTypeKeys = "supported-machine-types"
+	SupportedCpuModelsKey    = "supported-cpu-models"
+	HostCpuModelInfoKey      = "host-cpu-model-info"
+	SupportedCpuFeaturesKey  = "supported-cpu-features"
+	NodeTscInfoKey           = "node-tsc-info"
+	NodeSupportsRealTimeKey  = "node-supports-real-time"
+	NodeSevFeaturesKey       = "node-sev-features"
+)
+
 // VirtualizationCapabilitiesInterface defines methods for querying virtualization capabilities.
 type VirtualizationCapabilitiesInterface interface {
 	// GetHypervFeatures returns a list of features required for Windows guests.
 	GetHypervFeatures() ([]string, error)
-
-	// GetNodeTopology returns the node topology.
-	GetNodeTopology() (interface{}, error)
 
 	// GetSupportedMachineTypes returns supported machine types.
 	GetSupportedMachineTypes() ([]string, error)
@@ -15,17 +25,17 @@ type VirtualizationCapabilitiesInterface interface {
 	GetSupportedCpuModels() ([]string, error)
 
 	// GetHostCpuModelInfo returns host CPU model information.
-	GetHostCpuModelInfo() (interface{}, error)
+	GetHostCpuModelInfo() (hostCPUModel, error)
 
 	// GetSupportedCpuFeatures returns supported CPU features.
 	GetSupportedCpuFeatures() ([]string, error)
 
 	// GetNodeTscInfo returns node TSC (Time Stamp Counter) information.
-	GetNodeTscInfo() (interface{}, error)
+	GetNodeTscInfo() (TscConfig, error)
 
 	// NodeSupportsRealTime returns true if the node supports real-time capabilities.
 	NodeSupportsRealTime() (bool, error)
 
 	// GetNodeSevFeatures returns SEV (Secure Encrypted Virtualization) features of the node.
-	GetNodeSevFeatures() ([]string, error)
+	GetNodeSevFeatures() (SEVConfiguration, error)
 }

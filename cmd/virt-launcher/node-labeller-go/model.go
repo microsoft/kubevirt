@@ -1,15 +1,15 @@
 package main
 
-type cpuFeatures map[string]bool
-
-type supportedFeatures struct {
-	items []string
-}
-
 type hostCPUModel struct {
 	Name             string
-	fallback         string
-	requiredFeatures cpuFeatures
+	Fallback         string
+	RequiredFeatures []string
+}
+
+type TscConfig struct {
+	HasTscCounter bool
+	Frequency     string
+	Scalable      string
 }
 
 // HostDomCapabilities represents structure for parsing output of virsh capabilities
