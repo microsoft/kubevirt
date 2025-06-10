@@ -4,7 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "exporter.go",
-        "model.go",
+        "types.go",
         "util.go",
         "virtualization-capabilities-interface.go",
     ],

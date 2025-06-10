@@ -4,6 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "node-labeller.go",
+        "types.go",
         "virtualization-capabilities-libvirt-qemu.go",
     ],
     importpath = "kubevirt.io/kubevirt/cmd/virt-launcher/node-labeller-go",

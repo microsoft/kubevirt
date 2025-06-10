@@ -28,7 +28,7 @@ type VirtualizationCapabilitiesLibvirtQemu struct {
 	// capabilities.xml path
 	CapabilitiesPath string
 
-	HostDomCapabilities   virt_capabilities.HostDomCapabilities
+	HostDomCapabilities   HostDomCapabilities
 	SupportedHostFeatures []string
 	NodeCapabilities      libvirtxml.Caps
 
@@ -53,7 +53,7 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) loadAll() {
 }
 
 func (v *VirtualizationCapabilitiesLibvirtQemu) loadSupportedFeatures() {
-	hostFeatures := virt_capabilities.SupportedHostFeature{}
+	hostFeatures := SupportedHostFeature{}
 	err := v.getStructureFromXMLFile(v.SupportedFeaturesPath, &hostFeatures)
 	if err != nil {
 		fmt.Printf("Error loading supported features: %v\n", err)
@@ -71,7 +71,7 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) loadSupportedFeatures() {
 }
 
 func (v *VirtualizationCapabilitiesLibvirtQemu) loadDomainCapabilities() {
-	hostDomCapabilities := virt_capabilities.HostDomCapabilities{}
+	hostDomCapabilities := HostDomCapabilities{}
 	err := v.getStructureFromXMLFile(v.DomainCapabilitiesPath, &hostDomCapabilities)
 	if err != nil {
 		fmt.Printf("Error loading domain capabilities: %v\n", err)
@@ -202,7 +202,10 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) NodeSupportsRealTime() (bool, er
 
 // GetNodeSevFeatures returns a dummy list of SEV features.
 func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeSevFeatures() (virt_capabilities.SEVConfiguration, error) {
-	return v.HostDomCapabilities.SEV, nil
+	sevCfg := virt_capabilities.SEVConfiguration{
+		SupportedES: v.HostDomCapabilities.SEV.SupportedES,
+	}
+	return sevCfg, nil
 }
 
 // GetStructureFromXMLFile load data from xml file and unmarshals them into given structure

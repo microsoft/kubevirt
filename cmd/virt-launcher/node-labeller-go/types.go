@@ -1,16 +1,4 @@
-package virt_capabilities
-
-type HostCPUModel struct {
-	Name             string
-	Fallback         string
-	RequiredFeatures []string
-}
-
-type TscConfig struct {
-	HasTscCounter bool
-	Frequency     string
-	Scalable      string
-}
+package main
 
 // HostDomCapabilities represents structure for parsing output of virsh capabilities
 type HostDomCapabilities struct {
