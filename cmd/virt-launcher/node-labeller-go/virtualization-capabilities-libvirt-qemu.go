@@ -28,7 +28,11 @@ type VirtualizationCapabilitiesLibvirtQemu struct {
 }
 
 func NewVirtualizationCapabilitiesLibvirtQemu(supportedFeaturesPath string, domainCapabilitiesPath string, capabilitiesPath string) *VirtualizationCapabilitiesLibvirtQemu {
-	cap := VirtualizationCapabilitiesLibvirtQemu{supportedFeaturesPath, domainCapabilitiesPath, capabilitiesPath, HostDomCapabilities{}, []string{}, libvirtxml.Caps{}, "", hostCPUModel{requiredFeatures: make(map[string]bool)}}
+	cap := VirtualizationCapabilitiesLibvirtQemu{
+		SupportedFeaturesPath:  supportedFeaturesPath,
+		DomainCapabilitiesPath: domainCapabilitiesPath,
+		CapabilitiesPath:       capabilitiesPath,
+		hostCPUModel:           hostCPUModel{requiredFeatures: make(map[string]bool)}}
 	cap.loadAll()
 	return &cap
 }
