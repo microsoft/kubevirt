@@ -16,26 +16,26 @@ const (
 // VirtualizationCapabilitiesInterface defines methods for querying virtualization capabilities.
 type VirtualizationCapabilitiesInterface interface {
 	// GetHypervFeatures returns a list of features required for Windows guests.
-	GetHypervFeatures() ([]string, error)
+	GetHypervFeatures() []string
 
 	// GetSupportedMachineTypes returns supported machine types.
-	GetSupportedMachineTypes() ([]string, error)
+	GetSupportedMachineTypes() []string
 
 	// GetSupportedCpuModels returns supported CPU models.
-	GetSupportedCpuModels() ([]string, error)
+	GetSupportedCpuModels() []string
 
 	// GetHostCpuModelInfo returns host CPU model information.
-	GetHostCpuModelInfo() (HostCPUModel, error)
+	GetHostCpuModelInfo() HostCPUModel
 
 	// GetSupportedCpuFeatures returns supported CPU features.
-	GetSupportedCpuFeatures() ([]string, error)
+	GetSupportedCpuFeatures() []string
 
 	// GetNodeTscInfo returns node TSC (Time Stamp Counter) information.
-	GetNodeTscInfo() (TscConfig, error)
+	GetNodeTscInfo() TscConfig
 
 	// NodeSupportsRealTime returns true if the node supports real-time capabilities.
-	NodeSupportsRealTime() (bool, error)
+	NodeSupportsRealTime() bool
 
 	// GetNodeSevFeatures returns SEV (Secure Encrypted Virtualization) features of the node.
-	GetNodeSevFeatures() (SEVConfiguration, error)
+	GetNodeSevFeatures() SEVConfiguration
 }

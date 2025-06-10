@@ -6,15 +6,16 @@ import (
 )
 
 func ExportVirtualizationCapabilities(v VirtualizationCapabilitiesInterface, filename string) {
-	virtCaps := make(map[string]interface{})
-	virtCaps[HypervFeaturesKey], _ = v.GetHypervFeatures()
-	virtCaps[SupportedMachineTypeKeys], _ = v.GetSupportedMachineTypes()
-	virtCaps[SupportedCpuModelsKey], _ = v.GetSupportedCpuModels()
-	virtCaps[HostCpuModelInfoKey], _ = v.GetHostCpuModelInfo()
-	virtCaps[SupportedCpuFeaturesKey], _ = v.GetSupportedCpuFeatures()
-	virtCaps[NodeTscInfoKey], _ = v.GetNodeTscInfo()
-	virtCaps[NodeSupportsRealTimeKey], _ = v.NodeSupportsRealTime()
-	virtCaps[NodeSevFeaturesKey], _ = v.GetNodeSevFeatures()
+	virtCaps := VirtualizationCapabilities{
+		SupportedCPUModels:    v.GetSupportedCpuModels(),
+		SupportedMachineTypes: v.GetSupportedMachineTypes(),
+		HypervFeatures:        v.GetHypervFeatures(),
+		HostCpuModelInfo:      v.GetHostCpuModelInfo(),
+		SupportedCpuFeatures:  v.GetSupportedCpuFeatures(),
+		NodeTscInfo:           v.GetNodeTscInfo(),
+		NodeSupportsRealTime:  v.NodeSupportsRealTime(),
+		NodeSevFeatures:       v.GetNodeSevFeatures(),
+	}
 
 	data, err := json.MarshalIndent(virtCaps, "", "  ")
 	if err != nil {

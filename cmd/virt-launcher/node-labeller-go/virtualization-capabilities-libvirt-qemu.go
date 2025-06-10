@@ -97,19 +97,19 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) loadCapabilities() {
 }
 
 // GetHypervFeatures returns a dummy list of Hyper-V features.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetHypervFeatures() ([]string, error) {
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetHypervFeatures() []string {
 	// TODO Query actual Hyper-V features from /dev/kvm
-	return []string{"hv_relaxed", "hv_vapic"}, nil
+	return []string{"hv_relaxed", "hv_vapic"}
 }
 
 // GetNodeTopology returns a dummy node topology.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeTopology() (interface{}, error) {
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeTopology() interface{} {
 	// TODO Get actual node topology
-	return map[string]interface{}{"sockets": 1, "cores": 2, "threads": 2}, nil
+	return map[string]interface{}{"sockets": 1, "cores": 2, "threads": 2}
 }
 
 // GetSupportedMachineTypes returns a dummy list of supported machine types.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedMachineTypes() ([]string, error) {
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedMachineTypes() []string {
 	var supportedMachines []string
 	for _, guest := range v.NodeCapabilities.Guests {
 		fmt.Println("Guest architecture: ", guest.Arch.Name)
@@ -118,11 +118,11 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedMachineTypes() ([]st
 			fmt.Println("Adding machine type: ", machine.Name)
 		}
 	}
-	return supportedMachines, nil
+	return supportedMachines
 }
 
 // GetSupportedCpuModels returns a dummy list of supported CPU models.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuModels() ([]string, error) {
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuModels() []string {
 	// TODO Incorporate obsolete CPU models logic.
 	// TODO This can also be done in the virt-handler itself.
 
@@ -168,44 +168,45 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuModels() ([]strin
 		}
 	}
 
-	return usableModels, nil
+	return usableModels
 }
 
 // GetHostCpuModelInfo returns dummy host CPU model information.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetHostCpuModelInfo() (virt_capabilities.HostCPUModel, error) {
-	return v.hostCPUModel, nil
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetHostCpuModelInfo() virt_capabilities.HostCPUModel {
+	return v.hostCPUModel
 }
 
 // GetSupportedCpuFeatures returns a dummy list of supported CPU features.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuFeatures() ([]string, error) {
-	return v.SupportedHostFeatures, nil
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedCpuFeatures() []string {
+	return v.SupportedHostFeatures
 }
 
 // GetNodeTscInfo returns dummy node TSC information.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeTscInfo() (virt_capabilities.TscConfig, error) {
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeTscInfo() virt_capabilities.TscConfig {
 	counter := v.NodeCapabilities.Host.CPU.Counter
 	if counter != nil && counter.Name == "tsc" {
 		return virt_capabilities.TscConfig{
 			HasTscCounter: true,
 			Frequency:     fmt.Sprintf("%d", counter.Frequency),
 			Scalable:      fmt.Sprintf("%t", counter.Scaling == "yes"),
-		}, nil
+		}
 	}
 	return virt_capabilities.TscConfig{
-		HasTscCounter: false}, nil
+		HasTscCounter: false}
 }
 
 // NodeSupportsRealTime returns a dummy value indicating real-time support.
-func (v *VirtualizationCapabilitiesLibvirtQemu) NodeSupportsRealTime() (bool, error) {
-	return isNodeRealtimeCapable()
+func (v *VirtualizationCapabilitiesLibvirtQemu) NodeSupportsRealTime() bool {
+	isNodeRealtimeCapable, _ := isNodeRealtimeCapable()
+	return isNodeRealtimeCapable
 }
 
 // GetNodeSevFeatures returns a dummy list of SEV features.
-func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeSevFeatures() (virt_capabilities.SEVConfiguration, error) {
+func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeSevFeatures() virt_capabilities.SEVConfiguration {
 	sevCfg := virt_capabilities.SEVConfiguration{
 		SupportedES: v.HostDomCapabilities.SEV.SupportedES,
 	}
-	return sevCfg, nil
+	return sevCfg
 }
 
 // GetStructureFromXMLFile load data from xml file and unmarshals them into given structure
