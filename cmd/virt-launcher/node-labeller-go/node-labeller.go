@@ -81,7 +81,7 @@ func main() {
 		executeCommand("chmod o+rw /dev/kvm")
 	}
 
-	cmd := exec.Command("libvirtd", "-d")
+	cmd := exec.Command("libvirtd", "-d") // TODO Revert to virtqemud
 	err = cmd.Start()
 	if err != nil {
 		fmt.Printf("Failed to start virtqemud: %v\n", err)
@@ -112,4 +112,8 @@ func main() {
 		fmt.Printf("Failed to get node capabilities: %v\n", err)
 		return
 	}
+
+	capabilityExtractor := NewVirtualizationCapabilitiesLibvirtQemu(fmt.Sprintf("%s/supported_features.xml", XmlBasePath), fmt.Sprintf("%s/virsh_domcapabilities.xml", XmlBasePath), fmt.Sprintf("%s/capabilities.xml", XmlBasePath))
+
+	exportVirtualizationCapabilities(capabilityExtractor, fmt.Sprintf("%s/virtualization_capabilities.json", XmlBasePath))
 }

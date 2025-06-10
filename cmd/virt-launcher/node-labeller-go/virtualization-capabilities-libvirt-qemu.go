@@ -75,9 +75,10 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) loadDomainCapabilities() {
 }
 
 func (v *VirtualizationCapabilitiesLibvirtQemu) loadCapabilities() {
-	var capabilities libvirtxml.Caps
-	if err := capabilities.Unmarshal(v.CapabilitiesPath); err != nil {
-		panic(err)
+	capabilities := libvirtxml.Caps{}
+	err := v.getStructureFromXMLFile(v.CapabilitiesPath, &capabilities)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading capabilities: %v\n", err))
 	}
 	v.NodeCapabilities = capabilities
 }
@@ -98,8 +99,10 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) GetNodeTopology() (interface{}, 
 func (v *VirtualizationCapabilitiesLibvirtQemu) GetSupportedMachineTypes() ([]string, error) {
 	var supportedMachines []string
 	for _, guest := range v.NodeCapabilities.Guests {
+		fmt.Println("Guest architecture: ", guest.Arch.Name)
 		for _, machine := range guest.Arch.Machines {
 			supportedMachines = append(supportedMachines, machine.Name)
+			fmt.Println("Adding machine type: ", machine.Name)
 		}
 	}
 	return supportedMachines, nil
@@ -184,7 +187,7 @@ func (v *VirtualizationCapabilitiesLibvirtQemu) getStructureFromXMLFile(path str
 		return err
 	}
 
-	fmt.Printf("node-labeller - loading data from xml file: %#v\n", string(rawFile))
+	//fmt.Printf("node-labeller - loading data from xml file: %#v\n", string(rawFile))
 
 	return xml.Unmarshal(rawFile, structure)
 }
