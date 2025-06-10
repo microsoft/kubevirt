@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	virt_capabilities "kubevirt.io/kubevirt/pkg/virt-launcher-common/virt-capabilities"
 )
 
 const (
-	XmlBasePath = "/var/lib/kubevirt-node-labeller/"
+	XmlBasePath = "/var/lib/kubevirt-node-labeller"
 )
 
 func executeCommand(command string) (string, error) {
@@ -83,7 +84,7 @@ func main() {
 		executeCommand("chmod o+rw /dev/kvm")
 	}
 
-	cmd := exec.Command("libvirtd", "-d") // TODO Revert to virtqemud
+	cmd := exec.Command("virtqemud", "-d")
 	err = cmd.Start()
 	if err != nil {
 		fmt.Printf("Failed to start virtqemud: %v\n", err)
@@ -92,6 +93,9 @@ func main() {
 	fmt.Println("virtqemud started in daemon mode")
 
 	executeCommand(fmt.Sprintf("mkdir -p %s", XmlBasePath)) // TODO Remove this later, this is just for testing
+
+	fmt.Println("Waiting for virtqemud to start...")
+	time.Sleep(5 * time.Second) // Wait for virtqemud to start
 
 	_, err = executeCommand(fmt.Sprintf("virsh domcapabilities --machine %s --arch %s --virttype %s > %s/virsh_domcapabilities.xml", machine, arch, virttype, XmlBasePath))
 

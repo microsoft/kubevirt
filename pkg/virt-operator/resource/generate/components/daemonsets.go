@@ -152,6 +152,27 @@ func NewHandlerDaemonSet(namespace, repository, imagePrefix, version, launcherVe
 			},
 			TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 		},
+		{
+			Command: []string{
+				"/bin/sh",
+				"-c",
+			},
+			Image: launcherImage,
+			Name:  "virt-capability-extractor",
+			Args: []string{
+				"node-labeller-go",
+			},
+			SecurityContext: &corev1.SecurityContext{
+				Privileged: pointer.P(true),
+			},
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "node-labeller",
+					MountPath: nodeLabellerVolumePath,
+				},
+			},
+			TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
+		},
 	}
 
 	// If there is any image pull secret added to the `virt-handler` deployment
