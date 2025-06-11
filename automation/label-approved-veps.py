@@ -9,6 +9,7 @@ HEADERS = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.
 
 def get_pr_details():
     #Fetch the kubevirt/kubevirt PR body
+    print ("HG_DEBUG: GITHUB_REPOSITORY = ", KUBEVIRT_REPO)
     url = f"https://api.github.com/repos/{KUBEVIRT_REPO}/pulls/{PR_NUMBER}"
     response = requests.get(url, headers=HEADERS)
     response.raise_for_status()
