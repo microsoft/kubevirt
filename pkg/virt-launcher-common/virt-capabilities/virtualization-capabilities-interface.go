@@ -2,17 +2,6 @@ package virt_capabilities
 
 const KernelSchedRealtimeRuntimeInMicroseconds = "kernel.sched_rt_runtime_us"
 
-const (
-	HypervFeaturesKey        = "hyperv-features"
-	SupportedMachineTypeKeys = "supported-machine-types"
-	SupportedCpuModelsKey    = "supported-cpu-models"
-	HostCpuModelInfoKey      = "host-cpu-model-info"
-	SupportedCpuFeaturesKey  = "supported-cpu-features"
-	NodeTscInfoKey           = "node-tsc-info"
-	NodeSupportsRealTimeKey  = "node-supports-real-time"
-	NodeSevFeaturesKey       = "node-sev-features"
-)
-
 // VirtualizationCapabilitiesInterface defines methods for querying virtualization capabilities.
 type VirtualizationCapabilitiesInterface interface {
 	// GetHypervFeatures returns a list of features required for Windows guests.
