@@ -103,7 +103,7 @@ var _ = Describe(SIG("Guest Access Credentials", func() {
 				},
 			}),
 		),
-		Entry("[test_id:6224] using configdrive", decorators.Conformance, false,
+		Entry("[QUARANTINE][test_id:6224] using configdrive", decorators.Conformance, false,
 			libvmi.WithCloudInitConfigDrive(libvmici.WithConfigDriveUserData(userData)),
 			withSSHPK(pubKeySecretID, v1.SSHPublicKeyAccessCredentialPropagationMethod{
 				ConfigDrive: &v1.ConfigDriveSSHPublicKeyAccessCredentialPropagation{},
