@@ -11,6 +11,8 @@ permissions:
 jobs:
   check-vep:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,6 +27,6 @@ jobs:
 
       - name: Run VEP check script
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: python automation/label-approved-veps.py
