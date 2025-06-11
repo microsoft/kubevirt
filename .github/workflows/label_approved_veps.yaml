@@ -26,6 +26,6 @@ jobs:
 
       - name: Run VEP check script
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: python automation/label-approved-veps.py
