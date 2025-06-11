@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "exporter.go",
+        "types.go",
+        "util.go",
+        "virtualization-capabilities-interface.go",
+    ],
+    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher-common/virt-capabilities",
+    visibility = ["//visibility:public"],
+)

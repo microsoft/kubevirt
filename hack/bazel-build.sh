@@ -25,6 +25,7 @@ source hack/config.sh
 
 rm -rf ${CMD_OUT_DIR}
 mkdir -p ${CMD_OUT_DIR}/virtctl
+mkdir -p ${CMD_OUT_DIR}/node-labeller-go
 mkdir -p ${CMD_OUT_DIR}/dump
 mkdir -p ${CMD_OUT_DIR}/perfscale-audit
 mkdir -p ${CMD_OUT_DIR}/perfscale-load-generator
@@ -65,6 +66,10 @@ bazel run \
 bazel run \
     --config="$(uname -m)" \
     :build-virtctl -- ${CMD_OUT_DIR}/virtctl/virtctl
+
+bazel run \
+    --config="$(uname -m)" \
+    :build-node-labeller-go -- ${CMD_OUT_DIR}/node-labeller-go/node-labeller-go
 
 # Copy kubevirt-passt-binding binary to a reachable place outside of the build container
 bazel run \

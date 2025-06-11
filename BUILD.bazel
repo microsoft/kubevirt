@@ -514,6 +514,16 @@ container_push(
 )
 
 genrule(
+    name = "build-node-labeller-go",
+    srcs = [
+        "//cmd/virt-launcher/node-labeller-go",
+    ],
+    outs = ["node-labeller-go"],
+    cmd = "echo '#!/bin/sh\n\ncp -f $(SRCS) $$1' > \"$@\"",
+    executable = 1,
+)
+
+genrule(
     name = "build-virtctl",
     srcs = [
         "//cmd/virtctl",

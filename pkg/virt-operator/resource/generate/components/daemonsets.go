@@ -137,9 +137,9 @@ func NewHandlerDaemonSet(namespace, repository, imagePrefix, version, launcherVe
 				"-c",
 			},
 			Image: launcherImage,
-			Name:  "virt-launcher",
+			Name:  "virt-capability-extractor",
 			Args: []string{
-				"node-labeller.sh",
+				"node-labeller-go",
 			},
 			SecurityContext: &corev1.SecurityContext{
 				Privileged: pointer.P(true),
