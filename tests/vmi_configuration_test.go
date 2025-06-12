@@ -1132,7 +1132,7 @@ var _ = Describe("[sig-compute]Configurations", decorators.SigCompute, func() {
 				Expect(domXML).To(ContainSubstring("<alias name='channel0'/>"), "Should have guest channel present")
 			})
 
-			It("[QUARANTINE][test_id:1677]VMI condition should signal agent presence", func() {
+			It("[QUARANTINE][test_id:1677]VMI condition should signal agent presence", decorators.Quarantine, func() {
 				agentVMI := prepareAgentVM()
 				getOptions := metav1.GetOptions{}
 
@@ -1147,7 +1147,7 @@ var _ = Describe("[sig-compute]Configurations", decorators.SigCompute, func() {
 
 			})
 
-			It("[QUARANTINE][test_id:4625]should remove condition when agent is off", func() {
+			It("[QUARANTINE][test_id:4625]should remove condition when agent is off", decorators.Quarantine, func() {
 				agentVMI := prepareAgentVM()
 				By("Expecting the VirtualMachineInstance console")
 				Expect(console.LoginToFedora(agentVMI)).To(Succeed())
