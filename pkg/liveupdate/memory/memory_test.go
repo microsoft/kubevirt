@@ -28,8 +28,8 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/libvmi"
 	"kubevirt.io/kubevirt/pkg/liveupdate/memory"
+	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/vcpu"
 )
 
 var _ = Describe("LiveUpdate Memory", func() {
@@ -109,10 +109,10 @@ var _ = Describe("LiveUpdate Memory", func() {
 				memoryDevice, err := memory.BuildMemoryDevice(vmi)
 				Expect(err).ToNot(HaveOccurred())
 
-				size, err := vcpu.QuantityToByte(resource.MustParse("192Mi"))
+				size, err := virtlauncher.QuantityToByte(resource.MustParse("192Mi"))
 				Expect(err).ToNot(HaveOccurred())
 
-				requested, err := vcpu.QuantityToByte(resource.MustParse("64Mi"))
+				requested, err := virtlauncher.QuantityToByte(resource.MustParse("64Mi"))
 				Expect(err).ToNot(HaveOccurred())
 
 				block := api.Memory{Unit: "b", Value: uint64(memory.HotplugBlockAlignmentBytes)}
@@ -120,7 +120,7 @@ var _ = Describe("LiveUpdate Memory", func() {
 				hugepages := vmi.Spec.Domain.Memory.Hugepages
 				if hugepages != nil {
 					var err error
-					block, err = vcpu.QuantityToByte(resource.MustParse(hugepages.PageSize))
+					block, err = virtlauncher.QuantityToByte(resource.MustParse(hugepages.PageSize))
 					Expect(err).ToNot(HaveOccurred())
 				}
 				Expect(err).ToNot(HaveOccurred())

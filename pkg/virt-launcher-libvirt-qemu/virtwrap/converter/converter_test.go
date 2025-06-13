@@ -57,6 +57,7 @@ import (
 	"kubevirt.io/kubevirt/pkg/testutils"
 	"kubevirt.io/kubevirt/pkg/util/hardware"
 	"kubevirt.io/kubevirt/pkg/virt-controller/services"
+	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
 	archconverter "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/arch"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/vcpu"
 	sev "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/launchsecurity"
@@ -1459,7 +1460,7 @@ var _ = Describe("Converter", func() {
 
 		DescribeTable("should calculate mebibyte from a quantity", func(quantity string, mebibyte int) {
 			mi64, _ := resource.ParseQuantity(quantity)
-			Expect(vcpu.QuantityToMebiByte(mi64)).To(BeNumerically("==", mebibyte))
+			Expect(virtlauncher.QuantityToMebiByte(mi64)).To(BeNumerically("==", mebibyte))
 		},
 			Entry("when 0M is given", "0M", 0),
 			Entry("when 0 is given", "0", 0),
@@ -1475,13 +1476,13 @@ var _ = Describe("Converter", func() {
 
 		It("should fail calculating mebibyte if the quantity is less than 0", func() {
 			mi64, _ := resource.ParseQuantity("-2G")
-			_, err := vcpu.QuantityToMebiByte(mi64)
+			_, err := virtlauncher.QuantityToMebiByte(mi64)
 			Expect(err).To(HaveOccurred())
 		})
 
 		DescribeTable("should calculate memory in bytes", func(quantity string, bytes int) {
 			m64, _ := resource.ParseQuantity(quantity)
-			memory, err := vcpu.QuantityToByte(m64)
+			memory, err := virtlauncher.QuantityToByte(m64)
 			Expect(memory.Value).To(BeNumerically("==", bytes))
 			Expect(memory.Unit).To(Equal("b"))
 			Expect(err).ToNot(HaveOccurred())
@@ -1497,7 +1498,7 @@ var _ = Describe("Converter", func() {
 		It("should calculate memory in bytes", func() {
 			By("specyfing negative memory size -45Gi")
 			m45gi, _ := resource.ParseQuantity("-45Gi")
-			_, err := vcpu.QuantityToByte(m45gi)
+			_, err := virtlauncher.QuantityToByte(m45gi)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -2718,7 +2719,7 @@ var _ = Describe("Converter", func() {
 				Threads: 2,
 			}
 			domain := vmiToDomain(vmi, &ConverterContext{Architecture: archconverter.NewConverter(runtime.GOARCH), AllowEmulation: true})
-			expectedNumberQueues := uint(multiQueueMaxQueues)
+			expectedNumberQueues := uint(virtlauncher.MultiQueueMaxQueues)
 			Expect(*(domain.Spec.Devices.Interfaces[0].Driver.Queues)).To(Equal(expectedNumberQueues),
 				"should be capped to the maximum number of queues on tap devices")
 		})

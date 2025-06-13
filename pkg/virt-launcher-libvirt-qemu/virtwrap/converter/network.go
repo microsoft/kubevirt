@@ -23,11 +23,10 @@ import (
 	"fmt"
 
 	v1 "kubevirt.io/api/core/v1"
-	"kubevirt.io/client-go/log"
 
 	netvmispec "kubevirt.io/kubevirt/pkg/network/vmispec"
+	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/arch"
-	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/vcpu"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 )
@@ -129,26 +128,7 @@ func CalculateNetworkQueues(vmi *v1.VirtualMachineInstance, ifaceType string) ui
 	if ifaceType != v1.VirtIO {
 		return 0
 	}
-	return NetworkQueuesCapacity(vmi)
-}
-
-func NetworkQueuesCapacity(vmi *v1.VirtualMachineInstance) uint32 {
-	if !isTrue(vmi.Spec.Domain.Devices.NetworkInterfaceMultiQueue) {
-		return 0
-	}
-
-	cpuTopology := vcpu.GetCPUTopology(vmi)
-	queueNumber := vcpu.CalculateRequestedVCPUs(cpuTopology)
-
-	if queueNumber > multiQueueMaxQueues {
-		log.Log.V(3).Infof("Capped the number of queues to be the current maximum of tap device queues: %d", multiQueueMaxQueues)
-		queueNumber = multiQueueMaxQueues
-	}
-	return queueNumber
-}
-
-func isTrue(networkInterfaceMultiQueue *bool) bool {
-	return (networkInterfaceMultiQueue != nil) && (*networkInterfaceMultiQueue)
+	return virtlauncher.NetworkQueuesCapacity(vmi)
 }
 
 func translateModel(useVirtioTransitional *bool, bus string, archString string) string {

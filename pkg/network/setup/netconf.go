@@ -31,7 +31,7 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	"kubevirt.io/kubevirt/pkg/util"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter"
+	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
 
 	"kubevirt.io/kubevirt/pkg/network/cache"
 	netdriver "kubevirt.io/kubevirt/pkg/network/driver"
@@ -104,7 +104,7 @@ func (c *NetConf) Setup(vmi *v1.VirtualMachineInstance, networks []v1.Network, l
 	if util.IsNonRootVMI(vmi) {
 		ownerID = util.NonRootUID
 	}
-	queuesCapacity := int(converter.NetworkQueuesCapacity(vmi))
+	queuesCapacity := int(virtlauncher.NetworkQueuesCapacity(vmi))
 	netpod := netpod.NewNetPod(
 		networks,
 		vmispec.FilterInterfacesByNetworks(vmi.Spec.Domain.Devices.Interfaces, networks),

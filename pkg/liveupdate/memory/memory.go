@@ -25,7 +25,8 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/vcpu"
+
+	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -112,14 +113,14 @@ func BuildMemoryDevice(vmi *v1.VirtualMachineInstance) (*api.MemoryDevice, error
 
 	pluggableMemory := domain.Memory.MaxGuest.DeepCopy()
 	pluggableMemory.Sub(*vmi.Status.Memory.GuestAtBoot)
-	pluggableMemorySize, err := vcpu.QuantityToByte(pluggableMemory)
+	pluggableMemorySize, err := virtlauncher.QuantityToByte(pluggableMemory)
 	if err != nil {
 		return nil, err
 	}
 
 	requestedHotPlugMemory := domain.Memory.Guest.DeepCopy()
 	requestedHotPlugMemory.Sub(*vmi.Status.Memory.GuestAtBoot)
-	pluggableMemoryRequested, err := vcpu.QuantityToByte(requestedHotPlugMemory)
+	pluggableMemoryRequested, err := virtlauncher.QuantityToByte(requestedHotPlugMemory)
 	if err != nil {
 		return nil, err
 	}

@@ -47,6 +47,7 @@ import (
 
 	hotplugdisk "kubevirt.io/kubevirt/pkg/hotplug-disk"
 	storagetypes "kubevirt.io/kubevirt/pkg/storage/types"
+	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/cli"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/vcpu"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device/hostdevice"
@@ -157,14 +158,14 @@ func generateDomainForTargetCPUSetAndTopology(vmi *v1.VirtualMachineInstance, do
 	}
 	domain := api.NewMinimalDomain(vmi.Name)
 	domain.Spec = *domSpec
-	cpuTopology := vcpu.GetCPUTopology(vmi)
-	cpuCount := vcpu.CalculateRequestedVCPUs(cpuTopology)
+	cpuTopology := virtlauncher.GetCPUTopology(vmi)
+	cpuCount := virtlauncher.CalculateRequestedVCPUs(cpuTopology)
 
 	// update cpu count to maximum hot plugable CPUs
 	vmiCPU := vmi.Spec.Domain.CPU
 	if vmiCPU != nil && vmiCPU.MaxSockets != 0 {
 		cpuTopology.Sockets = vmiCPU.MaxSockets
-		cpuCount = vcpu.CalculateRequestedVCPUs(cpuTopology)
+		cpuCount = virtlauncher.CalculateRequestedVCPUs(cpuTopology)
 	}
 	domain.Spec.CPU.Topology = cpuTopology
 	domain.Spec.VCPU = &api.VCPU{
@@ -743,7 +744,7 @@ func (l *LibvirtDomainManager) asyncMigrationAbort(vmi *v1.VirtualMachineInstanc
 }
 
 func generateMigrationParams(dom cli.VirDomain, vmi *v1.VirtualMachineInstance, options *cmdclient.MigrationOptions, virtShareDir string, domSpec *api.DomainSpec) (*libvirt.DomainMigrateParameters, error) {
-	bandwidth, err := vcpu.QuantityToMebiByte(options.Bandwidth)
+	bandwidth, err := virtlauncher.QuantityToMebiByte(options.Bandwidth)
 	if err != nil {
 		return nil, err
 	}

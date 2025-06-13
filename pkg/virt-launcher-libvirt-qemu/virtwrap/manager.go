@@ -78,6 +78,7 @@ import (
 	hw_utils "kubevirt.io/kubevirt/pkg/util/hardware"
 	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
 	accesscredentials "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/access-credentials"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/agent"
 	agentpoller "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/agent-poller"
@@ -450,8 +451,8 @@ func (l *LibvirtDomainManager) UpdateVCPUs(vmi *v1.VirtualMachineInstance, optio
 
 	logger := log.Log.Object(vmi)
 
-	vcpuTopology := vcpu.GetCPUTopology(vmi)
-	vcpuCount := vcpu.CalculateRequestedVCPUs(vcpuTopology)
+	vcpuTopology := virtlauncher.GetCPUTopology(vmi)
+	vcpuCount := virtlauncher.CalculateRequestedVCPUs(vcpuTopology)
 	// hot plug/unplug vCPUs
 	if err := dom.SetVcpusFlags(uint(vcpuCount),
 		affectDomainVCPULiveAndConfigLibvirtFlags); err != nil {
