@@ -6,7 +6,7 @@ go_library(
         "pciaddress.go",
         "usbaddress.go",
     ],
-    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device",
+    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/util:go_default_library",

@@ -6,7 +6,7 @@ go_library(
         "converter.go",
         "generated_mock_converter.go",
     ],
-    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/statsconv",
+    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/statsconv",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/virt-launcher/virtwrap/stats:go_default_library",
@@ -24,7 +24,7 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//pkg/virt-launcher/virtwrap/stats:go_default_library",
-        "//pkg/virt-launcher/virtwrap/statsconv/util:go_default_library",
+        "//pkg/virt-launcher-libvirt-qemu/virtwrap/statsconv/util:go_default_library",
         "//staging/src/kubevirt.io/client-go/testutils:go_default_library",
         "//vendor/github.com/onsi/ginkgo/v2:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",

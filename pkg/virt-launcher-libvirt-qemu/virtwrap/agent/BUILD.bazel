@@ -6,7 +6,7 @@ go_library(
         "exec.go",
         "types.go",
     ],
-    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent",
+    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/agent",
     visibility = ["//visibility:public"],
-    deps = ["//pkg/virt-launcher/virtwrap/cli:go_default_library"],
+    deps = ["//pkg/virt-launcher-libvirt-qemu/virtwrap/cli:go_default_library"],
 )

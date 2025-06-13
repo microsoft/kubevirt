@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = ["convert.go"],
-    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/libvirtxml",
+    importpath = "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/libvirtxml",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/virt-launcher/virtwrap/api:go_default_library",
