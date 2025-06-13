@@ -58,16 +58,16 @@ import (
 	"kubevirt.io/kubevirt/pkg/util/net/ip"
 	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	agentpoller "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/agent-poller"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/arch"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/vcpu"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/efi"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/testing"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
-	agentpoller "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent-poller"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/arch"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/vcpu"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/efi"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/testing"
 )
 
 var (

@@ -57,10 +57,10 @@ import (
 	"kubevirt.io/kubevirt/pkg/testutils"
 	"kubevirt.io/kubevirt/pkg/util/hardware"
 	"kubevirt.io/kubevirt/pkg/virt-controller/services"
+	archconverter "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/arch"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/vcpu"
+	sev "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/launchsecurity"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	archconverter "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/arch"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/vcpu"
-	sev "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/launchsecurity"
 )
 
 var (

@@ -36,9 +36,9 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/network/namescheme"
 	"kubevirt.io/kubevirt/pkg/network/vmispec"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/testing"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/testing"
 )
 
 const defaultNet = "default"

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/cli"
 )
 
 // GuestExec sends the provided command and args to the guest agent for execution and returns an error on an unsucessful exit code

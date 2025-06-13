@@ -28,8 +28,8 @@ import (
 
 	"kubevirt.io/client-go/log"
 
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/cli"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 )
 
 // AgentCommand is a command executable on guest agent

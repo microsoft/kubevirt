@@ -25,7 +25,7 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/metadata"
 )
 
 var _ = Describe("Metadata", func() {

@@ -23,15 +23,15 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"libvirt.org/go/libvirt"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter"
 
 	v1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/log"
 
 	"kubevirt.io/kubevirt/pkg/hooks"
 	"kubevirt.io/kubevirt/pkg/util"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/cli"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 )
 
 const QEMUSeaBiosDebugPipe = converter.QEMUSeaBiosDebugPipe

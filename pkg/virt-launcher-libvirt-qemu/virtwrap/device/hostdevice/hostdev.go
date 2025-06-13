@@ -26,8 +26,8 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/log"
 
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device"
 )
 
 const failedCreateHostDeviceFmt = "failed to create hostdevice for %s: %v"

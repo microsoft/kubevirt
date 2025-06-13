@@ -47,15 +47,15 @@ import (
 
 	hotplugdisk "kubevirt.io/kubevirt/pkg/hotplug-disk"
 	storagetypes "kubevirt.io/kubevirt/pkg/storage/types"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/vcpu"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device/hostdevice"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device/hostdevice/sriov"
-	domainerrors "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/errors"
-	convxml "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/libvirtxml"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/cli"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/vcpu"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device/hostdevice"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device/hostdevice/sriov"
+	domainerrors "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/errors"
+	convxml "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/libvirtxml"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/statsconv"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/util"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/statsconv"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/util"
 )
 
 const liveMigrationFailed = "Live migration failed."

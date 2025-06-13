@@ -27,8 +27,8 @@ import (
 
 	v1 "kubevirt.io/api/core/v1"
 
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device/hostdevice/generic"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device/hostdevice/generic"
 )
 
 var _ = Describe("Generic HostDevice", func() {

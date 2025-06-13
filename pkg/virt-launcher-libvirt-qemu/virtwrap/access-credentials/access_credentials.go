@@ -34,11 +34,11 @@ import (
 	"kubevirt.io/client-go/log"
 
 	"kubevirt.io/kubevirt/pkg/config"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/agent"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/cli"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/util"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/util"
 )
 
 type openReturn struct {

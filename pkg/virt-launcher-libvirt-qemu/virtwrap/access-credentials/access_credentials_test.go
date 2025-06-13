@@ -39,13 +39,13 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/metadata"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/cli"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/arch"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/testing"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/util"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/arch"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/testing"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/util"
 )
 
 var _ = Describe("AccessCredentials", func() {

@@ -28,7 +28,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"libvirt.org/go/libvirt"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/cli"
 )
 
 type callStack struct {

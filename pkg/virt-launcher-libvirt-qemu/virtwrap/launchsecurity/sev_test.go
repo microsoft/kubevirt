@@ -26,7 +26,7 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	"kubevirt.io/kubevirt/pkg/pointer"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/launchsecurity"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/launchsecurity"
 )
 
 var _ = Describe("LaunchSecurity: AMD Secure Encrypted Virtualization (SEV)", func() {

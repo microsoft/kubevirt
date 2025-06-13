@@ -28,8 +28,8 @@ import (
 
 	"libvirt.org/go/libvirt"
 
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device/hostdevice"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device/hostdevice"
 )
 
 var _ = Describe("Hot(un)Plug HostDevice", func() {

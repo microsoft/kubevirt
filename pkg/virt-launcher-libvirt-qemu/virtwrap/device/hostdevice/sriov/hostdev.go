@@ -34,9 +34,9 @@ import (
 	"kubevirt.io/kubevirt/pkg/network/deviceinfo"
 	"kubevirt.io/kubevirt/pkg/network/downwardapi"
 	"kubevirt.io/kubevirt/pkg/network/vmispec"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device/hostdevice"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device/hostdevice"
 )
 
 func CreateHostDevices(vmi *v1.VirtualMachineInstance) ([]api.HostDevice, error) {

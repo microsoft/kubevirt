@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	sriovhostdev "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device/hostdevice/sriov"
+	sriovhostdev "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device/hostdevice/sriov"
 )
 
 var _ = Describe("SRIOV PCI address pool with network-pci-map", func() {

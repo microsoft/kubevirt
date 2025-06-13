@@ -26,10 +26,10 @@ import (
 	"kubevirt.io/client-go/log"
 
 	netvmispec "kubevirt.io/kubevirt/pkg/network/vmispec"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/arch"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/vcpu"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/arch"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/vcpu"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device"
 )
 
 func CreateDomainInterfaces(vmi *v1.VirtualMachineInstance, c *ConverterContext) ([]api.Interface, error) {

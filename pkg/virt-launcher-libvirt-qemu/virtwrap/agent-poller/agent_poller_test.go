@@ -28,8 +28,8 @@ import (
 
 	"libvirt.org/go/libvirt"
 
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/testing"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/testing"
 )
 
 var _ = Describe("Qemu agent poller", func() {

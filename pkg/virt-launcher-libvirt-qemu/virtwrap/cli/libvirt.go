@@ -34,10 +34,10 @@ import (
 	"kubevirt.io/client-go/log"
 
 	virtwait "kubevirt.io/kubevirt/pkg/apimachinery/wait"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/errors"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/statsconv"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/errors"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/statsconv"
 )
 
 const ConnectionTimeout = 15 * time.Second

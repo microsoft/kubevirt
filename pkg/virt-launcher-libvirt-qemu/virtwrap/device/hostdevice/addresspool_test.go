@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device/hostdevice"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device/hostdevice"
 )
 
 type envData struct {

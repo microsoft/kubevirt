@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"kubevirt.io/kubevirt/pkg/network/vmispec"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device/hostdevice"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device/hostdevice"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,8 +35,8 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	netsriov "kubevirt.io/kubevirt/pkg/network/deviceinfo"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device/hostdevice/sriov"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device/hostdevice/sriov"
 )
 
 const (
