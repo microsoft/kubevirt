@@ -59,14 +59,15 @@ import (
 	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	agentpoller "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/agent-poller"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/cli"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/arch"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter/vcpu"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/efi"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/testing"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
+	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
 )
 
@@ -107,7 +108,7 @@ var _ = Describe("Manager", func() {
 	testNamespace := "testnamespace"
 	testDomainName := fmt.Sprintf("%s_%s", testNamespace, testVmName)
 	ephemeralDiskCreatorMock := &fake.MockEphemeralDiskImageCreator{}
-	newLibvirtDomainManagerDefault := func() (DomainManager, error) {
+	newLibvirtDomainManagerDefault := func() (virtwrap.DomainManager, error) {
 		return NewLibvirtDomainManager(mockLibvirt.VirtConnection, testVirtShareDir, testEphemeralDiskDir, nil, "/usr/share/OVMF", ephemeralDiskCreatorMock, metadataCache, nil, virtconfig.DefaultDiskVerificationMemoryLimitBytes, fakeCpuSetGetter, false)
 	}
 
@@ -2249,7 +2250,7 @@ var _ = Describe("Manager", func() {
 		})
 
 		Context("on call to GetGuestOSInfo", func() {
-			var libvirtmanager DomainManager
+			var libvirtmanager virtwrap.DomainManager
 			var agentStore agentpoller.AsyncAgentStore
 
 			BeforeEach(func() {
@@ -2273,7 +2274,7 @@ var _ = Describe("Manager", func() {
 		})
 
 		Context("on call to InterfacesStatus", func() {
-			var libvirtmanager DomainManager
+			var libvirtmanager virtwrap.DomainManager
 			var agentStore agentpoller.AsyncAgentStore
 
 			BeforeEach(func() {

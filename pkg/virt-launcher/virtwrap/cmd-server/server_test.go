@@ -35,8 +35,8 @@ import (
 	"kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/info"
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/agent"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
 )

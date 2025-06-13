@@ -36,9 +36,9 @@ import (
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	grpcutil "kubevirt.io/kubevirt/pkg/util/net/grpc"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/agent"
+	launcherErrors "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/errors"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent"
-	launcherErrors "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/errors"
 )
 
 const (
