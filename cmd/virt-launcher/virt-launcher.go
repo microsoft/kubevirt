@@ -51,15 +51,17 @@ import (
 	putil "kubevirt.io/kubevirt/pkg/util"
 	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
-	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
+	virtlauncherlibvirtqemu "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu"
+	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/notify-client"
+	virtwraplibvirtqemu "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap"
+	agentpoller "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/agent-poller"
+	virtcli "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/cli"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/util"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
-	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
+	notifyclientcommon "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
-	agentpoller "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/agent-poller"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	virtcli "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cmd-server"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/util"
 )
 
 const defaultStartTimeout = 3 * time.Minute
@@ -129,7 +131,7 @@ func createLibvirtConnection(runWithNonRoot bool) virtcli.Connection {
 }
 
 func startDomainEventMonitoring(
-	notifier *notifyclient.Notifier,
+	notifier *notifyclientcommon.Notifier,
 	domainConn virtcli.Connection,
 	deleteNotificationSent chan watch.Event,
 	vmi *v1.VirtualMachineInstance,
@@ -151,7 +153,7 @@ func startDomainEventMonitoring(
 		}
 	}()
 
-	err := notifyclient.StartLibvirtDomainNotifier(notifier, domainConn, deleteNotificationSent, vmi, domainName, agentStore, qemuAgentSysInterval, qemuAgentFileInterval, qemuAgentUserInterval, qemuAgentVersionInterval, qemuAgentFSFreezeStatusInterval, metadataCache)
+	err := notifyclient.StartLibvirtNotifier(notifier, domainConn, deleteNotificationSent, vmi, domainName, agentStore, qemuAgentSysInterval, qemuAgentFileInterval, qemuAgentUserInterval, qemuAgentVersionInterval, qemuAgentFSFreezeStatusInterval, metadataCache)
 	if err != nil {
 		panic(err)
 	}
@@ -166,7 +168,7 @@ func initializeDirs(ephemeralDiskDir string,
 	mask := syscall.Umask(0)
 	defer syscall.Umask(mask)
 
-	err := virtlauncher.InitializePrivateDirectories(filepath.Join("/var/run/kubevirt-private", uid))
+	err := virtlauncherlibvirtqemu.InitializePrivateDirectories(filepath.Join("/var/run/kubevirt-private", uid))
 	if err != nil {
 		panic(err)
 	}
@@ -191,37 +193,37 @@ func initializeDirs(ephemeralDiskDir string,
 		panic(err)
 	}
 
-	err = virtlauncher.InitializeDisksDirectories(filepath.Join("/var/run/kubevirt-private", "vm-disks"))
+	err = virtlauncherlibvirtqemu.InitializeDisksDirectories(filepath.Join("/var/run/kubevirt-private", "vm-disks"))
 	if err != nil {
 		panic(err)
 	}
 
-	err = virtlauncher.InitializeDisksDirectories(config.ConfigMapDisksDir)
+	err = virtlauncherlibvirtqemu.InitializeDisksDirectories(config.ConfigMapDisksDir)
 	if err != nil {
 		panic(err)
 	}
 
-	err = virtlauncher.InitializeDisksDirectories(config.SysprepDisksDir)
+	err = virtlauncherlibvirtqemu.InitializeDisksDirectories(config.SysprepDisksDir)
 	if err != nil {
 		panic(err)
 	}
 
-	err = virtlauncher.InitializeDisksDirectories(config.SecretDisksDir)
+	err = virtlauncherlibvirtqemu.InitializeDisksDirectories(config.SecretDisksDir)
 	if err != nil {
 		panic(err)
 	}
 
-	err = virtlauncher.InitializeDisksDirectories(config.DownwardAPIDisksDir)
+	err = virtlauncherlibvirtqemu.InitializeDisksDirectories(config.DownwardAPIDisksDir)
 	if err != nil {
 		panic(err)
 	}
 
-	err = virtlauncher.InitializeDisksDirectories(config.ServiceAccountDiskDir)
+	err = virtlauncherlibvirtqemu.InitializeDisksDirectories(config.ServiceAccountDiskDir)
 	if err != nil {
 		panic(err)
 	}
 
-	err = virtlauncher.InitializeDisksDirectories(downwardmetrics.DownwardMetricsChannelDir)
+	err = virtlauncherlibvirtqemu.InitializeDisksDirectories(downwardmetrics.DownwardMetricsChannelDir)
 	if err != nil {
 		panic(err)
 	}
@@ -378,7 +380,7 @@ func main() {
 	initializeDirs(*ephemeralDiskDir, *containerDiskDir, *hotplugDiskDir, *uid)
 
 	if !*runWithNonRoot {
-		err := virtlauncher.InitializeConsoleLogFile(filepath.Join("/var/run/kubevirt-private", *uid))
+		err := virtlauncherlibvirtqemu.InitializeConsoleLogFile(filepath.Join("/var/run/kubevirt-private", *uid))
 		if err != nil {
 			panic(err)
 		}
@@ -422,13 +424,13 @@ func main() {
 
 	var agentStore = agentpoller.NewAsyncAgentStore()
 
-	notifier := notifyclient.NewNotifier(*virtShareDir)
+	notifier := notifyclientcommon.NewNotifier(*virtShareDir)
 	defer notifier.Close()
 
 	metadataCache := metadata.NewCache()
 
 	signalStopChan := make(chan struct{})
-	domainManager, err := virtwrap.NewLibvirtDomainManager(domainConn, *virtShareDir, *ephemeralDiskDir, &agentStore, *ovmfPath, ephemeralDiskCreator, metadataCache, signalStopChan, *diskMemoryLimitBytes, util.GetPodCPUSet, *imageVolumeEnabled)
+	domainManager, err := virtwraplibvirtqemu.NewLibvirtDomainManager(domainConn, *virtShareDir, *ephemeralDiskDir, &agentStore, *ovmfPath, ephemeralDiskCreator, metadataCache, signalStopChan, *diskMemoryLimitBytes, util.GetPodCPUSet, *imageVolumeEnabled)
 	if err != nil {
 		panic(err)
 	}
@@ -488,7 +490,7 @@ func main() {
 		} else {
 			pidDir = "/run/libvirt/qemu"
 		}
-		mon := virtlauncher.NewProcessMonitor(domainName,
+		mon := virtlauncherlibvirtqemu.NewProcessMonitor(domainName,
 			pidDir,
 			*gracePeriodSeconds,
 			finalShutdownCallback,

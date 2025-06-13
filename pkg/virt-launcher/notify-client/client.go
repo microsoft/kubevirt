@@ -72,7 +72,7 @@ func init() {
 	addToScheme(scheme)
 }
 
-func negotiateVersion(infoClient info.NotifyInfoClient) (uint32, error) {
+func NegotiateVersion(infoClient info.NotifyInfoClient) (uint32, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	info, err := infoClient.Info(ctx, &info.NotifyInfoRequest{})
@@ -131,7 +131,7 @@ func (n *Notifier) connect() error {
 		return err
 	}
 
-	version, err := negotiateVersion(info.NewNotifyInfoClient(conn))
+	version, err := NegotiateVersion(info.NewNotifyInfoClient(conn))
 	if err != nil {
 		log.Log.Reason(err).Infof("failed to negotiate version")
 		conn.Close()

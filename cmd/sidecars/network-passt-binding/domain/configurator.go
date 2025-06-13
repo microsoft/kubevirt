@@ -31,7 +31,7 @@ import (
 	"kubevirt.io/client-go/log"
 
 	"kubevirt.io/kubevirt/pkg/network/istio"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/device"
 
 	"kubevirt.io/kubevirt/pkg/network/driver/netlink"
 	"kubevirt.io/kubevirt/pkg/network/namescheme"
