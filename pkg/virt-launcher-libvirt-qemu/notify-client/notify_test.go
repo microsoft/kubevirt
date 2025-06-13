@@ -42,10 +42,11 @@ import (
 	"kubevirt.io/kubevirt/pkg/handler-launcher-com/notify/info"
 	"kubevirt.io/kubevirt/pkg/testutils"
 	notifyserver "kubevirt.io/kubevirt/pkg/virt-handler/notify-server"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/testing"
+	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/util"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/metadata"
+	notifyCommon "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/testing"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/util"
 )
 
 var _ = Describe("Notify", func() {
@@ -54,7 +55,7 @@ var _ = Describe("Notify", func() {
 
 		var eventChan chan watch.Event
 		var deleteNotificationSent chan watch.Event
-		var client *Notifier
+		var client *notifyCommon.NotifyClient
 
 		var mockLibvirt *testing.Libvirt
 		var e *eventCaller
@@ -76,7 +77,7 @@ var _ = Describe("Notify", func() {
 				notifyserver.RunServer(shareDir, stop, eventChan, nil, nil)
 			}()
 
-			client = NewNotifier(shareDir)
+			client = notifyCommon.NewNotifyClient(shareDir)
 
 			DeferCleanup(
 				func() {
@@ -257,7 +258,7 @@ var _ = Describe("Notify", func() {
 		var stopped bool
 		var eventChan chan watch.Event
 		var deleteNotificationSent chan watch.Event
-		var client *Notifier
+		var client *notifyCommon.NotifyClient
 		var recorder *record.FakeRecorder
 		var vmiStore cache.Store
 		var e *eventCaller
@@ -282,7 +283,7 @@ var _ = Describe("Notify", func() {
 
 			time.Sleep(1 * time.Second)
 
-			client = NewNotifier(shareDir)
+			client = notifyCommon.NewNotifyClient(shareDir)
 		})
 
 		AfterEach(func() {
@@ -363,7 +364,7 @@ var _ = Describe("Notify", func() {
 			infoClient.EXPECT().Info(gomock.Any(), gomock.Any()).Return(&fakeResponse, nil)
 
 			By("Initializing the notifier")
-			_, err = negotiateVersion(infoClient)
+			_, err = notifyCommon.NegotiateVersion(infoClient)
 
 			Expect(err).To(HaveOccurred(), "Should have returned error about incompatible versions")
 			Expect(err.Error()).To(ContainSubstring("no compatible version found"), "Expected error message to contain 'no compatible version found'")

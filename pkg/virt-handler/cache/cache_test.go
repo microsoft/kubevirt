@@ -414,7 +414,7 @@ var _ = Describe("Domain informer", func() {
 			runInformer(wg, stopChan, informer)
 			cache.WaitForCacheSync(stopChan, informer.HasSynced)
 
-			client := notifyclient.NewNotifier(shareDir)
+			client := notifyclient.NewNotifyClient(shareDir)
 
 			// verify add
 			err := client.SendDomainEvent(watch.Event{Type: watch.Added, Object: domain})
