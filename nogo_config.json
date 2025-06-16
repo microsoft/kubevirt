@@ -133,6 +133,7 @@
     "exclude_files": {
       "pkg/.*_test\\.go": "unit tests are allowed to use banned imports",
       "vendor/": "vendor doesn't pass bannedAPI",
+      "pkg/virt-launcher-libvirt-qemu/": "KubeVirt virt-launcher-libvirt-qemu pkg does not pass bannedAPI yet",
       "external/": "external doesn't pass bannedAPI"
     }
   },
@@ -165,6 +166,7 @@
       "pkg/virt-api/": "KubeVirt virt-api pkg does not pass errcheck yet",
       "pkg/virt-handler/": "KubeVirt virt-handler pkg does not pass errcheck yet",
       "pkg/virt-launcher/": "KubeVirt virt-launcher pkg does not pass errcheck yet",
+      "pkg/virt-launcher-libvirt-qemu/": "KubeVirt virt-launcher-libvirt-qemu pkg does not pass errcheck yet",
       "pkg/virt-operator/": "KubeVirt virt-operator pkg does not pass errcheck yet",
       "pkg/virtctl/": "KubeVirt virtctl pkg does not pass errcheck yet",
       "cmd/": "KubeVirt binaries do not pass errcheck yet",

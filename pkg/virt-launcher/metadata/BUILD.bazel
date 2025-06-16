@@ -22,7 +22,6 @@ go_test(
         "metadata_test.go",
     ],
     deps = [
-        ":go_default_library",
         "//pkg/virt-launcher/virtwrap/api:go_default_library",
         "//staging/src/kubevirt.io/client-go/testutils:go_default_library",
         "//vendor/github.com/onsi/ginkgo/v2:go_default_library",
