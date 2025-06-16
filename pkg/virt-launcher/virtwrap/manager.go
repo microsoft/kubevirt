@@ -150,6 +150,7 @@ type DomainManager interface {
 	InjectLaunchSecret(*v1.VirtualMachineInstance, *v1.SEVSecretOptions) error
 	UpdateGuestMemory(vmi *v1.VirtualMachineInstance) error
 	GetDomainDirtyRateStats(calculationDuration time.Duration) (*stats.DomainStatsDirtyRate, error)
+	FormatError(err error) string
 }
 
 type LibvirtDomainManager struct {
@@ -2082,6 +2083,13 @@ func (l *LibvirtDomainManager) GetDomainDirtyRateStats(calculationDuration time.
 	}
 
 	return dirtyRateStats, nil
+}
+
+func (l *LibvirtDomainManager) FormatError(err error) string {
+	if virErr := domainerrors.FormatLibvirtError(err); virErr != "" {
+		return virErr
+	}
+	return err.Error()
 }
 
 func (l *LibvirtDomainManager) getDomainStats() ([]*stats.DomainStats, error) {

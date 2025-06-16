@@ -103,6 +103,20 @@ func (mr *MockDomainManagerMockRecorder) FinalizeVirtualMachineMigration(arg0, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeVirtualMachineMigration", reflect.TypeOf((*MockDomainManager)(nil).FinalizeVirtualMachineMigration), arg0, arg1)
 }
 
+// FormatError mocks base method.
+func (m *MockDomainManager) FormatError(err error) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FormatError", err)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// FormatError indicates an expected call of FormatError.
+func (mr *MockDomainManagerMockRecorder) FormatError(err any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatError", reflect.TypeOf((*MockDomainManager)(nil).FormatError), err)
+}
+
 // FreezeVMI mocks base method.
 func (m *MockDomainManager) FreezeVMI(arg0 *v1.VirtualMachineInstance, arg1 int32) error {
 	m.ctrl.T.Helper()
