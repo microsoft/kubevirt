@@ -449,8 +449,8 @@ func (l *LibvirtDomainManager) UpdateVCPUs(vmi *v1.VirtualMachineInstance, optio
 
 	logger := log.Log.Object(vmi)
 
-	vcpuTopology := vcpu.GetCPUTopology(vmi)
-	vcpuCount := vcpu.CalculateRequestedVCPUs(vcpuTopology)
+	vcpuTopology := api.GetCPUTopology(vmi)
+	vcpuCount := api.CalculateRequestedVCPUs(vcpuTopology)
 	// hot plug/unplug vCPUs
 	if err := dom.SetVcpusFlags(uint(vcpuCount),
 		affectDomainVCPULiveAndConfigLibvirtFlags); err != nil {
