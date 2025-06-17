@@ -19,6 +19,7 @@ import (
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/converter"
 	domainerrors "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/errors"
 	"kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap/util"
+	notifyCommon "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 )
 
@@ -56,7 +57,7 @@ func (e *eventCaller) updateStatus(status *api.DomainStatus) {
 	e.domainStatusChangeReason = status.Reason
 }
 
-func (e *eventCaller) eventCallback(c cli.Connection, domain *api.Domain, libvirtEvent libvirtEvent, client *Notifier, events chan watch.Event,
+func (e *eventCaller) eventCallback(c cli.Connection, domain *api.Domain, libvirtEvent libvirtEvent, client *notifyCommon.Notifier, events chan watch.Event,
 	interfaceStatus []api.InterfaceStatus, osInfo *api.GuestOSInfo, vmi *v1.VirtualMachineInstance, fsFreezeStatus *api.FSFreeze,
 	metadataCache *metadata.Cache) {
 
@@ -184,7 +185,7 @@ func updateEventsClosure() func(event watch.Event, domain *api.Domain, events ch
 }
 
 func StartLibvirtDomainNotifier(
-	n *Notifier,
+	n *notifyCommon.Notifier,
 	domainConn cli.Connection,
 	deleteNotificationSent chan watch.Event,
 	vmi *v1.VirtualMachineInstance,
