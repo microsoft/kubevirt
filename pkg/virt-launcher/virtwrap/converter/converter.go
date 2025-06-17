@@ -71,7 +71,6 @@ const (
 	deviceTypeNotCompatibleFmt = "device %s is of type lun. Not compatible with a file based disk"
 	defaultIOThread            = uint(1)
 	bootMenuTimeoutMS          = uint(10000)
-	multiQueueMaxQueues        = uint32(256)
 	QEMUSeaBiosDebugPipe       = "/var/run/kubevirt-private/QEMUSeaBiosDebugPipe"
 )
 
@@ -1127,14 +1126,14 @@ func setupDomainMemory(vmi *v1.VirtualMachineInstance, domain *api.Domain) error
 		vmi.Spec.Domain.Memory.Guest.Equal(*vmi.Spec.Domain.Memory.MaxGuest) {
 		var err error
 
-		domain.Spec.Memory, err = vcpu.QuantityToByte(*vcpu.GetVirtualMemory(vmi))
+		domain.Spec.Memory, err = api.QuantityToByte(*vcpu.GetVirtualMemory(vmi))
 		if err != nil {
 			return err
 		}
 		return nil
 	}
 
-	maxMemory, err := vcpu.QuantityToByte(*vmi.Spec.Domain.Memory.MaxGuest)
+	maxMemory, err := api.QuantityToByte(*vmi.Spec.Domain.Memory.MaxGuest)
 	if err != nil {
 		return err
 	}
@@ -1144,7 +1143,7 @@ func setupDomainMemory(vmi *v1.VirtualMachineInstance, domain *api.Domain) error
 		Value: maxMemory.Value,
 	}
 
-	currentMemory, err := vcpu.QuantityToByte(*vmi.Spec.Domain.Memory.Guest)
+	currentMemory, err := api.QuantityToByte(*vmi.Spec.Domain.Memory.Guest)
 	if err != nil {
 		return err
 	}
@@ -1404,8 +1403,8 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 	// CPU topology will be created everytime, because user can specify
 	// number of cores in vmi.Spec.Domain.Resources.Requests/Limits, not only
 	// in vmi.Spec.Domain.CPU
-	cpuTopology := vcpu.GetCPUTopology(vmi)
-	cpuCount := vcpu.CalculateRequestedVCPUs(cpuTopology)
+	cpuTopology := api.GetCPUTopology(vmi)
+	cpuCount := api.CalculateRequestedVCPUs(cpuTopology)
 
 	domain.Spec.CPU.Topology = cpuTopology
 	domain.Spec.VCPU = &api.VCPU{
@@ -2044,14 +2043,14 @@ func InterpretTransitionalModelType(useVirtioTransitional *bool, archString stri
 }
 
 func domainVCPUTopologyForHotplug(vmi *v1.VirtualMachineInstance, domain *api.Domain) {
-	cpuTopology := vcpu.GetCPUTopology(vmi)
-	cpuCount := vcpu.CalculateRequestedVCPUs(cpuTopology)
+	cpuTopology := api.GetCPUTopology(vmi)
+	cpuCount := api.CalculateRequestedVCPUs(cpuTopology)
 	// Always allow to hotplug to minimum of 1 socket
 	minEnabledCpuCount := cpuTopology.Cores * cpuTopology.Threads
 	// Total vCPU count
 	enabledCpuCount := cpuCount
 	cpuTopology.Sockets = vmi.Spec.Domain.CPU.MaxSockets
-	cpuCount = vcpu.CalculateRequestedVCPUs(cpuTopology)
+	cpuCount = api.CalculateRequestedVCPUs(cpuTopology)
 	VCPUs := &api.VCPUs{}
 	for id := uint32(0); id < cpuCount; id++ {
 		// Enable all requestd vCPUs

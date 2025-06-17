@@ -37,7 +37,7 @@ var _ = Describe("NumaPlacement", func() {
 				EmulatorPin: nil,
 			},
 		}
-		givenSpec.Memory, err = QuantityToByte(resource.MustParse("64Mi"))
+		givenSpec.Memory, err = api.QuantityToByte(resource.MustParse("64Mi"))
 		Expect(err).ToNot(HaveOccurred())
 		givenTopology = &cmdv1.Topology{
 			NumaCells: []*cmdv1.Cell{
@@ -131,7 +131,7 @@ var _ = Describe("NumaPlacement", func() {
 		It("should detect if not enough memory is requested", func() {
 			var err error
 			memory := resource.MustParse("2Mi")
-			givenSpec.Memory, err = QuantityToByte(memory)
+			givenSpec.Memory, err = api.QuantityToByte(memory)
 			Expect(err).ToNot(HaveOccurred())
 			givenVMI.Spec.Domain.Memory.Guest = &memory
 			Expect(numaMapping(givenVMI, givenSpec, givenTopology)).ToNot(Succeed())
@@ -139,7 +139,7 @@ var _ = Describe("NumaPlacement", func() {
 
 		It("should detect not divisable hugepages and shuffle the memory", func() {
 			var err error
-			givenSpec.Memory, err = QuantityToByte(resource.MustParse("66Mi"))
+			givenSpec.Memory, err = api.QuantityToByte(resource.MustParse("66Mi"))
 			Expect(err).ToNot(HaveOccurred())
 			givenSpec.CPUTune.VCPUPin = append(givenSpec.CPUTune.VCPUPin, api.CPUTuneVCPUPin{
 				VCPU: 4, CPUSet: "40",

@@ -23,10 +23,6 @@ type VCPUPool interface {
 	FitThread() (thread uint32, err error)
 }
 
-func CalculateRequestedVCPUs(cpuTopology *api.CPUTopology) uint32 {
-	return cpuTopology.Cores * cpuTopology.Sockets * cpuTopology.Threads
-}
-
 type cell struct {
 	fullCoresList       [][]uint32
 	fragmentedCoresList []uint32
@@ -289,72 +285,6 @@ func (p *cpuPool) fitThread() (thread *uint32) {
 	return nil
 }
 
-func GetCPUTopology(vmi *v12.VirtualMachineInstance) *api.CPUTopology {
-	cores := uint32(1)
-	threads := uint32(1)
-	sockets := uint32(1)
-	vmiCPU := vmi.Spec.Domain.CPU
-	if vmiCPU != nil {
-		if vmiCPU.Cores != 0 {
-			cores = vmiCPU.Cores
-		}
-
-		if vmiCPU.Threads != 0 {
-			threads = vmiCPU.Threads
-		}
-
-		if vmiCPU.Sockets != 0 {
-			sockets = vmiCPU.Sockets
-		}
-	}
-	// A default guest CPU topology is being set in API mutator webhook, if nothing provided by a user.
-	// However this setting is still required to handle situations when the webhook fails to set a default topology.
-	if vmiCPU == nil || (vmiCPU.Cores == 0 && vmiCPU.Sockets == 0 && vmiCPU.Threads == 0) {
-		//if cores, sockets, threads are not set, take value from domain resources request or limits and
-		//set value into sockets, which have best performance (https://bugzilla.redhat.com/show_bug.cgi?id=1653453)
-		resources := vmi.Spec.Domain.Resources
-		if cpuLimit, ok := resources.Limits[k8sv1.ResourceCPU]; ok {
-			sockets = uint32(cpuLimit.Value())
-		} else if cpuRequests, ok := resources.Requests[k8sv1.ResourceCPU]; ok {
-			sockets = uint32(cpuRequests.Value())
-		}
-	}
-
-	return &api.CPUTopology{
-		Sockets: sockets,
-		Cores:   cores,
-		Threads: threads,
-	}
-}
-
-func QuantityToByte(quantity resource.Quantity) (api.Memory, error) {
-	memorySize, isInt := quantity.AsInt64()
-	if !isInt {
-		memorySize = quantity.Value() - 1
-	}
-
-	if memorySize < 0 {
-		return api.Memory{Unit: "b"}, fmt.Errorf("Memory size '%s' must be greater than or equal to 0", quantity.String())
-	}
-	return api.Memory{
-		Value: uint64(memorySize),
-		Unit:  "b",
-	}, nil
-}
-
-func QuantityToMebiByte(quantity resource.Quantity) (uint64, error) {
-	bytes, err := QuantityToByte(quantity)
-	if err != nil {
-		return 0, err
-	}
-	if bytes.Value == 0 {
-		return 0, nil
-	} else if bytes.Value < 1048576 {
-		return 1, nil
-	}
-	return uint64(float64(bytes.Value)/1048576 + 0.5), nil
-}
-
 func isNumaPassthrough(vmi *v12.VirtualMachineInstance) bool {
 	return vmi.Spec.Domain.CPU.NUMA != nil && vmi.Spec.Domain.CPU.NUMA.GuestMappingPassthrough != nil
 }
@@ -375,7 +305,7 @@ func appendDomainIOThreadPin(domain *api.Domain, thread uint32, cpuset string) {
 
 func FormatDomainIOThreadPin(vmi *v12.VirtualMachineInstance, domain *api.Domain, emulatorThreadsCPUSet string, cpuset []int) error {
 	iothreads := int(domain.Spec.IOThreads.IOThreads)
-	vcpus := int(CalculateRequestedVCPUs(domain.Spec.CPU.Topology))
+	vcpus := int(api.CalculateRequestedVCPUs(domain.Spec.CPU.Topology))
 
 	switch {
 	case vmi.Spec.Domain.IOThreads != nil && *vmi.Spec.Domain.IOThreads.SupplementalPoolThreadCount > 0:
@@ -618,7 +548,7 @@ func numaMapping(vmi *v12.VirtualMachineInstance, domain *api.DomainSpec, topolo
 	}
 	domain.MemoryBacking.Allocation = &api.MemoryAllocation{Mode: api.MemoryAllocationModeImmediate}
 
-	memory, err := QuantityToByte(*GetVirtualMemory(vmi))
+	memory, err := api.QuantityToByte(*GetVirtualMemory(vmi))
 	memoryBytes := memory.Value
 	if err != nil {
 		return fmt.Errorf("could not convert VMI memory to quantity: %v", err)
@@ -682,7 +612,7 @@ func hugePagesInfo(vmi *v12.VirtualMachineInstance, domain *api.DomainSpec) (siz
 			if err != nil {
 				return 0, "", false, fmt.Errorf("could not parse hugepage value %v: %v", vmi.Spec.Domain.Memory.Hugepages.PageSize, err)
 			}
-			size, err := QuantityToByte(quantity)
+			size, err := api.QuantityToByte(quantity)
 			if err != nil {
 				return 0, "b", false, fmt.Errorf("could not convert page size to MiB %v: %v", vmi.Spec.Domain.Memory.Hugepages.PageSize, err)
 			}

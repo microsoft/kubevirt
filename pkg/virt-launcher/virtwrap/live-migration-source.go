@@ -157,14 +157,14 @@ func generateDomainForTargetCPUSetAndTopology(vmi *v1.VirtualMachineInstance, do
 	}
 	domain := api.NewMinimalDomain(vmi.Name)
 	domain.Spec = *domSpec
-	cpuTopology := vcpu.GetCPUTopology(vmi)
-	cpuCount := vcpu.CalculateRequestedVCPUs(cpuTopology)
+	cpuTopology := api.GetCPUTopology(vmi)
+	cpuCount := api.CalculateRequestedVCPUs(cpuTopology)
 
 	// update cpu count to maximum hot plugable CPUs
 	vmiCPU := vmi.Spec.Domain.CPU
 	if vmiCPU != nil && vmiCPU.MaxSockets != 0 {
 		cpuTopology.Sockets = vmiCPU.MaxSockets
-		cpuCount = vcpu.CalculateRequestedVCPUs(cpuTopology)
+		cpuCount = api.CalculateRequestedVCPUs(cpuTopology)
 	}
 	domain.Spec.CPU.Topology = cpuTopology
 	domain.Spec.VCPU = &api.VCPU{
@@ -743,7 +743,7 @@ func (l *LibvirtDomainManager) asyncMigrationAbort(vmi *v1.VirtualMachineInstanc
 }
 
 func generateMigrationParams(dom cli.VirDomain, vmi *v1.VirtualMachineInstance, options *cmdclient.MigrationOptions, virtShareDir string, domSpec *api.DomainSpec) (*libvirt.DomainMigrateParameters, error) {
-	bandwidth, err := vcpu.QuantityToMebiByte(options.Bandwidth)
+	bandwidth, err := api.QuantityToMebiByte(options.Bandwidth)
 	if err != nil {
 		return nil, err
 	}
