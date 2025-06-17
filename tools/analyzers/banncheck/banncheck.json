@@ -12,7 +12,7 @@
       "exemptions": [
         {
           "justification ": "safepath needs access to unsafepath, to construct symbol link for the ImageVolume disk file",
-          "allowedPkg": "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
+          "allowedPkg": "kubevirt.io/kubevirt/pkg/virt-launcher-libvirt-qemu/virtwrap"
         },
         {
           "justification ": "safepath needs access to unsafepath, to construct an unsafepath.Path for unsafe usage",

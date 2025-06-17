@@ -133,7 +133,6 @@
     "exclude_files": {
       "pkg/.*_test\\.go": "unit tests are allowed to use banned imports",
       "vendor/": "vendor doesn't pass bannedAPI",
-      "pkg/virt-launcher-libvirt-qemu/": "KubeVirt virt-launcher-libvirt-qemu pkg does not pass bannedAPI yet",
       "external/": "external doesn't pass bannedAPI"
     }
   },
