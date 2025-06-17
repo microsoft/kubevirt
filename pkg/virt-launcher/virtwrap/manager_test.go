@@ -64,7 +64,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/arch"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/converter/vcpu"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/efi"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/testing"
@@ -1421,11 +1420,11 @@ var _ = Describe("Manager", func() {
 			It("should update the virtio-mem device if it already exists", func() {
 				mockLibvirt.ConnectionEXPECT().LookupDomainByName(api.VMINamespaceKeyFunc(vmi)).Return(mockLibvirt.VirtDomain, nil)
 
-				size, err := vcpu.QuantityToByte(resource.MustParse("128Mi"))
+				size, err := api.QuantityToByte(resource.MustParse("128Mi"))
 				Expect(err).ToNot(HaveOccurred())
-				requested, err := vcpu.QuantityToByte(resource.MustParse("64Mi"))
+				requested, err := api.QuantityToByte(resource.MustParse("64Mi"))
 				Expect(err).ToNot(HaveOccurred())
-				block, err := vcpu.QuantityToByte(resource.MustParse("2Mi"))
+				block, err := api.QuantityToByte(resource.MustParse("2Mi"))
 				Expect(err).ToNot(HaveOccurred())
 
 				domainSpec = &api.DomainSpec{
