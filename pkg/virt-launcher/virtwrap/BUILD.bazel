@@ -8,6 +8,7 @@ go_library(
         "live-migration-source.go",
         "live-migration-target.go",
         "manager.go",
+        "manager-libvirt.go",
         "nichotplug.go",
     ],
     importpath = "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap",
