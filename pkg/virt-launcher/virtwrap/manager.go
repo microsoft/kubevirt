@@ -72,4 +72,3 @@ type DomainManager interface {
 	GetDomainDirtyRateStats(calculationDuration time.Duration) (*stats.DomainStatsDirtyRate, error)
 	FormatError(err error) string
 }
-

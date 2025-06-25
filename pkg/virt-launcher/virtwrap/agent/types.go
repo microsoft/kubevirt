@@ -2,14 +2,14 @@ package agent
 
 import "fmt"
 
-type execReturn struct {
-	Return execReturnData `json:"return"`
+type ExecReturn struct {
+	Return ExecReturnData `json:"return"`
 }
-type execReturnData struct {
+type ExecReturnData struct {
 	Pid int `json:"pid"`
 }
 
-type execStatusReturn struct {
+type ExecStatusReturn struct {
 	Return execStatusReturnData `json:"return"`
 }
 type execStatusReturnData struct {
