@@ -164,7 +164,7 @@ func main() {
 			Name:                     "qemu-kvm",
 			VirtLauncherCapabilities: []string{"NET_BIND_SERVICE"},
 			VirtLauncherOverhead:     "100Mi",
-			HypervisorDevice:         "/dev/mshv",
+			HypervisorDevice:         "/dev/kvm",
 			VCPURegex:                "KVM",
 			VMMDaemonProcess:         "virtqemud",
 			VMMProcessExecutable:     "qemu-system-x86",
