@@ -293,7 +293,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) {
 	}
 
 	kubeVirt := kubeVirtList.Items[0]
-	cgroup.GenerateDefaultDeviceRules(kubeVirt.Spec.Configuration.VirtualizationStacks)
+	cgroup.GenerateDefaultDeviceRules(kubeVirt.Spec.Configuration.VirtualizationStack)
 
 	// Start the actual work
 	for i := 0; i < threadiness; i++ {

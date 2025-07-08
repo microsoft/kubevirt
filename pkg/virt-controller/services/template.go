@@ -407,7 +407,7 @@ func (t *templateService) renderLaunchManifest(vmi *v1.VirtualMachineInstance, i
 			"echo", "bound PVCs"}
 	} else {
 		command = []string{"/usr/bin/virt-launcher-monitor",
-			"--qemu-timeout", generateQemuTimeoutWithJitter(t.launcherQemuTimeout),
+			"--qemu-timeout", generateQemuTimeoutWithJitter(t.launcherQemuTimeout), // TODO PLUGINDEV: Update this argument
 			"--name", domain,
 			"--uid", string(vmi.UID),
 			"--namespace", namespace,
@@ -808,7 +808,7 @@ func (t *templateService) newContainerSpecRenderer(vmi *v1.VirtualMachineInstanc
 	}
 
 	kubeVirt := kubeVirtList.Items[0]
-	stack := kubeVirt.Spec.Configuration.VirtualizationStacks[0]
+	stack := kubeVirt.Spec.Configuration.VirtualizationStack
 
 	computeContainerOpts := []Option{
 		WithVolumeDevices(volumeRenderer.VolumeDevices()...),

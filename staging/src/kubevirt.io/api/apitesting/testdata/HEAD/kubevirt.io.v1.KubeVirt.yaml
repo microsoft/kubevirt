@@ -229,8 +229,8 @@ spec:
     virtualMachineOptions:
       disableFreePageReporting: {}
       disableSerialConsoleLog: {}
-    virtualizationStacks:
-    - hypervisorDevice: hypervisorDeviceValue
+    virtualizationStack:
+      hypervisorDevice: hypervisorDeviceValue
       hypervisorDeviceMajorNumber: -27
       hypervisorDeviceMinorNumber: -27
       name: nameValue

@@ -12,8 +12,8 @@ spec:
       {{- range .FeatureGates}}
       - {{.}}
       {{- end}}{{else}} []{{end}}
-    virtualizationStacks:
-    - hypervisorDevice: /dev/mshv
+    virtualizationStack:
+      hypervisorDevice: /dev/kvm
       name: qemu-kvm
       vCpuRegex: KVM
       virtLauncherCapabilities:

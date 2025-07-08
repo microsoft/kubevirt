@@ -2780,10 +2780,10 @@ type KubeVirtConfiguration struct {
 	// +nullable
 	Instancetype *InstancetypeConfiguration `json:"instancetype,omitempty"`
 
-	// list of VirtualizationStacks on which
+	// VirtualizationStack on which
 	// this KubeVirt cluster should be deployed
-	// +listType=atomic
-	VirtualizationStacks []VirtualizationStackSpec `json:"virtualizationStacks,omitempty"`
+	// +nullable
+	VirtualizationStack *VirtualizationStackSpec `json:"virtualizationStack,omitempty"`
 }
 
 type InstancetypeConfiguration struct {

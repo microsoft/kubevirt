@@ -977,55 +977,53 @@ spec:
                           The value can be individually overridden for each VM, not relevant if AutoattachSerialConsole is disabled.
                         type: object
                     type: object
-                  virtualizationStacks:
+                  virtualizationStack:
                     description: |-
-                      list of VirtualizationStacks on which
+                      VirtualizationStack on which
                       this KubeVirt cluster should be deployed
-                    items:
-                      properties:
-                        hypervisorDevice:
-                          description: HypervisorDevice specifies the path to the
-                            hypervisor device.
+                    nullable: true
+                    properties:
+                      hypervisorDevice:
+                        description: HypervisorDevice specifies the path to the hypervisor
+                          device.
+                        type: string
+                      hypervisorDeviceMajorNumber:
+                        format: int64
+                        type: integer
+                      hypervisorDeviceMinorNumber:
+                        format: int64
+                        type: integer
+                      name:
+                        description: Name of the virtualization stack
+                        type: string
+                      vCpuRegex:
+                        description: VCPURegex defines the regular expression used
+                          to identify vCPU devices.
+                        type: string
+                      virtLauncherCapabilities:
+                        description: virtLauncherCapabilities specifies the capabilities
+                          of the virt-launcher.
+                        items:
                           type: string
-                        hypervisorDeviceMajorNumber:
-                          format: int64
-                          type: integer
-                        hypervisorDeviceMinorNumber:
-                          format: int64
-                          type: integer
-                        name:
-                          description: Name of the virtualization stack
-                          type: string
-                        vCpuRegex:
-                          description: VCPURegex defines the regular expression used
-                            to identify vCPU devices.
-                          type: string
-                        virtLauncherCapabilities:
-                          description: virtLauncherCapabilities specifies the capabilities
-                            of the virt-launcher.
-                          items:
-                            type: string
-                          type: array
-                          x-kubernetes-list-type: atomic
-                        virtLauncherImage:
-                          description: Container image URI for virt-launcher for the
-                            given virtualization stack.
-                          type: string
-                        virtLauncherOverhead:
-                          description: virtLauncherOverhead specifies the overhead
-                            associated with the virt-launcher.
-                          type: string
-                        vmmDaemonProcess:
-                          description: VMMDaemonProcess specifies the name of the
-                            VMM daemon process.
-                          type: string
-                        vmmProcessExecutable:
-                          description: VMMProcessExecutable specifies the path to
-                            the VMM process executable.
-                          type: string
-                      type: object
-                    type: array
-                    x-kubernetes-list-type: atomic
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      virtLauncherImage:
+                        description: Container image URI for virt-launcher for the
+                          given virtualization stack.
+                        type: string
+                      virtLauncherOverhead:
+                        description: virtLauncherOverhead specifies the overhead associated
+                          with the virt-launcher.
+                        type: string
+                      vmmDaemonProcess:
+                        description: VMMDaemonProcess specifies the name of the VMM
+                          daemon process.
+                        type: string
+                      vmmProcessExecutable:
+                        description: VMMProcessExecutable specifies the path to the
+                          VMM process executable.
+                        type: string
+                    type: object
                   vmRolloutStrategy:
                     description: |-
                       VMRolloutStrategy defines how live-updatable fields, like CPU sockets, memory,
@@ -4300,55 +4298,53 @@ spec:
                           The value can be individually overridden for each VM, not relevant if AutoattachSerialConsole is disabled.
                         type: object
                     type: object
-                  virtualizationStacks:
+                  virtualizationStack:
                     description: |-
-                      list of VirtualizationStacks on which
+                      VirtualizationStack on which
                       this KubeVirt cluster should be deployed
-                    items:
-                      properties:
-                        hypervisorDevice:
-                          description: HypervisorDevice specifies the path to the
-                            hypervisor device.
+                    nullable: true
+                    properties:
+                      hypervisorDevice:
+                        description: HypervisorDevice specifies the path to the hypervisor
+                          device.
+                        type: string
+                      hypervisorDeviceMajorNumber:
+                        format: int64
+                        type: integer
+                      hypervisorDeviceMinorNumber:
+                        format: int64
+                        type: integer
+                      name:
+                        description: Name of the virtualization stack
+                        type: string
+                      vCpuRegex:
+                        description: VCPURegex defines the regular expression used
+                          to identify vCPU devices.
+                        type: string
+                      virtLauncherCapabilities:
+                        description: virtLauncherCapabilities specifies the capabilities
+                          of the virt-launcher.
+                        items:
                           type: string
-                        hypervisorDeviceMajorNumber:
-                          format: int64
-                          type: integer
-                        hypervisorDeviceMinorNumber:
-                          format: int64
-                          type: integer
-                        name:
-                          description: Name of the virtualization stack
-                          type: string
-                        vCpuRegex:
-                          description: VCPURegex defines the regular expression used
-                            to identify vCPU devices.
-                          type: string
-                        virtLauncherCapabilities:
-                          description: virtLauncherCapabilities specifies the capabilities
-                            of the virt-launcher.
-                          items:
-                            type: string
-                          type: array
-                          x-kubernetes-list-type: atomic
-                        virtLauncherImage:
-                          description: Container image URI for virt-launcher for the
-                            given virtualization stack.
-                          type: string
-                        virtLauncherOverhead:
-                          description: virtLauncherOverhead specifies the overhead
-                            associated with the virt-launcher.
-                          type: string
-                        vmmDaemonProcess:
-                          description: VMMDaemonProcess specifies the name of the
-                            VMM daemon process.
-                          type: string
-                        vmmProcessExecutable:
-                          description: VMMProcessExecutable specifies the path to
-                            the VMM process executable.
-                          type: string
-                      type: object
-                    type: array
-                    x-kubernetes-list-type: atomic
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      virtLauncherImage:
+                        description: Container image URI for virt-launcher for the
+                          given virtualization stack.
+                        type: string
+                      virtLauncherOverhead:
+                        description: virtLauncherOverhead specifies the overhead associated
+                          with the virt-launcher.
+                        type: string
+                      vmmDaemonProcess:
+                        description: VMMDaemonProcess specifies the name of the VMM
+                          daemon process.
+                        type: string
+                      vmmProcessExecutable:
+                        description: VMMProcessExecutable specifies the path to the
+                          VMM process executable.
+                        type: string
+                    type: object
                   vmRolloutStrategy:
                     description: |-
                       VMRolloutStrategy defines how live-updatable fields, like CPU sockets, memory,

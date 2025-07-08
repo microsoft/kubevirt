@@ -21589,23 +21589,10 @@ func schema_kubevirtio_api_core_v1_KubeVirtConfiguration(ref common.ReferenceCal
 							Ref:         ref("kubevirt.io/api/core/v1.InstancetypeConfiguration"),
 						},
 					},
-					"virtualizationStacks": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
+					"virtualizationStack": {
 						SchemaProps: spec.SchemaProps{
-							Description: "list of VirtualizationStacks on which this KubeVirt cluster should be deployed",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref("kubevirt.io/api/core/v1.VirtualizationStackSpec"),
-									},
-								},
-							},
+							Description: "VirtualizationStack on which this KubeVirt cluster should be deployed",
+							Ref:         ref("kubevirt.io/api/core/v1.VirtualizationStackSpec"),
 						},
 					},
 				},

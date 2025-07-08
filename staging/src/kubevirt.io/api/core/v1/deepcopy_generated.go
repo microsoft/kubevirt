@@ -2744,12 +2744,10 @@ func (in *KubeVirtConfiguration) DeepCopyInto(out *KubeVirtConfiguration) {
 		*out = new(InstancetypeConfiguration)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.VirtualizationStacks != nil {
-		in, out := &in.VirtualizationStacks, &out.VirtualizationStacks
-		*out = make([]VirtualizationStackSpec, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
+	if in.VirtualizationStack != nil {
+		in, out := &in.VirtualizationStack, &out.VirtualizationStack
+		*out = new(VirtualizationStackSpec)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }

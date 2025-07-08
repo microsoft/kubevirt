@@ -890,12 +890,6 @@ func generateVirtOperatorEnvVars(virtApiShaEnv, virtControllerShaEnv, virtHandle
 		addEnvVar(operatorutil.VirtHandlerShasumEnvName, virtHandlerShaEnv)
 	}
 
-	if virtLauncherImageEnv != "" {
-		addEnvVar(operatorutil.VirtLauncherImageEnvName, virtLauncherImageEnv)
-	} else if virtLauncherShaEnv != "" {
-		addEnvVar(operatorutil.VirtLauncherShasumEnvName, virtLauncherShaEnv)
-	}
-
 	if virtExportProxyImageEnv != "" {
 		addEnvVar(operatorutil.VirtExportProxyImageEnvName, virtExportProxyImageEnv)
 	} else if virtExportProxyShaEnv != "" {

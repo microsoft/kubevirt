@@ -14650,14 +14650,9 @@
      "virtualMachineOptions": {
       "$ref": "#/definitions/v1.VirtualMachineOptions"
      },
-     "virtualizationStacks": {
-      "description": "list of VirtualizationStacks on which this KubeVirt cluster should be deployed",
-      "type": "array",
-      "items": {
-       "default": {},
-       "$ref": "#/definitions/v1.VirtualizationStackSpec"
-      },
-      "x-kubernetes-list-type": "atomic"
+     "virtualizationStack": {
+      "description": "VirtualizationStack on which this KubeVirt cluster should be deployed",
+      "$ref": "#/definitions/v1.VirtualizationStackSpec"
      },
      "vmRolloutStrategy": {
       "description": "VMRolloutStrategy defines how live-updatable fields, like CPU sockets, memory, tolerations, and affinity, are propagated from a VM to its VMI.",

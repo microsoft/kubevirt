@@ -190,7 +190,7 @@ func GetDefaultDeviceRules() []*devices.Rule {
 	return defaultDeviceRules
 }
 
-func GenerateDefaultDeviceRules(virtualizationStacks []virtv1.VirtualizationStackSpec) {
+func GenerateDefaultDeviceRules(virtstack *virtv1.VirtualizationStackSpec) {
 	if len(defaultDeviceRules) > 0 {
 		// To avoid re-computing default device rules
 		return
@@ -237,15 +237,13 @@ func GenerateDefaultDeviceRules(virtualizationStacks []virtv1.VirtualizationStac
 	}
 
 	// TODO PLUGINDEV: Need to deduplicate the Major:Minor list
-	for _, virtstack := range virtualizationStacks {
-		defaultRules = append(defaultRules, &devices.Rule{
-			Type:        devices.CharDevice,
-			Major:       virtstack.HypervisorDeviceMajorNumber,
-			Minor:       virtstack.HypervisorDeviceMinorNumber,
-			Permissions: permissions,
-			Allow:       toAllow,
-		})
-	}
+	defaultRules = append(defaultRules, &devices.Rule{
+		Type:        devices.CharDevice,
+		Major:       virtstack.HypervisorDeviceMajorNumber,
+		Minor:       virtstack.HypervisorDeviceMinorNumber,
+		Permissions: permissions,
+		Allow:       toAllow,
+	})
 
 	// Add PTY slaves. See this for more info:
 	// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/admin-guide/devices.txt?h=v5.14#n2084
