@@ -205,9 +205,8 @@ func GetConfigFromEnvWithEnvVarManager(envVarManager EnvVarManager) (*KubeVirtDe
 	additionalProperties := make(map[string]string)
 	additionalProperties[AdditionalPropertiesNamePullPolicy] = pullPolicy
 
-	// TODO return getConfig("", "", ns, additionalProperties, envVarManager),
-	// renil
-	return nil, fmt.Errorf("getConfig is not implemented yet, please use GetTargetConfigFromKV or GetTargetConfigFromKVWithEnvVarManager instead")
+	return getConfig("", "", ns, nil, additionalProperties, envVarManager),
+		nil
 }
 
 func GetTargetConfigFromKV(kv *v1.KubeVirt) *KubeVirtDeploymentConfig {
