@@ -115,14 +115,14 @@ func ConvState(status libvirt.DomainState) api.LifeCycle {
 
 func ConvReason(status libvirt.DomainState, reason int) api.StateChangeReason {
 	switch status {
-	case libvirt.DOMAIN_SHUTDOWN:
-		return ShutdownReasonTranslationMap[libvirt.DomainShutdownReason(reason)]
-	case libvirt.DOMAIN_SHUTOFF:
-		return ShutoffReasonTranslationMap[libvirt.DomainShutoffReason(reason)]
-	case libvirt.DOMAIN_CRASHED:
-		return CrashedReasonTranslationMap[libvirt.DomainCrashedReason(reason)]
-	case libvirt.DOMAIN_PAUSED:
-		return PausedReasonTranslationMap[libvirt.DomainPausedReason(reason)]
+	// case libvirt.DOMAIN_SHUTDOWN:
+	// 	return ShutdownReasonTranslationMap[libvirt.DomainShutdownReason(reason)]
+	// case libvirt.DOMAIN_SHUTOFF:
+	// 	return ShutoffReasonTranslationMap[libvirt.DomainShutoffReason(reason)]
+	// case libvirt.DOMAIN_CRASHED:
+	// 	return CrashedReasonTranslationMap[libvirt.DomainCrashedReason(reason)]
+	// case libvirt.DOMAIN_PAUSED:
+	// 	return PausedReasonTranslationMap[libvirt.DomainPausedReason(reason)]
 	default:
 		return api.ReasonUnknown
 	}

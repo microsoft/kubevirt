@@ -495,9 +495,9 @@ func getRequiredResources(vmi *v1.VirtualMachineInstance, allowEmulation bool) k
 		res[VhostNetDevice] = resource.MustParse("1")
 	}
 	if !allowEmulation {
-		hypervisorDevice := k8sv1.ResourceName("devices.kubevirt.io/kvm")
-		res[hypervisorDevice] = resource.MustParse("1")
-		hypervisorDevice = k8sv1.ResourceName("devices.kubevirt.io/mshv")
+		//hypervisorDevice := k8sv1.ResourceName("devices.kubevirt.io/kvm")
+		//res[hypervisorDevice] = resource.MustParse("1")
+		hypervisorDevice := k8sv1.ResourceName("devices.kubevirt.io/mshv")
 		res[hypervisorDevice] = resource.MustParse("1")
 	}
 	if util.IsAutoAttachVSOCK(vmi) {

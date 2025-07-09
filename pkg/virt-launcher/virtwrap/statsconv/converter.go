@@ -82,41 +82,41 @@ func Convert_libvirt_MemoryStat_to_stats_DomainStatsMemory(inMem []libvirt.Domai
 		ret.Total = inDomInfo.Memory
 	}
 
-	for _, stat := range inMem {
-		tag := libvirt.DomainMemoryStatTags(stat.Tag)
-		switch tag {
-		case libvirt.DOMAIN_MEMORY_STAT_UNUSED:
-			ret.UnusedSet = true
-			ret.Unused = stat.Val
-		case libvirt.DOMAIN_MEMORY_STAT_DISK_CACHES:
-			ret.CachedSet = true
-			ret.Cached = stat.Val
-		case libvirt.DOMAIN_MEMORY_STAT_AVAILABLE:
-			ret.AvailableSet = true
-			ret.Available = stat.Val
-		case libvirt.DOMAIN_MEMORY_STAT_ACTUAL_BALLOON:
-			ret.ActualBalloonSet = true
-			ret.ActualBalloon = stat.Val
-		case libvirt.DOMAIN_MEMORY_STAT_RSS:
-			ret.RSSSet = true
-			ret.RSS = stat.Val
-		case libvirt.DOMAIN_MEMORY_STAT_SWAP_IN:
-			ret.SwapInSet = true
-			ret.SwapIn = stat.Val
-		case libvirt.DOMAIN_MEMORY_STAT_SWAP_OUT:
-			ret.SwapOutSet = true
-			ret.SwapOut = stat.Val
-		case libvirt.DOMAIN_MEMORY_STAT_MAJOR_FAULT:
-			ret.MajorFaultSet = true
-			ret.MajorFault = stat.Val
-		case libvirt.DOMAIN_MEMORY_STAT_MINOR_FAULT:
-			ret.MinorFaultSet = true
-			ret.MinorFault = stat.Val
-		case libvirt.DOMAIN_MEMORY_STAT_USABLE:
-			ret.UsableSet = true
-			ret.Usable = stat.Val
-		}
-	}
+	// for _, stat := range inMem {
+	// 	tag := libvirt.DomainMemoryStatTags(stat.Tag)
+	// 	switch tag {
+	// 	case libvirt.DOMAIN_MEMORY_STAT_UNUSED:
+	// 		ret.UnusedSet = true
+	// 		ret.Unused = stat.Val
+	// 	case libvirt.DOMAIN_MEMORY_STAT_DISK_CACHES:
+	// 		ret.CachedSet = true
+	// 		ret.Cached = stat.Val
+	// 	case libvirt.DOMAIN_MEMORY_STAT_AVAILABLE:
+	// 		ret.AvailableSet = true
+	// 		ret.Available = stat.Val
+	// 	case libvirt.DOMAIN_MEMORY_STAT_ACTUAL_BALLOON:
+	// 		ret.ActualBalloonSet = true
+	// 		ret.ActualBalloon = stat.Val
+	// 	case libvirt.DOMAIN_MEMORY_STAT_RSS:
+	// 		ret.RSSSet = true
+	// 		ret.RSS = stat.Val
+	// 	case libvirt.DOMAIN_MEMORY_STAT_SWAP_IN:
+	// 		ret.SwapInSet = true
+	// 		ret.SwapIn = stat.Val
+	// 	case libvirt.DOMAIN_MEMORY_STAT_SWAP_OUT:
+	// 		ret.SwapOutSet = true
+	// 		ret.SwapOut = stat.Val
+	// 	case libvirt.DOMAIN_MEMORY_STAT_MAJOR_FAULT:
+	// 		ret.MajorFaultSet = true
+	// 		ret.MajorFault = stat.Val
+	// 	case libvirt.DOMAIN_MEMORY_STAT_MINOR_FAULT:
+	// 		ret.MinorFaultSet = true
+	// 		ret.MinorFault = stat.Val
+	// 	case libvirt.DOMAIN_MEMORY_STAT_USABLE:
+	// 		ret.UsableSet = true
+	// 		ret.Usable = stat.Val
+	// 	}
+	// }
 	return ret
 }
 

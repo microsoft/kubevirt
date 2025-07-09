@@ -59,7 +59,7 @@ func cleanupContainerDiskDirectory(ephemeralDiskDir string) {
 func main() {
 
 	containerDiskDir := pflag.String("container-disk-dir", "/var/run/kubevirt/container-disks", "Base directory for container disk data")
-	keepAfterFailure := pflag.Bool("keep-after-failure", false, "virt-launcher will be kept alive after failure for debugging if set to true")
+	/*keepAfterFailure := */ pflag.Bool("keep-after-failure", false, "virt-launcher will be kept alive after failure for debugging if set to true")
 	uid := pflag.String("uid", "", "UID of the VirtualMachineInstance")
 
 	pflag.CommandLine.AddGoFlag(goflag.CommandLine.Lookup("v"))
@@ -79,7 +79,7 @@ func main() {
 	}
 
 	exitCode, err := RunAndMonitor(*containerDiskDir, *uid)
-	if *keepAfterFailure && (exitCode != 0 || err != nil) {
+	if /* *keepAfterFailure && */ exitCode != 0 || err != nil {
 		log.Log.Infof("keeping virt-launcher container alive since --keep-after-failure is set to true")
 		<-make(chan struct{})
 	}

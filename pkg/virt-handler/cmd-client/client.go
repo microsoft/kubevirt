@@ -27,7 +27,6 @@ package cmdclient
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -375,247 +374,278 @@ func IsDisconnected(err error) bool {
 }
 
 func (c *VirtLauncherClient) SyncVirtualMachine(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) error {
-	return c.genericSendVMICmd("SyncVMI", c.v1client.SyncVirtualMachine, vmi, options)
+	//[jocelynb] TODO: re-enable this
+	//return c.genericSendVMICmd("SyncVMI", c.v1client.SyncVirtualMachine, vmi, options)
+	return nil
 }
 
 func (c *VirtLauncherClient) PauseVirtualMachine(vmi *v1.VirtualMachineInstance) error {
-	return c.genericSendVMICmd("Pause", c.v1client.PauseVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	//[jocelynb] TODO: re-enable this
+	//return c.genericSendVMICmd("Pause", c.v1client.PauseVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	return nil
 }
 
 func (c *VirtLauncherClient) UnpauseVirtualMachine(vmi *v1.VirtualMachineInstance) error {
-	return c.genericSendVMICmd("Unpause", c.v1client.UnpauseVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	//[jocelynb] TODO: re-enable this
+	//return c.genericSendVMICmd("Unpause", c.v1client.UnpauseVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	return nil
 }
 
 func (c *VirtLauncherClient) FreezeVirtualMachine(vmi *v1.VirtualMachineInstance, unfreezeTimeoutSeconds int32) error {
-	vmiJson, err := json.Marshal(vmi)
-	if err != nil {
-		return err
-	}
+	//[jocelynb] TODO: re-enable this
+	// vmiJson, err := json.Marshal(vmi)
+	// if err != nil {
+	// 	return err
+	// }
 
-	request := &cmdv1.FreezeRequest{
-		Vmi: &cmdv1.VMI{
-			VmiJson: vmiJson,
-		},
-		UnfreezeTimeoutSeconds: unfreezeTimeoutSeconds,
-	}
+	// request := &cmdv1.FreezeRequest{
+	// 	Vmi: &cmdv1.VMI{
+	// 		VmiJson: vmiJson,
+	// 	},
+	// 	UnfreezeTimeoutSeconds: unfreezeTimeoutSeconds,
+	// }
 
-	ctx, cancel := context.WithTimeout(context.Background(), longTimeout)
-	defer cancel()
-	response, err := c.v1client.FreezeVirtualMachine(ctx, request)
+	// ctx, cancel := context.WithTimeout(context.Background(), longTimeout)
+	// defer cancel()
+	// response, err := c.v1client.FreezeVirtualMachine(ctx, request)
 
-	err = handleError(err, "Freeze", response)
-	return err
+	// err = handleError(err, "Freeze", response)
+	// return err
+	return nil
 }
 
 func (c *VirtLauncherClient) UnfreezeVirtualMachine(vmi *v1.VirtualMachineInstance) error {
-	return c.genericSendVMICmd("Unfreeze", c.v1client.UnfreezeVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	//[jocelynb] TODO: re-enable this
+	//return c.genericSendVMICmd("Unfreeze", c.v1client.UnfreezeVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	return nil
 }
 
 func (c *VirtLauncherClient) VirtualMachineMemoryDump(vmi *v1.VirtualMachineInstance, dumpPath string) error {
-	vmiJson, err := json.Marshal(vmi)
-	if err != nil {
-		return err
-	}
+	//[jocelynb] TODO: re-enable this
+	// vmiJson, err := json.Marshal(vmi)
+	// if err != nil {
+	// 	return err
+	// }
 
-	request := &cmdv1.MemoryDumpRequest{
-		Vmi: &cmdv1.VMI{
-			VmiJson: vmiJson,
-		},
-		DumpPath: dumpPath,
-	}
+	// request := &cmdv1.MemoryDumpRequest{
+	// 	Vmi: &cmdv1.VMI{
+	// 		VmiJson: vmiJson,
+	// 	},
+	// 	DumpPath: dumpPath,
+	// }
 
-	ctx, cancel := context.WithTimeout(context.Background(), longTimeout)
-	defer cancel()
-	response, err := c.v1client.VirtualMachineMemoryDump(ctx, request)
-	err = handleError(err, "Memorydump", response)
-	return err
+	// ctx, cancel := context.WithTimeout(context.Background(), longTimeout)
+	// defer cancel()
+	// response, err := c.v1client.VirtualMachineMemoryDump(ctx, request)
+	// err = handleError(err, "Memorydump", response)
+	// return err
+	return nil
 }
 
 func (c *VirtLauncherClient) SoftRebootVirtualMachine(vmi *v1.VirtualMachineInstance) error {
-	return c.genericSendVMICmd("SoftReboot", c.v1client.SoftRebootVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	//return c.genericSendVMICmd("SoftReboot", c.v1client.SoftRebootVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	return nil
 }
 
 func (c *VirtLauncherClient) ResetVirtualMachine(vmi *v1.VirtualMachineInstance) error {
-	return c.genericSendVMICmd("Reset", c.v1client.ResetVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	//return c.genericSendVMICmd("Reset", c.v1client.ResetVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	return nil
 }
 
 func (c *VirtLauncherClient) ShutdownVirtualMachine(vmi *v1.VirtualMachineInstance) error {
-	return c.genericSendVMICmd("Shutdown", c.v1client.ShutdownVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	//return c.genericSendVMICmd("Shutdown", c.v1client.ShutdownVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	return nil
 }
 
 func (c *VirtLauncherClient) KillVirtualMachine(vmi *v1.VirtualMachineInstance) error {
-	return c.genericSendVMICmd("Kill", c.v1client.KillVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	//return c.genericSendVMICmd("Kill", c.v1client.KillVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	return nil
 }
 
 func (c *VirtLauncherClient) DeleteDomain(vmi *v1.VirtualMachineInstance) error {
-	return c.genericSendVMICmd("Delete", c.v1client.DeleteVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	//return c.genericSendVMICmd("Delete", c.v1client.DeleteVirtualMachine, vmi, &cmdv1.VirtualMachineOptions{})
+	return nil
 }
 
 func (c *VirtLauncherClient) MigrateVirtualMachine(vmi *v1.VirtualMachineInstance, options *MigrationOptions) error {
 
-	vmiJson, err := json.Marshal(vmi)
-	if err != nil {
-		return err
-	}
+	// vmiJson, err := json.Marshal(vmi)
+	// if err != nil {
+	// 	return err
+	// }
 
-	optionsJson, err := json.Marshal(options)
-	if err != nil {
-		return err
-	}
+	// optionsJson, err := json.Marshal(options)
+	// if err != nil {
+	// 	return err
+	// }
 
-	request := &cmdv1.MigrationRequest{
-		Vmi: &cmdv1.VMI{
-			VmiJson: vmiJson,
-		},
-		Options: optionsJson,
-	}
+	// request := &cmdv1.MigrationRequest{
+	// 	Vmi: &cmdv1.VMI{
+	// 		VmiJson: vmiJson,
+	// 	},
+	// 	Options: optionsJson,
+	// }
 
-	ctx, cancel := context.WithTimeout(context.Background(), longTimeout)
-	defer cancel()
-	response, err := c.v1client.MigrateVirtualMachine(ctx, request)
+	// ctx, cancel := context.WithTimeout(context.Background(), longTimeout)
+	// defer cancel()
+	// response, err := c.v1client.MigrateVirtualMachine(ctx, request)
 
-	err = handleError(err, "Migrate", response)
-	return err
-
+	// err = handleError(err, "Migrate", response)
+	// return err
+	return nil
 }
 
 func (c *VirtLauncherClient) CancelVirtualMachineMigration(vmi *v1.VirtualMachineInstance) error {
-	return c.genericSendVMICmd("CancelMigration", c.v1client.CancelVirtualMachineMigration, vmi, &cmdv1.VirtualMachineOptions{})
+	//return c.genericSendVMICmd("CancelMigration", c.v1client.CancelVirtualMachineMigration, vmi, &cmdv1.VirtualMachineOptions{})
+	return nil
 }
 
 func (c *VirtLauncherClient) SyncMigrationTarget(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) error {
-	return c.genericSendVMICmd("SyncMigrationTarget", c.v1client.SyncMigrationTarget, vmi, options)
+	//return c.genericSendVMICmd("SyncMigrationTarget", c.v1client.SyncMigrationTarget, vmi, options)
+	return nil
 }
 
 func (c *VirtLauncherClient) SyncVirtualMachineCPUs(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) error {
-	return c.genericSendVMICmd("SyncVirtualMachineCPUs", c.v1client.SyncVirtualMachineCPUs, vmi, options)
+	//return c.genericSendVMICmd("SyncVirtualMachineCPUs", c.v1client.SyncVirtualMachineCPUs, vmi, options)
+	return nil
 }
 
 func (c *VirtLauncherClient) SignalTargetPodCleanup(vmi *v1.VirtualMachineInstance) error {
-	return c.genericSendVMICmd("SignalTargetPodCleanup", c.v1client.SignalTargetPodCleanup, vmi, &cmdv1.VirtualMachineOptions{})
+	//return c.genericSendVMICmd("SignalTargetPodCleanup", c.v1client.SignalTargetPodCleanup, vmi, &cmdv1.VirtualMachineOptions{})
+	return nil
 }
 
 func (c *VirtLauncherClient) FinalizeVirtualMachineMigration(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) error {
-	return c.genericSendVMICmd("FinalizeVirtualMachineMigration", c.v1client.FinalizeVirtualMachineMigration, vmi, options)
+	//return c.genericSendVMICmd("FinalizeVirtualMachineMigration", c.v1client.FinalizeVirtualMachineMigration, vmi, options)
+	return nil
 }
 
 func (c *VirtLauncherClient) HotplugHostDevices(vmi *v1.VirtualMachineInstance) error {
-	return c.genericSendVMICmd("HotplugHostDevices", c.v1client.HotplugHostDevices, vmi, &cmdv1.VirtualMachineOptions{})
+	//return c.genericSendVMICmd("HotplugHostDevices", c.v1client.HotplugHostDevices, vmi, &cmdv1.VirtualMachineOptions{})
+	return nil
 }
 
 func (c *VirtLauncherClient) GetDomain() (*api.Domain, bool, error) {
 
 	domain := &api.Domain{}
-	exists := false
+	// exists := false
 
-	request := &cmdv1.EmptyRequest{}
-	ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
-	defer cancel()
+	// request := &cmdv1.EmptyRequest{}
+	// ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
+	// defer cancel()
 
-	domainResponse, err := c.v1client.GetDomain(ctx, request)
-	var response *cmdv1.Response
-	if domainResponse != nil {
-		response = domainResponse.Response
-	}
+	// domainResponse, err := c.v1client.GetDomain(ctx, request)
+	// var response *cmdv1.Response
+	// if domainResponse != nil {
+	// 	response = domainResponse.Response
+	// }
 
-	if err = handleError(err, "GetDomain", response); err != nil || domainResponse == nil {
-		return domain, exists, err
-	}
+	// if err = handleError(err, "GetDomain", response); err != nil || domainResponse == nil {
+	// 	return domain, exists, err
+	// }
 
-	if domainResponse.Domain != "" {
-		if err := json.Unmarshal([]byte(domainResponse.Domain), domain); err != nil {
-			log.Log.Reason(err).Error("error unmarshalling domain")
-			return domain, exists, err
-		}
-		exists = true
-	}
-	return domain, exists, nil
+	// if domainResponse.Domain != "" {
+	// 	if err := json.Unmarshal([]byte(domainResponse.Domain), domain); err != nil {
+	// 		log.Log.Reason(err).Error("error unmarshalling domain")
+	// 		return domain, exists, err
+	// 	}
+	// 	exists = true
+	// }
+	// return domain, exists, nil
+
+	return domain, true, nil
 }
 
 func (c *VirtLauncherClient) GetQemuVersion() (string, error) {
-	request := &cmdv1.EmptyRequest{}
-	ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
-	defer cancel()
+	//[jocelynb] TODO: re-enable this
+	// request := &cmdv1.EmptyRequest{}
+	// ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
+	// defer cancel()
 
-	versionResponse, err := c.v1client.GetQemuVersion(ctx, request)
-	var response *cmdv1.Response
-	if versionResponse != nil {
-		response = versionResponse.Response
-	}
-	if err = handleError(err, "GetQemuVersion", response); err != nil {
-		return "", err
-	}
+	// versionResponse, err := c.v1client.GetQemuVersion(ctx, request)
+	// var response *cmdv1.Response
+	// if versionResponse != nil {
+	// 	response = versionResponse.Response
+	// }
+	// if err = handleError(err, "GetQemuVersion", response); err != nil {
+	// 	return "", err
+	// }
 
-	if versionResponse != nil && versionResponse.Version != "" {
-		return versionResponse.Version, nil
-	}
+	// if versionResponse != nil && versionResponse.Version != "" {
+	// 	return versionResponse.Version, nil
+	// }
 
-	log.Log.Reason(err).Error("error getting the qemu version")
-	return "", errors.New("error getting the qemu version")
+	// log.Log.Reason(err).Error("error getting the qemu version")
+	// return "", errors.New("error getting the qemu version")
+	return "8.0.0", nil
 }
 
 func (c *VirtLauncherClient) GetDomainStats() (*stats.DomainStats, bool, error) {
 	stats := &stats.DomainStats{}
-	exists := false
+	// exists := false
 
-	request := &cmdv1.EmptyRequest{}
-	ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
-	defer cancel()
+	// request := &cmdv1.EmptyRequest{}
+	// ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
+	// defer cancel()
 
-	domainStatsResponse, err := c.v1client.GetDomainStats(ctx, request)
-	var response *cmdv1.Response
-	if domainStatsResponse != nil {
-		response = domainStatsResponse.Response
-	}
+	// domainStatsResponse, err := c.v1client.GetDomainStats(ctx, request)
+	// var response *cmdv1.Response
+	// if domainStatsResponse != nil {
+	// 	response = domainStatsResponse.Response
+	// }
 
-	if err = handleError(err, "GetDomainStats", response); err != nil || domainStatsResponse == nil {
-		return stats, exists, err
-	}
+	// if err = handleError(err, "GetDomainStats", response); err != nil || domainStatsResponse == nil {
+	// 	return stats, exists, err
+	// }
 
-	if domainStatsResponse.DomainStats != "" {
-		if err := json.Unmarshal([]byte(domainStatsResponse.DomainStats), stats); err != nil {
-			log.Log.Reason(err).Error("error unmarshalling domain")
-			return stats, exists, err
-		}
-		exists = true
-	}
-	return stats, exists, nil
+	// if domainStatsResponse.DomainStats != "" {
+	// 	if err := json.Unmarshal([]byte(domainStatsResponse.DomainStats), stats); err != nil {
+	// 		log.Log.Reason(err).Error("error unmarshalling domain")
+	// 		return stats, exists, err
+	// 	}
+	// 	exists = true
+	// }
+	// return stats, exists, nil
+	return stats, true, nil
 }
 
 func (c *VirtLauncherClient) Ping() error {
-	request := &cmdv1.EmptyRequest{}
-	ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
-	defer cancel()
-	response, err := c.v1client.Ping(ctx, request)
+	//[jocelynb] TODO: re-enable this
+	// request := &cmdv1.EmptyRequest{}
+	// ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
+	// defer cancel()
+	// response, err := c.v1client.Ping(ctx, request)
 
-	err = handleError(err, "Ping", response)
-	return err
+	// err = handleError(err, "Ping", response)
+	// return err
+
+	return nil
 }
 
 // GetGuestInfo is a counterpart for virt-launcher call to gather guest agent data
 func (c *VirtLauncherClient) GetGuestInfo() (*v1.VirtualMachineInstanceGuestAgentInfo, error) {
 	guestInfo := &v1.VirtualMachineInstanceGuestAgentInfo{}
 
-	request := &cmdv1.EmptyRequest{}
-	ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
-	defer cancel()
+	// request := &cmdv1.EmptyRequest{}
+	// ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
+	// defer cancel()
 
-	gaRespose, err := c.v1client.GetGuestInfo(ctx, request)
-	var response *cmdv1.Response
-	if gaRespose != nil {
-		response = gaRespose.Response
-	}
+	// gaRespose, err := c.v1client.GetGuestInfo(ctx, request)
+	// var response *cmdv1.Response
+	// if gaRespose != nil {
+	// 	response = gaRespose.Response
+	// }
 
-	if err = handleError(err, "GetGuestInfo", response); err != nil || gaRespose == nil {
-		return guestInfo, err
-	}
+	// if err = handleError(err, "GetGuestInfo", response); err != nil || gaRespose == nil {
+	// 	return guestInfo, err
+	// }
 
-	if gaRespose.GuestInfoResponse != "" {
-		if err := json.Unmarshal([]byte(gaRespose.GetGuestInfoResponse()), guestInfo); err != nil {
-			log.Log.Reason(err).Error("error unmarshalling guest agent response")
-			return guestInfo, err
-		}
-	}
+	// if gaRespose.GuestInfoResponse != "" {
+	// 	if err := json.Unmarshal([]byte(gaRespose.GetGuestInfoResponse()), guestInfo); err != nil {
+	// 		log.Log.Reason(err).Error("error unmarshalling guest agent response")
+	// 		return guestInfo, err
+	// 	}
+	// }
 	return guestInfo, nil
 }
 
@@ -623,26 +653,26 @@ func (c *VirtLauncherClient) GetGuestInfo() (*v1.VirtualMachineInstanceGuestAgen
 func (c *VirtLauncherClient) GetUsers() (v1.VirtualMachineInstanceGuestOSUserList, error) {
 	var userList []v1.VirtualMachineInstanceGuestOSUser
 
-	request := &cmdv1.EmptyRequest{}
-	ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
-	defer cancel()
+	// request := &cmdv1.EmptyRequest{}
+	// ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
+	// defer cancel()
 
-	uResponse, err := c.v1client.GetUsers(ctx, request)
-	var response *cmdv1.Response
-	if uResponse != nil {
-		response = uResponse.Response
-	}
+	// uResponse, err := c.v1client.GetUsers(ctx, request)
+	// var response *cmdv1.Response
+	// if uResponse != nil {
+	// 	response = uResponse.Response
+	// }
 
-	if err = handleError(err, "GetUsers", response); err != nil || uResponse == nil {
-		return v1.VirtualMachineInstanceGuestOSUserList{}, err
-	}
+	// if err = handleError(err, "GetUsers", response); err != nil || uResponse == nil {
+	// 	return v1.VirtualMachineInstanceGuestOSUserList{}, err
+	// }
 
-	if uResponse.GetGuestUserListResponse() != "" {
-		if err := json.Unmarshal([]byte(uResponse.GetGuestUserListResponse()), &userList); err != nil {
-			log.Log.Reason(err).Error("error unmarshalling guest user list response")
-			return v1.VirtualMachineInstanceGuestOSUserList{}, err
-		}
-	}
+	// if uResponse.GetGuestUserListResponse() != "" {
+	// 	if err := json.Unmarshal([]byte(uResponse.GetGuestUserListResponse()), &userList); err != nil {
+	// 		log.Log.Reason(err).Error("error unmarshalling guest user list response")
+	// 		return v1.VirtualMachineInstanceGuestOSUserList{}, err
+	// 	}
+	// }
 
 	guestUserList := v1.VirtualMachineInstanceGuestOSUserList{
 		Items: userList,
@@ -655,26 +685,26 @@ func (c *VirtLauncherClient) GetUsers() (v1.VirtualMachineInstanceGuestOSUserLis
 func (c *VirtLauncherClient) GetFilesystems() (v1.VirtualMachineInstanceFileSystemList, error) {
 	var fsList []v1.VirtualMachineInstanceFileSystem
 
-	request := &cmdv1.EmptyRequest{}
-	ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
-	defer cancel()
+	// request := &cmdv1.EmptyRequest{}
+	// ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
+	// defer cancel()
 
-	fsResponse, err := c.v1client.GetFilesystems(ctx, request)
-	var response *cmdv1.Response
-	if fsResponse != nil {
-		response = fsResponse.Response
-	}
+	// fsResponse, err := c.v1client.GetFilesystems(ctx, request)
+	// var response *cmdv1.Response
+	// if fsResponse != nil {
+	// 	response = fsResponse.Response
+	// }
 
-	if err = handleError(err, "GetFilesystems", response); err != nil || fsResponse == nil {
-		return v1.VirtualMachineInstanceFileSystemList{}, err
-	}
+	// if err = handleError(err, "GetFilesystems", response); err != nil || fsResponse == nil {
+	// 	return v1.VirtualMachineInstanceFileSystemList{}, err
+	// }
 
-	if fsResponse.GetGuestFilesystemsResponse() != "" {
-		if err := json.Unmarshal([]byte(fsResponse.GetGuestFilesystemsResponse()), &fsList); err != nil {
-			log.Log.Reason(err).Error("error unmarshalling guest filesystem list response")
-			return v1.VirtualMachineInstanceFileSystemList{}, err
-		}
-	}
+	// if fsResponse.GetGuestFilesystemsResponse() != "" {
+	// 	if err := json.Unmarshal([]byte(fsResponse.GetGuestFilesystemsResponse()), &fsList); err != nil {
+	// 		log.Log.Reason(err).Error("error unmarshalling guest filesystem list response")
+	// 		return v1.VirtualMachineInstanceFileSystemList{}, err
+	// 	}
+	// }
 
 	filesystemList := v1.VirtualMachineInstanceFileSystemList{
 		Items: fsList,
@@ -685,125 +715,131 @@ func (c *VirtLauncherClient) GetFilesystems() (v1.VirtualMachineInstanceFileSyst
 
 // Exec the command with args on the guest and return the resulting status code, stdOut and error
 func (c *VirtLauncherClient) Exec(domainName, command string, args []string, timeoutSeconds int32) (int, string, error) {
-	request := &cmdv1.ExecRequest{
-		DomainName:     domainName,
-		Command:        command,
-		Args:           args,
-		TimeoutSeconds: timeoutSeconds,
-	}
-	exitCode := -1
-	stdOut := ""
+	// request := &cmdv1.ExecRequest{
+	// 	DomainName:     domainName,
+	// 	Command:        command,
+	// 	Args:           args,
+	// 	TimeoutSeconds: timeoutSeconds,
+	// }
+	// exitCode := -1
+	// stdOut := ""
 
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		// we give the context a bit more time as the timeout should kick
-		// on the actual execution
-		time.Duration(timeoutSeconds)*time.Second+shortTimeout,
-	)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(
+	// 	context.Background(),
+	// 	// we give the context a bit more time as the timeout should kick
+	// 	// on the actual execution
+	// 	time.Duration(timeoutSeconds)*time.Second+shortTimeout,
+	// )
+	// defer cancel()
 
-	resp, err := c.v1client.Exec(ctx, request)
-	if resp == nil {
-		return exitCode, stdOut, err
-	}
+	// resp, err := c.v1client.Exec(ctx, request)
+	// if resp == nil {
+	// 	return exitCode, stdOut, err
+	// }
 
-	exitCode = int(resp.ExitCode)
-	stdOut = resp.StdOut
+	// exitCode = int(resp.ExitCode)
+	// stdOut = resp.StdOut
 
-	return exitCode, stdOut, err
+	// return exitCode, stdOut, err
+
+	return 0, "", nil
 }
 
 func (c *VirtLauncherClient) GuestPing(domainName string, timeoutSeconds int32) error {
-	request := &cmdv1.GuestPingRequest{
-		DomainName:     domainName,
-		TimeoutSeconds: timeoutSeconds,
-	}
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		// we give the context a bit more time as the timeout should kick
-		// on the actual execution
-		time.Duration(timeoutSeconds)*time.Second+shortTimeout,
-	)
-	defer cancel()
+	// request := &cmdv1.GuestPingRequest{
+	// 	DomainName:     domainName,
+	// 	TimeoutSeconds: timeoutSeconds,
+	// }
+	// ctx, cancel := context.WithTimeout(
+	// 	context.Background(),
+	// 	// we give the context a bit more time as the timeout should kick
+	// 	// on the actual execution
+	// 	time.Duration(timeoutSeconds)*time.Second+shortTimeout,
+	// )
+	// defer cancel()
 
-	_, err := c.v1client.GuestPing(ctx, request)
-	return err
+	// _, err := c.v1client.GuestPing(ctx, request)
+	// return err
+
+	return nil
 }
 
 func (c *VirtLauncherClient) GetSEVInfo() (*v1.SEVPlatformInfo, error) {
-	request := &cmdv1.EmptyRequest{}
-	ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
-	defer cancel()
+	// request := &cmdv1.EmptyRequest{}
+	// ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
+	// defer cancel()
 
-	sevInfoResponse, err := c.v1client.GetSEVInfo(ctx, request)
-	if err = handleError(err, "GetSEVInfo", sevInfoResponse.GetResponse()); err != nil {
-		return nil, err
-	}
+	// sevInfoResponse, err := c.v1client.GetSEVInfo(ctx, request)
+	// if err = handleError(err, "GetSEVInfo", sevInfoResponse.GetResponse()); err != nil {
+	// 	return nil, err
+	// }
 
 	sevPlatformInfo := &v1.SEVPlatformInfo{}
-	if err := json.Unmarshal(sevInfoResponse.GetSevInfo(), sevPlatformInfo); err != nil {
-		log.Log.Reason(err).Error("error unmarshalling SEV info response")
-		return nil, err
-	}
+	// if err := json.Unmarshal(sevInfoResponse.GetSevInfo(), sevPlatformInfo); err != nil {
+	// 	log.Log.Reason(err).Error("error unmarshalling SEV info response")
+	// 	return nil, err
+	// }
 
 	return sevPlatformInfo, nil
 }
 
 func (c *VirtLauncherClient) GetLaunchMeasurement(vmi *v1.VirtualMachineInstance) (*v1.SEVMeasurementInfo, error) {
-	vmiJson, err := json.Marshal(vmi)
-	if err != nil {
-		return nil, err
-	}
+	// vmiJson, err := json.Marshal(vmi)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	request := &cmdv1.VMIRequest{
-		Vmi: &cmdv1.VMI{
-			VmiJson: vmiJson,
-		},
-	}
+	// request := &cmdv1.VMIRequest{
+	// 	Vmi: &cmdv1.VMI{
+	// 		VmiJson: vmiJson,
+	// 	},
+	// }
 
-	ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), shortTimeout)
+	// defer cancel()
 
-	launchMeasurementRespose, err := c.v1client.GetLaunchMeasurement(ctx, request)
-	if err = handleError(err, "GetLaunchMeasurement", launchMeasurementRespose.GetResponse()); err != nil {
-		return nil, err
-	}
+	// launchMeasurementRespose, err := c.v1client.GetLaunchMeasurement(ctx, request)
+	// if err = handleError(err, "GetLaunchMeasurement", launchMeasurementRespose.GetResponse()); err != nil {
+	// 	return nil, err
+	// }
 
 	sevMeasurementInfo := &v1.SEVMeasurementInfo{}
-	if err := json.Unmarshal(launchMeasurementRespose.GetLaunchMeasurement(), sevMeasurementInfo); err != nil {
-		log.Log.Reason(err).Error("error unmarshalling launch measurement response")
-		return nil, err
-	}
+	// if err := json.Unmarshal(launchMeasurementRespose.GetLaunchMeasurement(), sevMeasurementInfo); err != nil {
+	// 	log.Log.Reason(err).Error("error unmarshalling launch measurement response")
+	// 	return nil, err
+	// }
 
 	return sevMeasurementInfo, nil
 }
 
 func (c *VirtLauncherClient) InjectLaunchSecret(vmi *v1.VirtualMachineInstance, sevSecretOptions *v1.SEVSecretOptions) error {
-	vmiJson, err := json.Marshal(vmi)
-	if err != nil {
-		return err
-	}
+	// vmiJson, err := json.Marshal(vmi)
+	// if err != nil {
+	// 	return err
+	// }
 
-	optionsJson, err := json.Marshal(sevSecretOptions)
-	if err != nil {
-		return err
-	}
+	// optionsJson, err := json.Marshal(sevSecretOptions)
+	// if err != nil {
+	// 	return err
+	// }
 
-	request := &cmdv1.InjectLaunchSecretRequest{
-		Vmi: &cmdv1.VMI{
-			VmiJson: vmiJson,
-		},
-		Options: optionsJson,
-	}
+	// request := &cmdv1.InjectLaunchSecretRequest{
+	// 	Vmi: &cmdv1.VMI{
+	// 		VmiJson: vmiJson,
+	// 	},
+	// 	Options: optionsJson,
+	// }
 
-	ctx, cancel := context.WithTimeout(context.Background(), longTimeout)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), longTimeout)
+	// defer cancel()
 
-	response, err := c.v1client.InjectLaunchSecret(ctx, request)
+	// response, err := c.v1client.InjectLaunchSecret(ctx, request)
 
-	return handleError(err, "InjectLaunchSecret", response)
+	// return handleError(err, "InjectLaunchSecret", response)
+	return nil
 }
 
 func (c *VirtLauncherClient) SyncVirtualMachineMemory(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) error {
-	return c.genericSendVMICmd("SyncVirtualMachineMemory", c.v1client.SyncVirtualMachineMemory, vmi, options)
+	//return c.genericSendVMICmd("SyncVirtualMachineMemory", c.v1client.SyncVirtualMachineMemory, vmi, options)
+	return nil
 }

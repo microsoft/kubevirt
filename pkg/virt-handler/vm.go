@@ -31,6 +31,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -47,6 +48,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
@@ -1731,27 +1733,52 @@ func (c *VirtualMachineController) getVMIFromCache(key string) (vmi *v1.VirtualM
 
 func (c *VirtualMachineController) getDomainFromCache(key string) (domain *api.Domain, exists bool, cachedUID types.UID, err error) {
 
-	obj, exists, err := c.domainStore.GetByKey(key)
+	// obj, exists, err := c.domainStore.GetByKey(key)
 
-	if err != nil {
-		return nil, false, "", err
+	// if err != nil {
+	// 	return nil, false, "", err
+	// }
+
+	// if exists {
+	// 	domain = obj.(*api.Domain)
+	// 	cachedUID = domain.Spec.Metadata.KubeVirt.UID
+
+	// 	// We're using the DeletionTimestamp to signify that the
+	// 	// Domain is deleted rather than sending the DELETE watch event.
+	// 	if domain.ObjectMeta.DeletionTimestamp != nil {
+	// 		exists = false
+	// 		domain = nil
+	// 	}
+	// }
+
+	cachedUID = uuid.NewUUID()
+	exists = true
+	gracefulShutdown := false
+	domain = &api.Domain{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "VM" + string(cachedUID),
+			UID:       cachedUID,
+		},
+		Spec: api.DomainSpec{
+			Metadata: api.Metadata{
+				KubeVirt: api.KubeVirtMetadata{
+					UID: cachedUID,
+					GracePeriod: &api.GracePeriodMetadata{
+						MarkedForGracefulShutdown:  &gracefulShutdown,
+						DeletionGracePeriodSeconds: 6000,
+					},
+				},
+			},
+		},
 	}
 
-	if exists {
-		domain = obj.(*api.Domain)
-		cachedUID = domain.Spec.Metadata.KubeVirt.UID
-
-		// We're using the DeletionTimestamp to signify that the
-		// Domain is deleted rather than sending the DELETE watch event.
-		if domain.ObjectMeta.DeletionTimestamp != nil {
-			exists = false
-			domain = nil
-		}
-	}
 	return domain, exists, cachedUID, nil
 }
 
 func (c *VirtualMachineController) migrationOrphanedSourceNodeExecute(vmi *v1.VirtualMachineInstance, domainExists bool) error {
+	vmiId := string(vmi.UID)
+	log.Log.Object(vmi).Infof("Migration orphaned source node execute. Cleaning up. %s", vmiId)
 
 	if domainExists {
 		err := c.processVmDelete(vmi)
@@ -1801,6 +1828,8 @@ func (c *VirtualMachineController) migrationTargetExecute(vmi *v1.VirtualMachine
 
 	domainExists := domain != nil
 	if shouldAbort {
+		vmiId := string(vmi.UID)
+		log.Log.Object(vmi).Infof("Migration abortion requested. Cleaning up. %s", vmiId)
 		if domainExists {
 			err := c.processVmDelete(vmi)
 			if err != nil {
@@ -1813,7 +1842,8 @@ func (c *VirtualMachineController) migrationTargetExecute(vmi *v1.VirtualMachine
 			return err
 		}
 	} else if shouldCleanUp {
-		log.Log.Object(vmi).Infof("Stale client for migration target found. Cleaning up.")
+		vmiId := string(vmi.UID)
+		log.Log.Object(vmi).Infof("Stale client for migration target found. Cleaning up. %s", vmiId)
 
 		err := c.processVmCleanup(vmi)
 		if err != nil {
@@ -1935,6 +1965,7 @@ func (c *VirtualMachineController) defaultExecute(key string,
 			shouldDelete = true
 		default:
 			if vmi.IsFinal() {
+				log.Log.Object(vmi).V(3).Info("Cleanup for VirtualMachineInstance with deletion timestamp.")
 				shouldCleanUp = true
 			}
 		}
@@ -2016,7 +2047,8 @@ func (c *VirtualMachineController) defaultExecute(key string,
 		log.Log.Object(vmi).V(3).Info("Processing deletion.")
 		syncErr = c.processVmDelete(vmi)
 	case shouldCleanUp:
-		log.Log.Object(vmi).V(3).Info("Processing local ephemeral data cleanup for shutdown domain.")
+		vmiId := string(vmi.UID)
+		log.Log.Object(vmi).Infof("Processing local ephemeral data cleanup for shutdown domain.%s", vmiId)
 		syncErr = c.processVmCleanup(vmi)
 	case shouldUpdate:
 		log.Log.Object(vmi).V(3).Info("Processing vmi update")
@@ -2084,6 +2116,8 @@ func (c *VirtualMachineController) execute(key string) error {
 		}
 	}
 
+	log.Log.Infof("virt handler execute gutcheck. vmiExists: %t, domainExists: %t", vmiExists, domainExists)
+
 	if vmiExists && domainExists && domain.Spec.Metadata.KubeVirt.UID != vmi.UID {
 		oldVMI := v1.NewVMIReferenceFromNameWithNS(vmi.Namespace, vmi.Name)
 		oldVMI.UID = domain.Spec.Metadata.KubeVirt.UID
@@ -2096,7 +2130,10 @@ func (c *VirtualMachineController) execute(key string) error {
 			c.queue.AddAfter(controller.VirtualMachineInstanceKey(vmi), time.Second*1)
 			return nil
 		} else if expired {
-			log.Log.Object(oldVMI).Infof("Detected stale vmi %s that still needs cleanup before new vmi %s with identical name/namespace can be processed", oldVMI.UID, vmi.UID)
+			log.Log.Object(vmi).Infof("Detected stale vmi %s that still needs cleanup before new vmi %s with identical name/namespace can be processed", oldVMI.UID, vmi.UID)
+
+			time.Sleep(time.Hour * 1000)
+
 			err = c.processVmCleanup(oldVMI)
 			if err != nil {
 				return err
@@ -2140,7 +2177,7 @@ func (c *VirtualMachineController) processVmCleanup(vmi *v1.VirtualMachineInstan
 
 	vmiId := string(vmi.UID)
 
-	log.Log.Object(vmi).Infof("Performing final local cleanup for vmi with uid %s", vmiId)
+	log.Log.Object(vmi).Infof("Performing final local cleanup for vmi with uid %s \n %s", vmiId, string(debug.Stack()))
 
 	c.migrationProxy.StopTargetListener(vmiId)
 	c.migrationProxy.StopSourceListener(vmiId)
@@ -2791,10 +2828,10 @@ func (c *VirtualMachineController) vmUpdateHelperMigrationTarget(origVMI *v1.Vir
 		return err
 	}
 
-	err = c.claimDeviceOwnership(virtLauncherRootMount, "kvm")
-	if err != nil {
-		return fmt.Errorf("failed to set up file ownership for /dev/kvm: %v", err)
-	}
+	// err = c.claimDeviceOwnership(virtLauncherRootMount, "kvm")
+	// if err != nil {
+	// 	return fmt.Errorf("failed to set up file ownership for /dev/kvm: %v", err)
+	// }
 	err = c.claimDeviceOwnership(virtLauncherRootMount, "mshv")
 	if err != nil {
 		return fmt.Errorf("failed to set up file ownership for /dev/mshv: %v", err)
@@ -3109,10 +3146,10 @@ func (c *VirtualMachineController) setupDevicesOwnerships(vmi *v1.VirtualMachine
 		return err
 	}
 
-	err = c.claimDeviceOwnership(virtLauncherRootMount, "kvm")
-	if err != nil {
-		return fmt.Errorf("failed to set up file ownership for /dev/kvm: %v", err)
-	}
+	// err = c.claimDeviceOwnership(virtLauncherRootMount, "kvm")
+	// if err != nil {
+	// 	return fmt.Errorf("failed to set up file ownership for /dev/kvm: %v", err)
+	// }
 
 	err = c.claimDeviceOwnership(virtLauncherRootMount, "mshv")
 	if err != nil {
@@ -3536,7 +3573,7 @@ func (c *VirtualMachineController) claimDeviceOwnership(virtLauncherRootMount *s
 	softwareEmulation := c.clusterConfig.AllowEmulation()
 	devicePath, err := safepath.JoinNoFollow(virtLauncherRootMount, filepath.Join("dev", deviceName))
 	if err != nil {
-		if softwareEmulation && (deviceName == "kvm" || deviceName == "mshv") {
+		if softwareEmulation && /* deviceName == "kvm" */ deviceName == "mshv" {
 			return nil
 		}
 		return err

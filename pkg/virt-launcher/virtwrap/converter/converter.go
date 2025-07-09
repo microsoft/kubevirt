@@ -1417,22 +1417,19 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 		domainVCPUTopologyForHotplug(vmi, domain)
 	}
 
-	kvmPath := "/dev/kvm"
-	_, errKvm := os.Stat(kvmPath)
-	mshvPath := "/dev/mshv"
-	_, errMshv := os.Stat(mshvPath)
-	if errors.Is(errKvm, os.ErrNotExist) && errors.Is(errMshv, os.ErrNotExist) {
+	//path := "/dev/kvm"
+	hypervisorPath := "/dev/mshv"
+	_, err = os.Stat(hypervisorPath)
+	if errors.Is(err, os.ErrNotExist) {
 		if c.AllowEmulation {
 			logger := log.DefaultLogger()
-			logger.Infof("Hardware emulation device '%s' not present. Using software emulation.", kvmPath)
+			logger.Infof("Hardware emulation device '%s' not present. Using software emulation.", hypervisorPath)
 			domain.Spec.Type = "qemu"
 		} else {
-			return fmt.Errorf("hardware emulation device '%s' not present", kvmPath)
+			return fmt.Errorf("hardware emulation device '%s' not present", hypervisorPath)
 		}
-	} else if errKvm != nil {
-		return errKvm
-	} else if errMshv != nil {
-		return errMshv
+	} else if err != nil {
+		return err
 	}
 
 	newChannel := Add_Agent_To_api_Channel()
