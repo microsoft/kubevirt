@@ -240,7 +240,9 @@ spec:
       virtLauncherImage: virtLauncherImageValue
       virtLauncherOverhead: virtLauncherOverheadValue
       vmmDaemonProcess: vmmDaemonProcessValue
-      vmmProcessExecutable: vmmProcessExecutableValue
+      vmmProcessExecutables:
+      - vmmProcessExecutablesValue
+      vmmSocketPath: vmmSocketPathValue
     vmRolloutStrategy: vmRolloutStrategyValue
     vmStateStorageClass: vmStateStorageClassValue
     webhookConfiguration:

@@ -190,10 +190,10 @@ func GetDefaultDeviceRules() []*devices.Rule {
 	return defaultDeviceRules
 }
 
-func GenerateDefaultDeviceRules(virtstack *virtv1.VirtualizationStackSpec) {
+func GenerateDefaultDeviceRules(virtstack *virtv1.VirtualizationStackSpec) []*devices.Rule {
 	if len(defaultDeviceRules) > 0 {
 		// To avoid re-computing default device rules
-		return
+		return defaultDeviceRules
 	}
 
 	const toAllow = true
@@ -262,6 +262,8 @@ func GenerateDefaultDeviceRules(virtstack *virtv1.VirtualizationStackSpec) {
 	}
 
 	defaultDeviceRules = defaultRules
+
+	return defaultRules
 }
 
 // execVirtChrootCgroups executes virt-chroot cgroups command to apply changes via virt-chroot.

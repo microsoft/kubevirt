@@ -319,7 +319,7 @@ func copyResources(srcResources, dstResources k8sv1.ResourceList) {
 // Note: This is the best estimation we were able to come up with
 //
 //	and is still not 100% accurate
-func GetMemoryOverhead(vmi *v1.VirtualMachineInstance, cpuArch string, additionalOverheadRatio *string) resource.Quantity {
+func GetMemoryOverhead(vmi *v1.VirtualMachineInstance, cpuArch string, additionalOverheadRatio *string, virtstack *v1.VirtualizationStackSpec) resource.Quantity {
 	domain := vmi.Spec.Domain
 	vmiMemoryReq := domain.Resources.Requests.Memory()
 
@@ -333,11 +333,7 @@ func GetMemoryOverhead(vmi *v1.VirtualMachineInstance, cpuArch string, additiona
 	// Add fixed overhead for KubeVirt components, as seen in a random run, rounded up to the nearest MiB
 	// Note: shared libraries are included in the size, so every library is counted (wrongly) as many times as there are
 	//   processes using it. However, the extra memory is only in the order of 10MiB and makes for a nice safety margin.
-	overhead.Add(resource.MustParse(VirtLauncherMonitorOverhead))
-	overhead.Add(resource.MustParse(VirtLauncherOverhead))
-	overhead.Add(resource.MustParse(VirtlogdOverhead))
-	overhead.Add(resource.MustParse(VirtqemudOverhead))
-	overhead.Add(resource.MustParse(QemuOverhead))
+	overhead.Add(resource.MustParse(virtstack.VirtLauncherOverhead))
 
 	// Add CPU table overhead (8 MiB per vCPU and 8 MiB per IO thread)
 	// overhead per vcpu in MiB

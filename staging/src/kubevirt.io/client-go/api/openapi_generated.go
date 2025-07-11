@@ -27939,16 +27939,31 @@ func schema_kubevirtio_api_core_v1_VirtualizationStackSpec(ref common.ReferenceC
 							Format:      "",
 						},
 					},
-					"vmmProcessExecutable": {
+					"vmmProcessExecutables": {
 						SchemaProps: spec.SchemaProps{
-							Description: "VMMProcessExecutable specifies the path to the VMM process executable.",
-							Type:        []string{"string"},
-							Format:      "",
+							Description: "VMMProcessExecutables specifies the names of the VMM process executable.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
 						},
 					},
 					"virtLauncherImage": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Container image URI for virt-launcher for the given virtualization stack.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"vmmSocketPath": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Set to libvirt/virtqemud-sock for Libvirt",
 							Type:        []string{"string"},
 							Format:      "",
 						},

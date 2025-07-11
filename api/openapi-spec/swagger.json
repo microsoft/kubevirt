@@ -18099,8 +18099,16 @@
       "description": "VMMDaemonProcess specifies the name of the VMM daemon process.",
       "type": "string"
      },
-     "vmmProcessExecutable": {
-      "description": "VMMProcessExecutable specifies the path to the VMM process executable.",
+     "vmmProcessExecutables": {
+      "description": "VMMProcessExecutables specifies the names of the VMM process executable.",
+      "type": "array",
+      "items": {
+       "type": "string",
+       "default": ""
+      }
+     },
+     "vmmSocketPath": {
+      "description": "Set to libvirt/virtqemud-sock for Libvirt",
       "type": "string"
      }
     }

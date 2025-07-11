@@ -1612,9 +1612,14 @@ var CRDsValidation map[string]string = map[string]string{
                   description: VMMDaemonProcess specifies the name of the VMM daemon
                     process.
                   type: string
-                vmmProcessExecutable:
-                  description: VMMProcessExecutable specifies the path to the VMM
+                vmmProcessExecutables:
+                  description: VMMProcessExecutables specifies the names of the VMM
                     process executable.
+                  items:
+                    type: string
+                  type: array
+                vmmSocketPath:
+                  description: Set to libvirt/virtqemud-sock for Libvirt
                   type: string
               type: object
             vmRolloutStrategy:

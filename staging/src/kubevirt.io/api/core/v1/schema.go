@@ -29,8 +29,6 @@ import (
 
 type VirtualizationStack string
 
-const QemuKvmVirtualizationStack VirtualizationStack = "qemu-kvm"
-
 type IOThreadsPolicy string
 
 const (

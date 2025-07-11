@@ -617,8 +617,9 @@ func (VirtualizationStackSpec) SwaggerDoc() map[string]string {
 		"hypervisorDevice":         "HypervisorDevice specifies the path to the hypervisor device.",
 		"vCpuRegex":                "VCPURegex defines the regular expression used to identify vCPU devices.",
 		"vmmDaemonProcess":         "VMMDaemonProcess specifies the name of the VMM daemon process.",
-		"vmmProcessExecutable":     "VMMProcessExecutable specifies the path to the VMM process executable.",
+		"vmmProcessExecutables":    "VMMProcessExecutables specifies the names of the VMM process executable.",
 		"virtLauncherImage":        "Container image URI for virt-launcher for the given virtualization stack.",
+		"vmmSocketPath":            "Set to libvirt/virtqemud-sock for Libvirt",
 	}
 }
 

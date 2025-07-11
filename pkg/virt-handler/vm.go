@@ -729,7 +729,7 @@ func (c *VirtualMachineController) migrationTargetUpdateVMIStatus(vmi *v1.Virtua
 
 		// adjust QEMU process memlock limits in order to enable old virt-launcher pod's to
 		// perform hotplug host-devices on post migration.
-		if err := isolation.AdjustQemuProcessMemoryLimits(c.podIsolationDetector, vmi, c.clusterConfig.GetConfig().AdditionalGuestMemoryOverheadRatio); err != nil {
+		if err := isolation.AdjustQemuProcessMemoryLimits(c.podIsolationDetector, vmi, c.clusterConfig.GetConfig().AdditionalGuestMemoryOverheadRatio, c.clusterConfig.GetConfig().VirtualizationStack); err != nil {
 			c.recorder.Event(vmi, k8sv1.EventTypeWarning, err.Error(), "Failed to update target node qemu memory limits during live migration")
 		}
 
@@ -2576,8 +2576,9 @@ func (c *VirtualMachineController) handleTargetMigrationProxy(vmi *v1.VirtualMac
 		return err
 	}
 
+	vmmSocketPath := c.clusterConfig.GetConfig().VirtualizationStack.VmmSocketPath
 	// Get the libvirt connection socket file on the destination pod.
-	socketFile := fmt.Sprintf(filepath.Join(c.virtLauncherFSRunDirPattern, "libvirt/virtqemud-sock"), res.Pid())
+	socketFile := fmt.Sprintf(filepath.Join(c.virtLauncherFSRunDirPattern, vmmSocketPath), res.Pid())
 	// the migration-proxy is no longer shared via host mount, so we
 	// pass in the virt-launcher's baseDir to reach the unix sockets.
 	baseDir := fmt.Sprintf(filepath.Join(c.virtLauncherFSRunDirPattern, "kubevirt"), res.Pid())
@@ -2810,9 +2811,10 @@ func (c *VirtualMachineController) vmUpdateHelperMigrationTarget(origVMI *v1.Vir
 		return err
 	}
 
-	err = c.claimDeviceOwnership(virtLauncherRootMount, "kvm")
+	hypervisorDevice := c.clusterConfig.GetConfig().VirtualizationStack.HypervisorDevice
+	err = c.claimDeviceOwnership(virtLauncherRootMount, strings.TrimPrefix(hypervisorDevice, "/dev/"))
 	if err != nil {
-		return fmt.Errorf("failed to set up file ownership for /dev/kvm: %v", err)
+		return fmt.Errorf("failed to set up file ownership for %s: %v", hypervisorDevice, err)
 	}
 	if virtutil.IsAutoAttachVSOCK(vmi) {
 		if err := c.claimDeviceOwnership(virtLauncherRootMount, "vhost-vsock"); err != nil {
@@ -2858,7 +2860,7 @@ func (c *VirtualMachineController) affinePitThread(vmi *v1.VirtualMachineInstanc
 	}
 	var Mask unix.CPUSet
 	Mask.Zero()
-	qemuprocess, err := res.GetQEMUProcess()
+	qemuprocess, err := res.GetQEMUProcess(c.clusterConfig.GetConfig().VirtualizationStack.VMMProcessExecutables)
 	if err != nil {
 		return err
 	}
@@ -2867,7 +2869,8 @@ func (c *VirtualMachineController) affinePitThread(vmi *v1.VirtualMachineInstanc
 		return nil
 	}
 
-	pitpid, err := res.KvmPitPid()
+	// TODO Do other virtualization stacks have a pit thread?
+	pitpid, err := res.KvmPitPid(c.clusterConfig.GetConfig().VirtualizationStack.VMMProcessExecutables)
 	if err != nil {
 		return err
 	}
@@ -2881,7 +2884,9 @@ func (c *VirtualMachineController) affinePitThread(vmi *v1.VirtualMachineInstanc
 			return fmt.Errorf("failed to set FIFO scheduling and priority 2 for thread %d: %w", pitpid, err)
 		}
 	}
-	vcpus, err := getVCPUThreadIDs(qemupid)
+	// parse thread comm value expression
+	vcpuRegex := regexp.MustCompile(c.clusterConfig.GetConfig().VirtualizationStack.VCPURegex)
+	vcpus, err := getVCPUThreadIDs(qemupid, vcpuRegex)
 	if err != nil {
 		return err
 	}
@@ -2936,6 +2941,9 @@ func (c *VirtualMachineController) configureHousekeepingCgroup(vmi *v1.VirtualMa
 	if err != nil {
 		return err
 	}
+
+	vcpuRegex := regexp.MustCompile(c.clusterConfig.GetConfig().VirtualizationStack.VCPURegex)
+
 	hktids := make([]int, 0, 10)
 
 	for _, tid := range tids {
@@ -2948,7 +2956,8 @@ func (c *VirtualMachineController) configureHousekeepingCgroup(vmi *v1.VirtualMa
 			return fmt.Errorf("failed to find process with tid: %d", tid)
 		}
 		comm := proc.Executable()
-		if strings.Contains(comm, "CPU ") && strings.Contains(comm, "KVM") {
+		if vcpuRegex.MatchString(comm) {
+			// Skip vCPU threads, they are not housekeeping threads
 			continue
 		}
 		hktids = append(hktids, tid)
@@ -3113,7 +3122,7 @@ func (c *VirtualMachineController) handleStartingVMI(
 }
 
 func (c *VirtualMachineController) adjustResources(vmi *v1.VirtualMachineInstance) error {
-	err := c.podIsolationDetector.AdjustResources(vmi, c.clusterConfig.GetConfig().AdditionalGuestMemoryOverheadRatio)
+	err := c.podIsolationDetector.AdjustResources(vmi, c.clusterConfig.GetConfig().AdditionalGuestMemoryOverheadRatio, c.clusterConfig.GetConfig().VirtualizationStack)
 	if err != nil {
 		return fmt.Errorf("failed to adjust resources: %v", err)
 	}
@@ -3135,9 +3144,10 @@ func (c *VirtualMachineController) setupDevicesOwnerships(vmi *v1.VirtualMachine
 		return err
 	}
 
-	err = c.claimDeviceOwnership(virtLauncherRootMount, "kvm")
+	hypervisorDevice := c.clusterConfig.GetConfig().VirtualizationStack.HypervisorDevice
+	err = c.claimDeviceOwnership(virtLauncherRootMount, strings.TrimPrefix(hypervisorDevice, "/dev/"))
 	if err != nil {
-		return fmt.Errorf("failed to set up file ownership for /dev/kvm: %v", err)
+		return fmt.Errorf("failed to set up file ownership for %s: %v", hypervisorDevice, err)
 	}
 
 	if virtutil.IsAutoAttachVSOCK(vmi) {
@@ -3300,7 +3310,7 @@ func (c *VirtualMachineController) hotplugSriovInterfacesCommand(vmi *v1.Virtual
 		return fmt.Errorf("%s: %v", errMsgPrefix, err)
 	}
 
-	if err := isolation.AdjustQemuProcessMemoryLimits(c.podIsolationDetector, vmi, c.clusterConfig.GetConfig().AdditionalGuestMemoryOverheadRatio); err != nil {
+	if err := isolation.AdjustQemuProcessMemoryLimits(c.podIsolationDetector, vmi, c.clusterConfig.GetConfig().AdditionalGuestMemoryOverheadRatio, c.clusterConfig.GetConfig().VirtualizationStack); err != nil {
 		c.recorder.Event(vmi, k8sv1.EventTypeWarning, err.Error(), err.Error())
 		return fmt.Errorf("%s: %v", errMsgPrefix, err)
 	}
@@ -3585,8 +3595,11 @@ func (c *VirtualMachineController) isHostModelMigratable(vmi *v1.VirtualMachineI
 func (c *VirtualMachineController) claimDeviceOwnership(virtLauncherRootMount *safepath.Path, deviceName string) error {
 	softwareEmulation := c.clusterConfig.AllowEmulation()
 	devicePath, err := safepath.JoinNoFollow(virtLauncherRootMount, filepath.Join("dev", deviceName))
+
+	hypervisorDevice := c.clusterConfig.GetConfig().VirtualizationStack.HypervisorDevice
+
 	if err != nil {
-		if softwareEmulation && deviceName == "kvm" {
+		if softwareEmulation && devicePath.String() == hypervisorDevice {
 			return nil
 		}
 		return err
@@ -3728,7 +3741,7 @@ func (c *VirtualMachineController) hotplugMemory(vmi *v1.VirtualMachineInstance,
 	}
 
 	overheadRatio := vmi.Labels[v1.MemoryHotplugOverheadRatioLabel]
-	requiredMemory := services.GetMemoryOverhead(vmi, runtime.GOARCH, &overheadRatio)
+	requiredMemory := services.GetMemoryOverhead(vmi, runtime.GOARCH, &overheadRatio, c.clusterConfig.GetConfig().VirtualizationStack)
 	requiredMemory.Add(
 		c.netBindingPluginMemoryCalculator.Calculate(vmi, c.clusterConfig.GetNetworkBindings()),
 	)

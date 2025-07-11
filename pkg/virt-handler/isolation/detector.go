@@ -51,7 +51,7 @@ type PodIsolationDetector interface {
 	DetectForSocket(vm *v1.VirtualMachineInstance, socket string) (IsolationResult, error)
 
 	// Adjust system resources to run the passed VM
-	AdjustResources(vm *v1.VirtualMachineInstance, additionalOverheadRatio *string) error
+	AdjustResources(vm *v1.VirtualMachineInstance, additionalOverheadRatio *string, virtstack *v1.VirtualizationStackSpec) error
 }
 
 const isolationDialTimeout = 5
@@ -94,7 +94,7 @@ func (s *socketBasedIsolationDetector) DetectForSocket(vm *v1.VirtualMachineInst
 	return NewIsolationResult(pid, ppid), nil
 }
 
-func (s *socketBasedIsolationDetector) AdjustResources(vm *v1.VirtualMachineInstance, additionalOverheadRatio *string) error {
+func (s *socketBasedIsolationDetector) AdjustResources(vm *v1.VirtualMachineInstance, additionalOverheadRatio *string, virtstack *v1.VirtualizationStackSpec) error {
 	// only VFIO attached or with lock guest memory domains require MEMLOCK adjustment
 	if !util.IsVFIOVMI(vm) && !vm.IsRealtimeEnabled() && !util.IsSEVVMI(vm) {
 		return nil
@@ -119,12 +119,12 @@ func (s *socketBasedIsolationDetector) AdjustResources(vm *v1.VirtualMachineInst
 		}
 
 		// virtqemud process sets the memory lock limit before fork/exec-ing into qemu
-		if process.Executable() != "virtqemud" {
+		if process.Executable() != virtstack.VMMDaemonProcess {
 			continue
 		}
 
 		// make the best estimate for memory required by libvirt
-		memlockSize := services.GetMemoryOverhead(vm, runtime.GOARCH, additionalOverheadRatio)
+		memlockSize := services.GetMemoryOverhead(vm, runtime.GOARCH, additionalOverheadRatio, virtstack)
 		// Add base memory requested for the VM
 		vmiMemoryReq := vm.Spec.Domain.Resources.Requests.Memory()
 		memlockSize.Add(*resource.NewScaledQuantity(vmiMemoryReq.ScaledValue(resource.Kilo), resource.Kilo))
@@ -142,7 +142,7 @@ func (s *socketBasedIsolationDetector) AdjustResources(vm *v1.VirtualMachineInst
 // AdjustQemuProcessMemoryLimits adjusts QEMU process MEMLOCK rlimits that runs inside
 // virt-launcher pod on the given VMI according to its spec.
 // Only VMI's with VFIO devices (e.g: SRIOV, GPU), SEV or RealTime workloads require QEMU process MEMLOCK adjustment.
-func AdjustQemuProcessMemoryLimits(podIsoDetector PodIsolationDetector, vmi *v1.VirtualMachineInstance, additionalOverheadRatio *string) error {
+func AdjustQemuProcessMemoryLimits(podIsoDetector PodIsolationDetector, vmi *v1.VirtualMachineInstance, additionalOverheadRatio *string, virtstack *v1.VirtualizationStackSpec) error {
 	if !util.IsVFIOVMI(vmi) && !vmi.IsRealtimeEnabled() && !util.IsSEVVMI(vmi) {
 		return nil
 	}
@@ -152,13 +152,13 @@ func AdjustQemuProcessMemoryLimits(podIsoDetector PodIsolationDetector, vmi *v1.
 		return err
 	}
 
-	qemuProcess, err := isolationResult.GetQEMUProcess()
+	qemuProcess, err := isolationResult.GetQEMUProcess(virtstack.VMMProcessExecutables) // TODO Make the VMMProcessExecutable an array
 	if err != nil {
 		return err
 	}
 	qemuProcessID := qemuProcess.Pid()
 	// make the best estimate for memory required by libvirt
-	memlockSize := services.GetMemoryOverhead(vmi, runtime.GOARCH, additionalOverheadRatio)
+	memlockSize := services.GetMemoryOverhead(vmi, runtime.GOARCH, additionalOverheadRatio, virtstack)
 	// Add base memory requested for the VM
 	vmiMemoryReq := vmi.Spec.Domain.Resources.Requests.Memory()
 	memlockSize.Add(*resource.NewScaledQuantity(vmiMemoryReq.ScaledValue(resource.Kilo), resource.Kilo))
@@ -172,12 +172,10 @@ func AdjustQemuProcessMemoryLimits(podIsoDetector PodIsolationDetector, vmi *v1.
 	return nil
 }
 
-var qemuProcessExecutablePrefixes = []string{"qemu-system", "qemu-kvm"}
-
 // findIsolatedQemuProcess Returns the first occurrence of the QEMU process whose parent is PID"
-func findIsolatedQemuProcess(processes []ps.Process, pid int) (ps.Process, error) {
+func findIsolatedQemuProcess(processes []ps.Process, pid int, execPrefixes []string) (ps.Process, error) {
 	processes = childProcesses(processes, pid)
-	for _, execPrefix := range qemuProcessExecutablePrefixes {
+	for _, execPrefix := range execPrefixes {
 		if qemuProcess := lookupProcessByExecutablePrefix(processes, execPrefix); qemuProcess != nil {
 			return qemuProcess, nil
 		}

@@ -34,6 +34,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
+	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 	"kubevirt.io/kubevirt/pkg/virt-operator/resource/generate/components"
 	"kubevirt.io/kubevirt/pkg/virt-operator/resource/generate/rbac"
 	"kubevirt.io/kubevirt/tools/util"
@@ -158,18 +159,10 @@ func main() {
 			panic(err)
 		}
 	case "kv-cr":
-		// TODO PLUGINDEV: Move the below struct defn to a better place.
-		// TODO PLUGINDEV: Possibly under virt-launcher.
-		qemuVirtualizationStack := virtv1.VirtualizationStackSpec{
-			Name:                     "qemu-kvm",
-			VirtLauncherCapabilities: []string{"NET_BIND_SERVICE"},
-			VirtLauncherOverhead:     "100Mi",
-			HypervisorDevice:         "/dev/kvm",
-			VCPURegex:                "KVM",
-			VMMDaemonProcess:         "virtqemud",
-			VMMProcessExecutable:     "qemu-system-x86",
-			VirtLauncherImage:        *virtLauncherImage,
-		}
+		// Set the virtualization stack to the default
+		qemuVirtualizationStack := services.QemuVirtualizationStackSpec
+		qemuVirtualizationStack.VirtLauncherImage = *virtLauncherImage
+
 		generateKubeVirtCR(namespace, imagePullPolicy, featureGates, infraReplicas, qemuVirtualizationStack)
 	case "operator-rbac":
 		all := rbac.GetAllOperator(*namespace)

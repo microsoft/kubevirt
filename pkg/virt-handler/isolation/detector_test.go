@@ -36,6 +36,7 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	"kubevirt.io/kubevirt/pkg/unsafepath"
+	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 )
 
@@ -132,9 +133,11 @@ var _ = Describe("findIsolatedQemuProcess", func() {
 	qemuKvmProc := ProcessStub{pid: 101, ppid: virtLauncherPid, binary: "qemu-kvm"}
 	qemuSystemProc := ProcessStub{pid: 101, ppid: virtLauncherPid, binary: "qemu-system-x86_64"}
 
+	qemuVirtStack := &services.QemuVirtualizationStackSpec
+
 	DescribeTable("should return QEMU process",
 		func(processes []ps.Process, pid int, expectedProcess ps.Process) {
-			proc, err := findIsolatedQemuProcess(processes, pid)
+			proc, err := findIsolatedQemuProcess(processes, pid, qemuVirtStack.VMMProcessExecutables)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(proc).To(Equal(expectedProcess))
 		},
@@ -150,7 +153,7 @@ var _ = Describe("findIsolatedQemuProcess", func() {
 		),
 	)
 	It("should fail when no QEMU process exists", func() {
-		proc, err := findIsolatedQemuProcess(virtLauncherProcesses, virtLauncherPid)
+		proc, err := findIsolatedQemuProcess(virtLauncherProcesses, virtLauncherPid, qemuVirtStack.VMMProcessExecutables)
 		Expect(err).To(HaveOccurred())
 		Expect(proc).To(BeNil())
 	})

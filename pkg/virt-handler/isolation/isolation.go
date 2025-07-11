@@ -61,9 +61,9 @@ type IsolationResult interface {
 	// mounts for the process
 	Mounts(mount.FilterFunc) ([]*mount.Info, error)
 	// returns the QEMU process
-	GetQEMUProcess() (ps.Process, error)
+	GetQEMUProcess(execPrefixes []string) (ps.Process, error)
 	// returns the KVM PIT pid
-	KvmPitPid() (int, error)
+	KvmPitPid(execPrefixes []string) (int, error)
 }
 
 type RealIsolationResult struct {
@@ -138,12 +138,12 @@ func (r *RealIsolationResult) PPid() int {
 }
 
 // GetQEMUProcess encapsulates and exposes the logic to retrieve the QEMU process ID
-func (r *RealIsolationResult) GetQEMUProcess() (ps.Process, error) {
+func (r *RealIsolationResult) GetQEMUProcess(execPrefixes []string) (ps.Process, error) {
 	processes, err := ps.Processes()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all processes: %v", err)
 	}
-	qemuProcess, err := findIsolatedQemuProcess(processes, r.PPid())
+	qemuProcess, err := findIsolatedQemuProcess(processes, r.PPid(), execPrefixes)
 	if err != nil {
 		return nil, err
 	}
@@ -180,8 +180,8 @@ func GetNspid(vmpid int) (int, error) {
 	return -1, nil
 }
 
-func (r *RealIsolationResult) KvmPitPid() (int, error) {
-	qemuprocess, err := r.GetQEMUProcess()
+func (r *RealIsolationResult) KvmPitPid(qemuExecPrefixes []string) (int, error) {
+	qemuprocess, err := r.GetQEMUProcess(qemuExecPrefixes)
 	if err != nil {
 		return -1, err
 	}

@@ -6285,6 +6285,11 @@ func (in *VirtualizationStackSpec) DeepCopyInto(out *VirtualizationStackSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.VMMProcessExecutables != nil {
+		in, out := &in.VMMProcessExecutables, &out.VMMProcessExecutables
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

@@ -2254,11 +2254,14 @@ type VirtualizationStackSpec struct {
 	// VMMDaemonProcess specifies the name of the VMM daemon process.
 	VMMDaemonProcess string `json:"vmmDaemonProcess,omitempty"`
 
-	// VMMProcessExecutable specifies the path to the VMM process executable.
-	VMMProcessExecutable string `json:"vmmProcessExecutable,omitempty"`
+	// VMMProcessExecutables specifies the names of the VMM process executable.
+	VMMProcessExecutables []string `json:"vmmProcessExecutables,omitempty"`
 
 	// Container image URI for virt-launcher for the given virtualization stack.
 	VirtLauncherImage string `json:"virtLauncherImage,omitempty"`
+
+	// Set to libvirt/virtqemud-sock for Libvirt
+	VmmSocketPath string `json:"vmmSocketPath,omitempty"`
 }
 
 type CustomizeComponents struct {

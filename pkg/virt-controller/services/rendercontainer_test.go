@@ -78,18 +78,19 @@ var _ = Describe("Container spec renderer", func() {
 	})
 
 	Context("vmi capabilities", func() {
-		allowedCapabilities := []k8sv1.Capability{
+		defaultCapabilities := []k8sv1.Capability{
 			CAP_NET_BIND_SERVICE,
-			CAP_SYS_NICE,
 		}
+		expectedCapabilities := append(defaultCapabilities, CAP_SYS_NICE)
+
 		Context("a VMI running as root", func() {
 			BeforeEach(func() {
-				specRenderer = NewContainerSpecRenderer(containerName, img, pullPolicy, WithCapabilities(simplestVMI()))
+				specRenderer = NewContainerSpecRenderer(containerName, img, pullPolicy, WithCapabilities(simplestVMI(), defaultCapabilities))
 			})
 
 			It("must request to add the NET_BIND_SERVICE and SYS_NICE capabilities", func() {
 				Expect(specRenderer.Render(exampleCommand).SecurityContext.Capabilities.Add).To(
-					ConsistOf(allowedCapabilities))
+					ConsistOf(expectedCapabilities))
 			})
 
 			Context("with a virtioFS filesystem", func() {
@@ -99,12 +100,12 @@ var _ = Describe("Container spec renderer", func() {
 						containerName,
 						img,
 						pullPolicy,
-						WithCapabilities(vmiWithVirtioFS(rootUser)))
+						WithCapabilities(vmiWithVirtioFS(rootUser), defaultCapabilities))
 				})
 
 				It("cannot request additional capabilities", func() {
 					Expect(specRenderer.Render(exampleCommand).SecurityContext.Capabilities.Add).Should(
-						ConsistOf(allowedCapabilities))
+						ConsistOf(expectedCapabilities))
 				})
 			})
 		})
@@ -116,12 +117,12 @@ var _ = Describe("Container spec renderer", func() {
 					containerName,
 					img,
 					pullPolicy,
-					WithCapabilities(nonRootVMI(nonRootUser)))
+					WithCapabilities(nonRootVMI(nonRootUser), defaultCapabilities))
 			})
 
 			It("must request the NET_BIND_SERVICE capability", func() {
 				Expect(specRenderer.Render(exampleCommand).SecurityContext.Capabilities.Add).Should(
-					ConsistOf(k8sv1.Capability(CAP_NET_BIND_SERVICE)))
+					ConsistOf(defaultCapabilities))
 			})
 		})
 	})
@@ -179,8 +180,11 @@ var _ = Describe("Container spec renderer", func() {
 
 	Context("with drop-all capabilities option", func() {
 		It("all capabilities should be dropped, but added caps should be kept", func() {
+			defaultCapabilities := []k8sv1.Capability{
+				CAP_NET_BIND_SERVICE,
+			}
 			vmi := simplestVMI()
-			specRenderer = NewContainerSpecRenderer(containerName, img, pullPolicy, WithCapabilities(vmi), WithDropALLCapabilities())
+			specRenderer = NewContainerSpecRenderer(containerName, img, pullPolicy, WithCapabilities(vmi, defaultCapabilities), WithDropALLCapabilities())
 			Expect(specRenderer.Render(exampleCommand).SecurityContext.Capabilities.Drop).To(Equal([]k8sv1.Capability{"ALL"}))
 			Expect(specRenderer.Render(exampleCommand).SecurityContext.Capabilities.Add).ToNot(BeEmpty())
 		})

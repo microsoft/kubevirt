@@ -111,16 +111,23 @@ const EXT_LOG_VERBOSITY_THRESHOLD = 5
 const ephemeralStorageOverheadSize = "50M"
 
 const (
-	VirtLauncherMonitorOverhead = "25Mi"  // The `ps` RSS for virt-launcher-monitor
-	VirtLauncherOverhead        = "100Mi" // The `ps` RSS for the virt-launcher process
-	VirtlogdOverhead            = "25Mi"  // The `ps` RSS for virtlogd
-	VirtqemudOverhead           = "40Mi"  // The `ps` RSS for virtqemud
-	QemuOverhead                = "30Mi"  // The `ps` RSS for qemu, minus the RAM of its (stressed) guest, minus the virtual page table
 	// Default: limits.memory = 2*requests.memory
 	DefaultMemoryLimitOverheadRatio = float64(2.0)
 
 	FailedToRenderLaunchManifestErrFormat = "failed to render launch manifest: %v"
 )
+
+var QemuVirtualizationStackSpec = v1.VirtualizationStackSpec{
+	Name:                     "qemu-kvm",
+	VirtLauncherCapabilities: []string{"NET_BIND_SERVICE"},
+	VirtLauncherOverhead:     "220Mi",
+	HypervisorDevice:         "/dev/kvm",
+	VCPURegex:                `^CPU (\d+)/KVM\n$`,
+	VMMDaemonProcess:         "virtqemud",
+	VMMProcessExecutables:    []string{"qemu-system-x86", "qemu-kvm"},
+	VmmSocketPath:            "libvirt/virtqemud-sock",
+	VirtLauncherImage:        "", // to be set by the operator"
+}
 
 type netBindingPluginMemoryCalculator interface {
 	Calculate(vmi *v1.VirtualMachineInstance, registeredPlugins map[string]v1.InterfaceBindingPlugin) resource.Quantity
@@ -160,6 +167,7 @@ type templateService struct {
 	launcherSubGid             int64
 	resourceQuotaStore         cache.Store
 	namespaceStore             cache.Store
+	virtualizationStack        *v1.VirtualizationStackSpec
 
 	sidecarCreators                  []SidecarCreatorFunc
 	netBindingPluginMemoryCalculator netBindingPluginMemoryCalculator
@@ -810,13 +818,18 @@ func (t *templateService) newContainerSpecRenderer(vmi *v1.VirtualMachineInstanc
 	kubeVirt := kubeVirtList.Items[0]
 	stack := kubeVirt.Spec.Configuration.VirtualizationStack
 
+	capabilities := make([]k8sv1.Capability, 0, len(stack.VirtLauncherCapabilities))
+	for _, cap := range stack.VirtLauncherCapabilities {
+		capabilities = append(capabilities, k8sv1.Capability(cap))
+	}
+
 	computeContainerOpts := []Option{
 		WithVolumeDevices(volumeRenderer.VolumeDevices()...),
 		WithVolumeMounts(volumeRenderer.Mounts()...),
 		WithSharedFilesystems(volumeRenderer.SharedFilesystemPaths()...),
 		WithResourceRequirements(resources),
 		WithPorts(vmi),
-		WithCapabilities(vmi, stack.VirtLauncherCapabilities),
+		WithCapabilities(vmi, capabilities),
 	}
 	if util.IsNonRootVMI(vmi) {
 		computeContainerOpts = append(computeContainerOpts, WithNonRoot(userId))
@@ -1296,6 +1309,20 @@ func NewTemplateService(launcherImage string,
 	namespaceStore cache.Store,
 	opts ...templateServiceOption,
 ) TemplateService {
+	// Query the KubeVirt CR to fetch VirtualizationStackSpec
+	kubeVirtList, err := virtClient.KubeVirt(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		log.Log.Errorf("Failed to list KubeVirt CRs: %v", err)
+		return nil
+	}
+	if len(kubeVirtList.Items) == 0 {
+		panic("No KubeVirt CRs found in the cluster")
+	} else if len(kubeVirtList.Items) > 1 {
+		panic(fmt.Sprintf("Found %d KubeVirt CR(s) in the cluster, which is unexpectedly > 1", len(kubeVirtList.Items)))
+	}
+
+	kubeVirt := kubeVirtList.Items[0]
+	virtstack := kubeVirt.Spec.Configuration.VirtualizationStack
 
 	precond.MustNotBeEmpty(launcherImage)
 	log.Log.V(1).Infof("Exporter Image: %s", exporterImage)
@@ -1314,6 +1341,7 @@ func NewTemplateService(launcherImage string,
 		exporterImage:              exporterImage,
 		resourceQuotaStore:         resourceQuotaStore,
 		namespaceStore:             namespaceStore,
+		virtualizationStack:        virtstack,
 	}
 
 	for _, opt := range opts {
@@ -1508,7 +1536,7 @@ func (t *templateService) VMIResourcePredicates(vmi *v1.VirtualMachineInstance, 
 	if vmiCPUArch == "" {
 		vmiCPUArch = t.clusterConfig.GetClusterCPUArch()
 	}
-	memoryOverhead := GetMemoryOverhead(vmi, vmiCPUArch, t.clusterConfig.GetConfig().AdditionalGuestMemoryOverheadRatio)
+	memoryOverhead := GetMemoryOverhead(vmi, vmiCPUArch, t.clusterConfig.GetConfig().AdditionalGuestMemoryOverheadRatio, t.virtualizationStack)
 
 	if t.netBindingPluginMemoryCalculator != nil {
 		memoryOverhead.Add(

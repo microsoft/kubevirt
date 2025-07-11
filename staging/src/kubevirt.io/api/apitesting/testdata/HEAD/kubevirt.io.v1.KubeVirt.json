@@ -377,8 +377,11 @@
         "hypervisorDeviceMinorNumber": -27,
         "vCpuRegex": "vCpuRegexValue",
         "vmmDaemonProcess": "vmmDaemonProcessValue",
-        "vmmProcessExecutable": "vmmProcessExecutableValue",
-        "virtLauncherImage": "virtLauncherImageValue"
+        "vmmProcessExecutables": [
+          "vmmProcessExecutablesValue"
+        ],
+        "virtLauncherImage": "virtLauncherImageValue",
+        "vmmSocketPath": "vmmSocketPathValue"
       }
     },
     "infra": {
