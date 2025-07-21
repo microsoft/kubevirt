@@ -2860,7 +2860,11 @@ func (c *VirtualMachineController) affinePitThread(vmi *v1.VirtualMachineInstanc
 	}
 	var Mask unix.CPUSet
 	Mask.Zero()
-	qemuprocess, err := res.GetQEMUProcess(c.clusterConfig.GetConfig().VirtualizationStack.VMMProcessExecutables)
+
+	// Get the virtualization stack configuration
+	virtStack := c.clusterConfig.GetConfig().VirtualizationStack
+
+	qemuprocess, err := res.GetQEMUProcess(virtStack.VMMProcessExecutables)
 	if err != nil {
 		return err
 	}
@@ -2870,7 +2874,7 @@ func (c *VirtualMachineController) affinePitThread(vmi *v1.VirtualMachineInstanc
 	}
 
 	// TODO Do other virtualization stacks have a pit thread?
-	pitpid, err := res.KvmPitPid(c.clusterConfig.GetConfig().VirtualizationStack.VMMProcessExecutables)
+	pitpid, err := res.KvmPitPid(virtStack.PitPidPrefix, virtStack.VMMProcessExecutables)
 	if err != nil {
 		return err
 	}
@@ -2879,6 +2883,7 @@ func (c *VirtualMachineController) affinePitThread(vmi *v1.VirtualMachineInstanc
 	}
 	if vmi.IsRealtimeEnabled() {
 		param := schedParam{priority: 2}
+		// If the VMI is real-time enabled, then the PIT thread needs to be set to FIFO scheduling with priority 2.
 		err = schedSetScheduler(pitpid, schedFIFO, param)
 		if err != nil {
 			return fmt.Errorf("failed to set FIFO scheduling and priority 2 for thread %d: %w", pitpid, err)
@@ -2898,6 +2903,7 @@ func (c *VirtualMachineController) affinePitThread(vmi *v1.VirtualMachineInstanc
 	if err != nil {
 		return err
 	}
+	// In the following lines, we are setting the PIT thread to the same CPU affinity as the vCPU thread 0.
 	err = unix.SchedGetaffinity(vcpupid, &Mask)
 	if err != nil {
 		return err
@@ -3249,6 +3255,19 @@ func (c *VirtualMachineController) handleHousekeeping(vmi *v1.VirtualMachineInst
 	}
 	if vmi.IsCPUDedicated() && !vmi.IsRunning() && !vmi.IsFinal() {
 		log.Log.V(3).Object(vmi).Info("Affining PIT thread")
+		// PIT thread affinity is only needed for dedicated CPU workloads
+		// and is not needed for running VMs, as the PIT thread is already affined
+		// to the vCPU threads.
+		// This is because the PIT thread is created by the qemu process, which is
+		// already affined to the vCPU threads.
+		// So we only need to affine the PIT thread when the VM is not running.
+
+		// PIT stands for Programmable Interval Timer, which is used by the hypervisor
+		// to generate timer interrupts for the virtual machine.
+		// Affining the PIT thread to the same CPU as the vCPU threads helps to
+		// reduce the latency of timer interrupts and improve the performance of the VM.
+		// This is especially important for real-time workloads, where low latency is critical.
+
 		if err := c.affinePitThread(vmi); err != nil {
 			return err
 		}

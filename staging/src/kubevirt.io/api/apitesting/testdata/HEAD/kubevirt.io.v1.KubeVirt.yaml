@@ -234,6 +234,7 @@ spec:
       hypervisorDeviceMajorNumber: -27
       hypervisorDeviceMinorNumber: -27
       name: nameValue
+      pitPidPrefix: pitPidPrefixValue
       vCpuRegex: vCpuRegexValue
       virtLauncherCapabilities:
       - virtLauncherCapabilitiesValue

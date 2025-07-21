@@ -15,6 +15,7 @@ spec:
     virtualizationStack:
       hypervisorDevice: /dev/kvm
       name: qemu-kvm
+      pitPidPrefix: kvm-pit
       vCpuRegex: ^CPU (\d+)/KVM\n$
       virtLauncherCapabilities:
       - NET_BIND_SERVICE

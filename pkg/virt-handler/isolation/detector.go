@@ -152,7 +152,7 @@ func AdjustQemuProcessMemoryLimits(podIsoDetector PodIsolationDetector, vmi *v1.
 		return err
 	}
 
-	qemuProcess, err := isolationResult.GetQEMUProcess(virtstack.VMMProcessExecutables) // TODO Make the VMMProcessExecutable an array
+	qemuProcess, err := isolationResult.GetQEMUProcess(virtstack.VMMProcessExecutables)
 	if err != nil {
 		return err
 	}

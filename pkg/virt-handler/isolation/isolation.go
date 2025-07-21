@@ -63,7 +63,7 @@ type IsolationResult interface {
 	// returns the QEMU process
 	GetQEMUProcess(execPrefixes []string) (ps.Process, error)
 	// returns the KVM PIT pid
-	KvmPitPid(execPrefixes []string) (int, error)
+	KvmPitPid(pitPidPrefix string, execPrefixes []string) (int, error)
 }
 
 type RealIsolationResult struct {
@@ -180,7 +180,7 @@ func GetNspid(vmpid int) (int, error) {
 	return -1, nil
 }
 
-func (r *RealIsolationResult) KvmPitPid(qemuExecPrefixes []string) (int, error) {
+func (r *RealIsolationResult) KvmPitPid(pitPidPrefix string, qemuExecPrefixes []string) (int, error) {
 	qemuprocess, err := r.GetQEMUProcess(qemuExecPrefixes)
 	if err != nil {
 		return -1, err
@@ -190,7 +190,8 @@ func (r *RealIsolationResult) KvmPitPid(qemuExecPrefixes []string) (int, error) 
 	if err != nil || nspid == -1 {
 		return -1, err
 	}
-	pitstr := "kvm-pit/" + strconv.Itoa(nspid)
+	// The KVM PIT thread is named "kvm-pit/<nspid>" where <nspid> is the NSpid of the QEMU process.
+	pitstr := pitPidPrefix + "/" + strconv.Itoa(nspid)
 
 	for _, process := range processes {
 		if process.Executable() == pitstr {

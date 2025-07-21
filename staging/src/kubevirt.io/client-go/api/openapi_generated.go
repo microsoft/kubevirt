@@ -27932,6 +27932,13 @@ func schema_kubevirtio_api_core_v1_VirtualizationStackSpec(ref common.ReferenceC
 							Format:      "",
 						},
 					},
+					"pitPidPrefix": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Prefix of the Programmable Interrupt Timer (PIT) PID.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"vmmDaemonProcess": {
 						SchemaProps: spec.SchemaProps{
 							Description: "VMMDaemonProcess specifies the name of the VMM daemon process.",

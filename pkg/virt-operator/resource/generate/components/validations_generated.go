@@ -1589,6 +1589,9 @@ var CRDsValidation map[string]string = map[string]string{
                 name:
                   description: Name of the virtualization stack
                   type: string
+                pitPidPrefix:
+                  description: Prefix of the Programmable Interrupt Timer (PIT) PID.
+                  type: string
                 vCpuRegex:
                   description: VCPURegex defines the regular expression used to identify
                     vCPU devices.

@@ -236,7 +236,6 @@ func GenerateDefaultDeviceRules(virtstack *virtv1.VirtualizationStackSpec) []*de
 		},
 	}
 
-	// TODO PLUGINDEV: Need to deduplicate the Major:Minor list
 	defaultRules = append(defaultRules, &devices.Rule{
 		Type:        devices.CharDevice,
 		Major:       virtstack.HypervisorDeviceMajorNumber,

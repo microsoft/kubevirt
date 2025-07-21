@@ -2251,6 +2251,9 @@ type VirtualizationStackSpec struct {
 	// VCPURegex defines the regular expression used to identify vCPU devices.
 	VCPURegex string `json:"vCpuRegex,omitempty"`
 
+	// Prefix of the Programmable Interrupt Timer (PIT) PID.
+	PitPidPrefix string `json:"pitPidPrefix,omitempty"`
+
 	// VMMDaemonProcess specifies the name of the VMM daemon process.
 	VMMDaemonProcess string `json:"vmmDaemonProcess,omitempty"`
 

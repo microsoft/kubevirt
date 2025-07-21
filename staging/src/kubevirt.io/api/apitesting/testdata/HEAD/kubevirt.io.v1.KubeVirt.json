@@ -376,6 +376,7 @@
         "hypervisorDeviceMajorNumber": -27,
         "hypervisorDeviceMinorNumber": -27,
         "vCpuRegex": "vCpuRegexValue",
+        "pitPidPrefix": "pitPidPrefixValue",
         "vmmDaemonProcess": "vmmDaemonProcessValue",
         "vmmProcessExecutables": [
           "vmmProcessExecutablesValue"

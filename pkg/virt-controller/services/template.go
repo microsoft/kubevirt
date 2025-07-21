@@ -123,6 +123,7 @@ var QemuVirtualizationStackSpec = v1.VirtualizationStackSpec{
 	VirtLauncherOverhead:     "220Mi",
 	HypervisorDevice:         "/dev/kvm",
 	VCPURegex:                `^CPU (\d+)/KVM\n$`,
+	PitPidPrefix:             "kvm-pit",
 	VMMDaemonProcess:         "virtqemud",
 	VMMProcessExecutables:    []string{"qemu-system-x86", "qemu-kvm"},
 	VmmSocketPath:            "libvirt/virtqemud-sock",
@@ -802,7 +803,6 @@ func (t *templateService) newInitContainerRenderer(vmiSpec *v1.VirtualMachineIns
 }
 
 func (t *templateService) newContainerSpecRenderer(vmi *v1.VirtualMachineInstance, volumeRenderer *VolumeRenderer, resources k8sv1.ResourceRequirements, userId int64) *ContainerSpecRenderer {
-	// TODO PLUGINDEV: Provide the default capabilities for the virtstack here.
 	// Use the t.virtClient to query the KubeVirt CR installed in the cluster
 	kubeVirtList, err := t.virtClient.KubeVirt(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
 	if err != nil {

@@ -616,6 +616,7 @@ func (VirtualizationStackSpec) SwaggerDoc() map[string]string {
 		"virtLauncherOverhead":     "virtLauncherOverhead specifies the overhead associated with the virt-launcher.",
 		"hypervisorDevice":         "HypervisorDevice specifies the path to the hypervisor device.",
 		"vCpuRegex":                "VCPURegex defines the regular expression used to identify vCPU devices.",
+		"pitPidPrefix":             "Prefix of the Programmable Interrupt Timer (PIT) PID.",
 		"vmmDaemonProcess":         "VMMDaemonProcess specifies the name of the VMM daemon process.",
 		"vmmProcessExecutables":    "VMMProcessExecutables specifies the names of the VMM process executable.",
 		"virtLauncherImage":        "Container image URI for virt-launcher for the given virtualization stack.",

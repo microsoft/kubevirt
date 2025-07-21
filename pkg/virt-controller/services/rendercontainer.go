@@ -291,9 +291,6 @@ func wrapExecProbeWithVirtProbe(vmi *v1.VirtualMachineInstance, probe *k8sv1.Pro
 
 func requiredCapabilities(vmi *v1.VirtualMachineInstance, virtStackRequiredCapabilities []k8sv1.Capability) []k8sv1.Capability {
 	// These capabilies are always required because we set them on virt-launcher binary
-
-	// TODO PLUGINDEV Move the virtStackRequiredCapabilities population to the WithCapabilities function, outside requiredCapabilities
-	// TODO PLUGINDEV This function should now be called vmiSpecificCapabilities
 	capabilities := []k8sv1.Capability{}
 	for _, capability := range virtStackRequiredCapabilities {
 		capabilities = append(capabilities, capability)
