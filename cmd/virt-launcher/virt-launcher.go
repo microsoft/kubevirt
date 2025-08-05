@@ -20,7 +20,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	goflag "flag"
 	"fmt"
@@ -365,6 +364,7 @@ func main() {
 	pflag.Duration("qemu-agent-version-interval", 300*time.Second, "Interval between consecutive qemu agent calls for version command")
 	//qemuAgentFSFreezeStatusInterval :=
 	pflag.Duration("qemu-fsfreeze-status-interval", 5*time.Second, "Interval between consecutive qemu agent calls for fsfreeze status command")
+	openVMMImageName := pflag.String("openvmm-image-name", "ubuntu", "Name of the guest OS image to be used by OpenVMM")
 	simulateCrash := pflag.Bool("simulate-crash", false, "Causes virt-launcher to immediately crash. This is used by functional tests to simulate crash loop scenarios.")
 	libvirtLogFilters := pflag.String("libvirt-log-filters", "", "Set custom log filters for libvirt")
 
@@ -425,7 +425,7 @@ func main() {
 	l.StartVirtqemud(stopChan)
 
 	// [jocelynb] TODO: remove this POC line once doing the actual implementation
-	cmd := exec.Command("qemu-img", "convert", "-p", "-f", "qcow2", "-O", "raw", "/etc/virtimages/ubuntu-24.04-server-cloudimg-amd64.img", "/etc/virtimages/ubuntu-24.04-server-cloudimg-amd64.raw")
+	cmd := exec.Command("qemu-img", "convert", "-p", "-f", "qcow2", "-O", "raw", "/etc/virtimages/ubuntu-24.04-server-cloudimg-amd64.img", "/etc/virtimages/ubuntu.raw")
 	err = cmd.Run()
 	if err != nil {
 		vmiId := string(vmi.UID)
@@ -435,7 +435,7 @@ func main() {
 	}
 
 	// [jocelynb] TODO: remove this POC line once doing the actual implementation
-	cmd = exec.Command("qemu-img", "convert", "-p", "-f", "vhdx", "-O", "raw", "/etc/virtimages/20348.1.amd64fre.fe_release.210507-1500_server_serverstandardcore_en-us_vl.vhdx", "/etc/virtimages/20348.1.amd64fre.fe_release.210507-1500_server_serverstandardcore_en-us_vl.raw")
+	cmd = exec.Command("qemu-img", "convert", "-p", "-f", "vhdx", "-O", "raw", "/etc/virtimages/20348.1.amd64fre.fe_release.210507-1500_server_serverstandardcore_en-us_vl.vhdx", "/etc/virtimages/winserver.raw")
 	err = cmd.Run()
 	if err != nil {
 		vmiId := string(vmi.UID)
@@ -444,22 +444,38 @@ func main() {
 		panic(err)
 	}
 
-	file, err := os.Create("/tmp/openvmmdebug.txt")
+	openvmmportfile, err := os.Create("/tmp/openvmmport.txt")
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		return
 	}
-	defer file.Close()
+	defer openvmmportfile.Close()
 
-	writer := bufio.NewWriter(file)
-	defer writer.Flush()
+	outSocketPath := fmt.Sprintf("/var/run/kubevirt-private/%s/virt-serial0", vmi.UID)
+	openvmmportfile.WriteString(outSocketPath)
+
+	//file, err := os.Create("/tmp/openvmmdebug.txt")
+	//if err != nil {
+	//	fmt.Println("Error creating file:", err)
+	//	return
+	//}
+	//defer file.Close()
+
+	//writer := bufio.NewWriter(file)
+	//defer writer.Flush()
+
+	openVMMCmdline := fmt.Sprintf("listen=%s", outSocketPath)
+	openVMMImageMemdiff := fmt.Sprintf("memdiff:/etc/virtimages/%s.raw", *openVMMImageName)
 
 	// [jocelynb] TODO: remove this POC line once doing the actual implementation
-	//cmd = exec.Command("openvmm", "--uefi", "--disk", "memdiff:/etc/virtimages/ubuntu-24.04-server-cloudimg-amd64.raw", "--uefi-firmware", "/etc/virtimages/MSVM.fd", "--hypervisor", "mshv")
-	cmd = exec.Command("openvmm", "--uefi", "--disk", "memdiff:/etc/virtimages/20348.1.amd64fre.fe_release.210507-1500_server_serverstandardcore_en-us_vl.raw", "--uefi-firmware", "/etc/virtimages/MSVM.fd", "--hypervisor", "mshv", "--com1", "console")
+	//cmd = exec.Command("openvmm", "--uefi", "--disk", "memdiff:/etc/virtimages/ubuntu.raw", "--uefi-firmware", "/etc/virtimages/MSVM.fd", "--hypervisor", "mshv")
+	//cmd = exec.Command("openvmm", "--uefi", "--disk", "memdiff:/etc/virtimages/winserver.raw", "--uefi-firmware", "/etc/virtimages/MSVM.fd", "--hypervisor", "mshv", "--com1", "console")
 
-	cmd.Stdout = writer
-	cmd.Stderr = writer
+	log.Log.Object(vmi).Infof("Executing openvmm --uefi --disk %s --uefi-firmware /etc/virtimages/MSVM.fd --hypervisor mshv --com1 %s", openVMMImageMemdiff, openVMMCmdline)
+	cmd = exec.Command("openvmm", "--uefi", "--disk", openVMMImageMemdiff, "--uefi-firmware", "/etc/virtimages/MSVM.fd", "--hypervisor", "mshv", "--com1", openVMMCmdline)
+
+	//cmd.Stdout = writer
+	//cmd.Stderr = writer
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "RUST_BACKTRACE=full")
 

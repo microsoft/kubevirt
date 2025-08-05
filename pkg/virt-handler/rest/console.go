@@ -169,6 +169,8 @@ func (t *ConsoleHandler) SerialHandler(request *restful.Request, response *restf
 		log.Log.Object(vmi).Reason(err).Error("Failed finding unix socket for serial console")
 		response.WriteError(http.StatusBadRequest, err)
 		return
+	} else {
+		log.Log.Object(vmi).Infof("Using unix socket path %s for serial console", unixSocketPath)
 	}
 	uid := vmi.GetUID()
 	stopCh := newStopChan(uid, t.serialLock, t.serialStopChans)

@@ -422,6 +422,18 @@ func (t *templateService) renderLaunchManifest(vmi *v1.VirtualMachineInstance, i
 			log.Log.Object(vmi).Infof("Applying custom debug filters for vmi %s: %s", vmi.Name, customDebugFilters)
 			command = append(command, "--libvirt-log-filters", customDebugFilters)
 		}
+
+		openVMMImageName, exists := vmi.Labels["kubevirt.io/openvmm-image-name"]
+		log.Log.Object(vmi).Warningf("Trying to apply OpenVMM image name for vmi %s: %s (%t)", vmi.Name, openVMMImageName, exists)
+
+		for label, value := range vmi.Labels {
+			log.Log.Object(vmi).Warningf("Trying to parse annotation for vmi %s: '%s':'%s'", vmi.Name, label, value)
+		}
+
+		if exists {
+			log.Log.Object(vmi).Infof("Applying OpenVMM image name for vmi %s: %s", vmi.Name, openVMMImageName)
+			command = append(command, "--openvmm-image-name", openVMMImageName)
+		}
 	}
 
 	if t.clusterConfig.AllowEmulation() {

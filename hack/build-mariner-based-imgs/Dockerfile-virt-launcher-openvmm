@@ -1,0 +1,54 @@
+ARG BUILDER_IMAGE=afo-builder:latest
+FROM $BUILDER_IMAGE AS builder
+WORKDIR /workspace
+
+RUN --mount=type=bind,rw,target=. \
+    hack/build-mariner-based-imgs/slim-build.sh /build \
+      cmd/virt-launcher \
+      cmd/virt-launcher-monitor \
+      cmd/virt-freezer \
+      cmd/virt-probe \
+      cmd/virt-tail
+
+FROM acrafoimages.azurecr.io/base/kubevirt/virt-launcher:1.2.0-17.3.0.20250603-amd64
+
+# Copy files from the builder container
+COPY --from=builder /build/_out/cmd/container-disk-v2alpha/container-disk /usr/bin/
+COPY --from=builder /build/_out/cmd/virt-launcher/virt-launcher /usr/bin/
+COPY --from=builder /build/_out/cmd/virt-launcher-monitor/virt-launcher-monitor /usr/bin/
+COPY --from=builder /build/_out/cmd/virt-freezer/virt-freezer /usr/bin/
+COPY --from=builder /build/_out/cmd/virt-probe/virt-probe /usr/bin/
+COPY --from=builder /build/_out/cmd/virt-tail/virt-tail /usr/bin/
+COPY --from=builder /build/cmd/virt-launcher/node-labeller/node-labeller.sh /usr/bin/
+
+RUN mkdir -p /usr/share/kube-virt/virt-launcher
+COPY --from=builder /build/cmd/virt-launcher/qemu.conf /usr/share/kube-virt/virt-launcher/
+COPY --from=builder /build/cmd/virt-launcher/virtqemud.conf /usr/share/kube-virt/virt-launcher/
+COPY --from=builder /build/cmd/virt-launcher/nsswitch.conf /usr/share/kube-virt/virt-launcher/
+
+RUN mkdir -p /usr/share/kube-virt/virtimages
+COPY hack/openvmmfiles/MSVM.fd /etc/virtimages/
+COPY hack/openvmmfiles/ubuntu-24.04-server-cloudimg-amd64.img /etc/virtimages/
+COPY hack/openvmmfiles/20348.1.amd64fre.fe_release.210507-1500_server_serverstandardcore_en-us_vl.vhdx /etc/virtimages/
+COPY hack/openvmmfiles/openvmm /usr/bin/openvmm
+RUN chmod +x /usr/bin/openvmm
+
+# Setup permissions and capabilities for non-root VMIs. KubeVirt sets
+# XDG_* directories to /var/run.
+RUN setcap 'cap_net_bind_service=+ep' /usr/bin/virt-launcher
+RUN setcap 'cap_net_bind_service=+ep' /usr/bin/virt-launcher-monitor
+RUN setcap 'cap_net_bind_service=+ep' /usr/bin/openvmm
+RUN chmod 0755 /etc/libvirt
+
+RUN cp /usr/share/kube-virt/virt-launcher/qemu.conf /etc/libvirt/
+RUN cp /usr/share/kube-virt/virt-launcher/virtqemud.conf /etc/libvirt/
+RUN cp /usr/share/kube-virt/virt-launcher/nsswitch.conf /etc/
+
+RUN echo "log_level = 1" >> /etc/libvirt/libvirtd.conf
+RUN echo "log_outputs=\"1:file:/var/log/libvirt/libvirtd.log\"" >> /etc/libvirt/libvirtd.conf
+
+RUN ls /usr/bin/virt-launcher
+
+RUN mkdir -p /run/lock
+
+ENTRYPOINT [ "/usr/bin/virt-launcher" ]
