@@ -2,16 +2,21 @@ package virthandler
 
 import (
 	"fmt"
+	"regexp"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 )
 
 var _ = Describe("Running real time workloads", func() {
 
+	var qemuVirtStack = &services.QemuVirtualizationStackSpec
+
 	Context("captures the correct CPU ID from the thread command value", func() {
 		DescribeTable("extracts the CPU ID", func(comm []byte, cpuID string, parseOK bool) {
-			v, ok := isVCPU(comm)
+			v, ok := isVCPU(comm, regexp.MustCompile(qemuVirtStack.VirtualizationComponentsConfiguration.VCPURegex))
 			Expect(ok).To(Equal(parseOK))
 			Expect(v).To(Equal(cpuID))
 		},

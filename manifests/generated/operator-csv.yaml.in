@@ -1376,8 +1376,6 @@ spec:
                   value: {{if .VirtControllerSha}}{{.VirtControllerSha}}{{end}}
                 - name: VIRT_HANDLER_SHASUM
                   value: {{if .VirtHandlerSha}}{{.VirtHandlerSha}}{{end}}
-                - name: VIRT_LAUNCHER_SHASUM
-                  value: {{if .VirtLauncherSha}}{{.VirtLauncherSha}}{{end}}
                 - name: VIRT_EXPORTPROXY_SHASUM
                   value: {{if .VirtExportProxySha}}{{.VirtExportProxySha}}{{end}}
                 - name: VIRT_EXPORTSERVER_SHASUM

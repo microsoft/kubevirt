@@ -102,6 +102,8 @@ var _ = Describe("VirtualMachineInstance", func() {
 	const migratableNetworkBindingPlugin = "mig_plug"
 	const host = "master"
 
+	var qemuVirtStack = &services.QemuVirtualizationStackSpec
+
 	getCgroupManager = func(_ *v1.VirtualMachineInstance, _ string) (cgroup.Manager, error) {
 		return mockCgroupManager, nil
 	}
@@ -173,7 +175,7 @@ var _ = Describe("VirtualMachineInstance", func() {
 
 		mockIsolationDetector := isolation.NewMockPodIsolationDetector(ctrl)
 		mockIsolationDetector.EXPECT().Detect(gomock.Any()).Return(mockIsolationResult, nil).AnyTimes()
-		mockIsolationDetector.EXPECT().AdjustResources(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockIsolationDetector.EXPECT().AdjustResources(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		mockContainerDiskMounter = containerdisk.NewMockMounter(ctrl)
 		mockHotplugVolumeMounter = hotplugvolume.NewMockVolumeMounter(ctrl)
@@ -2112,7 +2114,7 @@ var _ = Describe("VirtualMachineInstance", func() {
 				GuestRequested: &initialMemory,
 			}
 
-			targetPodMemory := services.GetMemoryOverhead(vmi, runtime.GOARCH, nil)
+			targetPodMemory := services.GetMemoryOverhead(vmi, runtime.GOARCH, nil, qemuVirtStack)
 			targetPodMemory.Add(requestedMemory)
 			vmi.Labels = map[string]string{
 				v1.VirtualMachinePodMemoryRequestsLabel: targetPodMemory.String(),
@@ -2186,7 +2188,7 @@ var _ = Describe("VirtualMachineInstance", func() {
 			}
 			vmi.Spec.Architecture = "amd64"
 
-			targetPodMemory := services.GetMemoryOverhead(vmi, runtime.GOARCH, nil)
+			targetPodMemory := services.GetMemoryOverhead(vmi, runtime.GOARCH, nil, qemuVirtStack)
 			targetPodMemory.Add(requestedMemory)
 			vmi.Labels = map[string]string{
 				v1.VirtualMachinePodMemoryRequestsLabel: targetPodMemory.String(),

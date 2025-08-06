@@ -446,10 +446,17 @@ var _ = Describe("Resource pod spec renderer", func() {
 
 var _ = Describe("GetMemoryOverhead calculation", func() {
 	// VirtLauncherMonitorOverhead + VirtLauncherOverhead + VirtlogdOverhead + VirtqemudOverhead + QemuOverhead + IothreadsOverhead
-	const staticOverheadString = "223Mi"
+	const ioThreadsOverheadString = "8Mi"
+	qemuVirtStack := v1.VirtualizationProfile{
+		VirtLauncherConfiguration: v1.VirtLauncherConfiguration{
+			VirtLauncherOverhead: "220Mi",
+		},
+	}
+
 	var (
 		vmi                     *v1.VirtualMachineInstance
-		staticOverhead          *resource.Quantity
+		ioThreadsOverhead       *resource.Quantity
+		virtStackOverhead       *resource.Quantity
 		baseOverhead            *resource.Quantity
 		coresOverhead           *resource.Quantity
 		videoRAMOverhead        *resource.Quantity
@@ -474,7 +481,8 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 				},
 			},
 		}
-		staticOverhead = pointer.P(resource.MustParse(staticOverheadString))
+		ioThreadsOverhead = pointer.P(resource.MustParse(ioThreadsOverheadString))
+		virtStackOverhead = pointer.P(resource.MustParse(qemuVirtStack.VirtLauncherConfiguration.VirtLauncherOverhead))
 		// MemoryReq / 512bit
 		baseOverhead = pointer.P(resource.MustParse("7Mi"))
 		coresOverhead = pointer.P(resource.MustParse("8Mi"))
@@ -490,11 +498,12 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 		It("should return base overhead+static+8Mi", func() {
 			expected := resource.NewScaledQuantity(0, resource.Kilo)
 			expected.Add(*baseOverhead)
-			expected.Add(*staticOverhead)
+			expected.Add(*ioThreadsOverhead)
+			expected.Add(*virtStackOverhead)
 			expected.Add(*videoRAMOverhead)
 			// 8Mi*1core(default)
 			expected.Add(*coresOverhead)
-			overhead := GetMemoryOverhead(vmi, "amd64", nil)
+			overhead := GetMemoryOverhead(vmi, "amd64", nil, &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		})
 	})
@@ -511,12 +520,13 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 		It("should adjust overhead based on the cores/threads/sockets", func() {
 			expected := resource.NewScaledQuantity(0, resource.Kilo)
 			expected.Add(*baseOverhead)
-			expected.Add(*staticOverhead)
+			expected.Add(*ioThreadsOverhead)
+			expected.Add(*virtStackOverhead)
 			expected.Add(*videoRAMOverhead)
 			// (2cores* 2threads *2sockets)
 			value := coresOverhead.Value() * 8
 			expected.Add(*resource.NewQuantity(value, coresOverhead.Format))
-			overhead := GetMemoryOverhead(vmi, "amd64", nil)
+			overhead := GetMemoryOverhead(vmi, "amd64", nil, &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		})
 	})
@@ -530,11 +540,12 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 
 			expected := resource.NewScaledQuantity(0, resource.Kilo)
 			expected.Add(*baseOverhead)
-			expected.Add(*staticOverhead)
+			expected.Add(*ioThreadsOverhead)
+			expected.Add(*virtStackOverhead)
 			expected.Add(*videoRAMOverhead)
 			value := coresOverhead.Value() * int64(coresMultiplier)
 			expected.Add(*resource.NewQuantity(value, coresOverhead.Format))
-			overhead := GetMemoryOverhead(vmi, "amd64", nil)
+			overhead := GetMemoryOverhead(vmi, "amd64", nil, &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		},
 			Entry("based on the limits if both requests and limits are provided", "3", "5", 5),
@@ -551,9 +562,10 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 		It("should not add videoRAMOverhead", func() {
 			expected := resource.NewScaledQuantity(0, resource.Kilo)
 			expected.Add(*baseOverhead)
-			expected.Add(*staticOverhead)
+			expected.Add(*ioThreadsOverhead)
+			expected.Add(*virtStackOverhead)
 			expected.Add(*coresOverhead)
-			overhead := GetMemoryOverhead(vmi, "amd64", nil)
+			overhead := GetMemoryOverhead(vmi, "amd64", nil, &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		})
 	})
@@ -562,11 +574,12 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 		It("should add arm64 overhead", func() {
 			expected := resource.NewScaledQuantity(0, resource.Kilo)
 			expected.Add(*baseOverhead)
-			expected.Add(*staticOverhead)
+			expected.Add(*ioThreadsOverhead)
+			expected.Add(*virtStackOverhead)
 			expected.Add(*videoRAMOverhead)
 			expected.Add(*coresOverhead)
 			expected.Add(*cpuArchOverhead)
-			overhead := GetMemoryOverhead(vmi, "arm64", nil)
+			overhead := GetMemoryOverhead(vmi, "arm64", nil, &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		})
 	})
@@ -576,11 +589,12 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 			vmi.Spec.Domain.Devices = devices
 			expected := resource.NewScaledQuantity(0, resource.Kilo)
 			expected.Add(*baseOverhead)
-			expected.Add(*staticOverhead)
+			expected.Add(*ioThreadsOverhead)
+			expected.Add(*virtStackOverhead)
 			expected.Add(*videoRAMOverhead)
 			expected.Add(*coresOverhead)
 			expected.Add(*vfioOverhead)
-			overhead := GetMemoryOverhead(vmi, "amd64", nil)
+			overhead := GetMemoryOverhead(vmi, "amd64", nil, &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		},
 			Entry("with hostDEV", v1.Devices{HostDevices: []v1.HostDevice{{Name: "test"}}}),
@@ -596,11 +610,12 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 		It("should add downwardMetrics overhead", func() {
 			expected := resource.NewScaledQuantity(0, resource.Kilo)
 			expected.Add(*baseOverhead)
-			expected.Add(*staticOverhead)
+			expected.Add(*ioThreadsOverhead)
+			expected.Add(*virtStackOverhead)
 			expected.Add(*videoRAMOverhead)
 			expected.Add(*coresOverhead)
 			expected.Add(*downwardmetricsOverhead)
-			overhead := GetMemoryOverhead(vmi, "amd64", nil)
+			overhead := GetMemoryOverhead(vmi, "amd64", nil, &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		})
 	})
@@ -611,12 +626,13 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 			vmi.Spec.ReadinessProbe = readinessProbe
 			expected := resource.NewScaledQuantity(0, resource.Kilo)
 			expected.Add(*baseOverhead)
-			expected.Add(*staticOverhead)
+			expected.Add(*ioThreadsOverhead)
+			expected.Add(*virtStackOverhead)
 			expected.Add(*videoRAMOverhead)
 			expected.Add(*coresOverhead)
 			expected.Add(probeOverhead)
 
-			overhead := GetMemoryOverhead(vmi, "amd64", nil)
+			overhead := GetMemoryOverhead(vmi, "amd64", nil, &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		},
 			Entry("with livenessProbe only", &v1.Probe{Handler: v1.Handler{Exec: &kubev1.ExecAction{}}}, nil, resource.MustParse("110Mi")),
@@ -635,11 +651,12 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 		It("should add SEV overhead", func() {
 			expected := resource.NewScaledQuantity(0, resource.Kilo)
 			expected.Add(*baseOverhead)
-			expected.Add(*staticOverhead)
+			expected.Add(*ioThreadsOverhead)
+			expected.Add(*virtStackOverhead)
 			expected.Add(*videoRAMOverhead)
 			expected.Add(*coresOverhead)
 			expected.Add(*sevOverhead)
-			overhead := GetMemoryOverhead(vmi, "amd64", nil)
+			overhead := GetMemoryOverhead(vmi, "amd64", nil, &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		})
 	})
@@ -654,11 +671,12 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 		It("should add SEV overhead", func() {
 			expected := resource.NewScaledQuantity(0, resource.Kilo)
 			expected.Add(*baseOverhead)
-			expected.Add(*staticOverhead)
+			expected.Add(*ioThreadsOverhead)
+			expected.Add(*virtStackOverhead)
 			expected.Add(*videoRAMOverhead)
 			expected.Add(*coresOverhead)
 			expected.Add(*tpmOverhead)
-			overhead := GetMemoryOverhead(vmi, "amd64", nil)
+			overhead := GetMemoryOverhead(vmi, "amd64", nil, &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		})
 	})
@@ -667,7 +685,8 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 		DescribeTable("should adjust the overhead using the given ratio", func(additionalOverheadRatio string, expectParseError bool) {
 			base := resource.NewScaledQuantity(0, resource.Kilo)
 			base.Add(*baseOverhead)
-			base.Add(*staticOverhead)
+			base.Add(*ioThreadsOverhead)
+			base.Add(*virtStackOverhead)
 			base.Add(*videoRAMOverhead)
 			base.Add(*coresOverhead)
 			var expected resource.Quantity
@@ -678,7 +697,7 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 				expected = multiplyMemory(*base, ratio)
 			}
 
-			overhead := GetMemoryOverhead(vmi, "amd64", pointer.P(additionalOverheadRatio))
+			overhead := GetMemoryOverhead(vmi, "amd64", pointer.P(additionalOverheadRatio), &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		},
 			Entry("with the given value if the given value is a float", "3.2", false),
@@ -700,12 +719,13 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 			}
 			expected := resource.NewScaledQuantity(0, resource.Kilo)
 			expected.Add(*baseOverhead)
-			expected.Add(*staticOverhead)
+			expected.Add(*ioThreadsOverhead)
+			expected.Add(*virtStackOverhead)
 			expected.Add(*videoRAMOverhead)
 			expected.Add(*coresOverhead)
 			expected.Add(resource.MustParse("100Mi"))
 
-			overhead := GetMemoryOverhead(vmi, "amd64", nil)
+			overhead := GetMemoryOverhead(vmi, "amd64", nil, &qemuVirtStack)
 			Expect(overhead.Value()).To(BeEquivalentTo(expected.Value()))
 		},
 			Entry("with DedicatedCPU", true, false),

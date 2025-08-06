@@ -2227,6 +2227,52 @@ type KubeVirtSpec struct {
 	CustomizeComponents CustomizeComponents `json:"customizeComponents,omitempty"`
 }
 
+type VirtualizationComponentsConfiguration struct {
+
+	// HypervisorDevice specifies the path to the hypervisor device.
+	HypervisorDevice string `json:"hypervisorDevice,omitempty"`
+
+	HypervisorDeviceMajorNumber int64 `json:"hypervisorDeviceMajorNumber,omitempty"`
+
+	HypervisorDeviceMinorNumber int64 `json:"hypervisorDeviceMinorNumber,omitempty"`
+
+	// VCPURegex defines the regular expression used to identify vCPU devices.
+	VCPURegex string `json:"vCpuRegex,omitempty"`
+
+	// Prefix of the Programmable Interrupt Timer (PIT) PID.
+	PitPidPrefix string `json:"pitPidPrefix,omitempty"`
+
+	// VMMDaemonProcess specifies the name of the VMM daemon process.
+	VMMDaemonProcess string `json:"vmmDaemonProcess,omitempty"`
+
+	// VMMProcessExecutables specifies the names of the VMM process executable.
+	VMMProcessExecutables []string `json:"vmmProcessExecutables,omitempty"`
+
+	// Socket used to interact with the VMM.
+	VmmSocketPath string `json:"vmmSocketPath,omitempty"`
+}
+
+type VirtLauncherConfiguration struct {
+	// virtLauncherCapabilities specifies the capabilities of the virt-launcher.
+	// +listType=atomic
+	VirtLauncherCapabilities []string `json:"virtLauncherCapabilities,omitempty"`
+
+	// virtLauncherOverhead specifies the overhead associated with the virt-launcher.
+	VirtLauncherOverhead string `json:"virtLauncherOverhead,omitempty"`
+
+	// Container image URI for virt-launcher for the given virtualization stack.
+	VirtLauncherImage string `json:"virtLauncherImage,omitempty"`
+}
+
+type VirtualizationProfile struct {
+	// Name of the virtualization stack
+	Name string `json:"name,omitempty"`
+
+	VirtualizationComponentsConfiguration VirtualizationComponentsConfiguration `json:"virtualizationComponentsConfiguration,omitempty"`
+
+	VirtLauncherConfiguration VirtLauncherConfiguration `json:"virtLauncherConfiguration,omitempty"`
+}
+
 type CustomizeComponents struct {
 	// +listType=atomic
 	Patches []CustomizeComponentsPatch `json:"patches,omitempty"`
@@ -2745,6 +2791,11 @@ type KubeVirtConfiguration struct {
 	// Instancetype configuration
 	// +nullable
 	Instancetype *InstancetypeConfiguration `json:"instancetype,omitempty"`
+
+	// Configuration of the virtualization stack on which
+	// this KubeVirt cluster should be deployed
+	// +nullable
+	VirtualizationProfile *VirtualizationProfile `json:"virtualizationProfile,omitempty"`
 }
 
 type InstancetypeConfiguration struct {

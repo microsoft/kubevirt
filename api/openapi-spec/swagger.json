@@ -14650,6 +14650,10 @@
      "virtualMachineOptions": {
       "$ref": "#/definitions/v1.VirtualMachineOptions"
      },
+     "virtualizationProfile": {
+      "description": "Configuration of the virtualization stack on which this KubeVirt cluster should be deployed",
+      "$ref": "#/definitions/v1.VirtualizationProfile"
+     },
      "vmRolloutStrategy": {
       "description": "VMRolloutStrategy defines how live-updatable fields, like CPU sockets, memory, tolerations, and affinity, are propagated from a VM to its VMI.",
       "type": "string"
@@ -16371,6 +16375,28 @@
      }
     }
    },
+   "v1.VirtLauncherConfiguration": {
+    "type": "object",
+    "properties": {
+     "virtLauncherCapabilities": {
+      "description": "virtLauncherCapabilities specifies the capabilities of the virt-launcher.",
+      "type": "array",
+      "items": {
+       "type": "string",
+       "default": ""
+      },
+      "x-kubernetes-list-type": "atomic"
+     },
+     "virtLauncherImage": {
+      "description": "Container image URI for virt-launcher for the given virtualization stack.",
+      "type": "string"
+     },
+     "virtLauncherOverhead": {
+      "description": "virtLauncherOverhead specifies the overhead associated with the virt-launcher.",
+      "type": "string"
+     }
+    }
+   },
    "v1.VirtualMachine": {
     "description": "VirtualMachine handles the VirtualMachines that are not running or are in a stopped state The VirtualMachine contains the template to create the VirtualMachineInstance. It also mirrors the running state of the created VirtualMachineInstance in its status.",
     "type": "object",
@@ -18044,6 +18070,64 @@
      "removeVolumeOptions": {
       "description": "RemoveVolumeOptions when set indicates a volume should be removed. The details within this field specify how to add the volume",
       "$ref": "#/definitions/v1.RemoveVolumeOptions"
+     }
+    }
+   },
+   "v1.VirtualizationComponentsConfiguration": {
+    "type": "object",
+    "properties": {
+     "hypervisorDevice": {
+      "description": "HypervisorDevice specifies the path to the hypervisor device.",
+      "type": "string"
+     },
+     "hypervisorDeviceMajorNumber": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "hypervisorDeviceMinorNumber": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "pitPidPrefix": {
+      "description": "Prefix of the Programmable Interrupt Timer (PIT) PID.",
+      "type": "string"
+     },
+     "vCpuRegex": {
+      "description": "VCPURegex defines the regular expression used to identify vCPU devices.",
+      "type": "string"
+     },
+     "vmmDaemonProcess": {
+      "description": "VMMDaemonProcess specifies the name of the VMM daemon process.",
+      "type": "string"
+     },
+     "vmmProcessExecutables": {
+      "description": "VMMProcessExecutables specifies the names of the VMM process executable.",
+      "type": "array",
+      "items": {
+       "type": "string",
+       "default": ""
+      }
+     },
+     "vmmSocketPath": {
+      "description": "Socket used to interact with the VMM.",
+      "type": "string"
+     }
+    }
+   },
+   "v1.VirtualizationProfile": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "description": "Name of the virtualization stack",
+      "type": "string"
+     },
+     "virtLauncherConfiguration": {
+      "default": {},
+      "$ref": "#/definitions/v1.VirtLauncherConfiguration"
+     },
+     "virtualizationComponentsConfiguration": {
+      "default": {},
+      "$ref": "#/definitions/v1.VirtualizationComponentsConfiguration"
      }
     }
    },

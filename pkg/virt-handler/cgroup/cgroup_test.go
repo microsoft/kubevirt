@@ -7,6 +7,8 @@ import (
 	runc_configs "github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	"go.uber.org/mock/gomock"
+
+	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 )
 
 var _ = Describe("cgroup manager", func() {
@@ -93,7 +95,7 @@ var _ = Describe("cgroup manager", func() {
 
 		Expect(rulesDefined).To(ContainElement(fakeRule), "defined rule is expected to exist")
 
-		defaultDeviceRules := GenerateDefaultDeviceRules()
+		defaultDeviceRules := GenerateDefaultDeviceRules(&services.QemuVirtualizationStackSpec)
 		for _, defaultRule := range defaultDeviceRules {
 			Expect(rulesDefined).To(ContainElement(defaultRule), "default rules are expected to be defined")
 		}
@@ -154,7 +156,7 @@ var _ = Describe("cgroup manager", func() {
 
 		Expect(rulesDefined).To(ContainElement(fakeRule), "defined rule is expected to exist")
 
-		defaultDeviceRules := GenerateDefaultDeviceRules()
+		defaultDeviceRules := GenerateDefaultDeviceRules(&services.QemuVirtualizationStackSpec)
 		for _, defaultRule := range defaultDeviceRules {
 			Expect(rulesDefined).To(ContainElement(defaultRule), "default rules are expected to be defined")
 		}

@@ -44,33 +44,33 @@ func (m *MockIsolationResult) EXPECT() *MockIsolationResultMockRecorder {
 }
 
 // GetQEMUProcess mocks base method.
-func (m *MockIsolationResult) GetQEMUProcess() (ps.Process, error) {
+func (m *MockIsolationResult) GetQEMUProcess(execPrefixes []string) (ps.Process, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetQEMUProcess")
+	ret := m.ctrl.Call(m, "GetQEMUProcess", execPrefixes)
 	ret0, _ := ret[0].(ps.Process)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetQEMUProcess indicates an expected call of GetQEMUProcess.
-func (mr *MockIsolationResultMockRecorder) GetQEMUProcess() *gomock.Call {
+func (mr *MockIsolationResultMockRecorder) GetQEMUProcess(execPrefixes any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQEMUProcess", reflect.TypeOf((*MockIsolationResult)(nil).GetQEMUProcess))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQEMUProcess", reflect.TypeOf((*MockIsolationResult)(nil).GetQEMUProcess), execPrefixes)
 }
 
 // KvmPitPid mocks base method.
-func (m *MockIsolationResult) KvmPitPid() (int, error) {
+func (m *MockIsolationResult) KvmPitPid(pitPidPrefix string, execPrefixes []string) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "KvmPitPid")
+	ret := m.ctrl.Call(m, "KvmPitPid", pitPidPrefix, execPrefixes)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // KvmPitPid indicates an expected call of KvmPitPid.
-func (mr *MockIsolationResultMockRecorder) KvmPitPid() *gomock.Call {
+func (mr *MockIsolationResultMockRecorder) KvmPitPid(pitPidPrefix, execPrefixes any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KvmPitPid", reflect.TypeOf((*MockIsolationResult)(nil).KvmPitPid))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KvmPitPid", reflect.TypeOf((*MockIsolationResult)(nil).KvmPitPid), pitPidPrefix, execPrefixes)
 }
 
 // MountNamespace mocks base method.

@@ -365,6 +365,28 @@
       },
       "instancetype": {
         "referencePolicy": "referencePolicyValue"
+      },
+      "virtualizationProfile": {
+        "name": "nameValue",
+        "virtualizationComponentsConfiguration": {
+          "hypervisorDevice": "hypervisorDeviceValue",
+          "hypervisorDeviceMajorNumber": -27,
+          "hypervisorDeviceMinorNumber": -27,
+          "vCpuRegex": "vCpuRegexValue",
+          "pitPidPrefix": "pitPidPrefixValue",
+          "vmmDaemonProcess": "vmmDaemonProcessValue",
+          "vmmProcessExecutables": [
+            "vmmProcessExecutablesValue"
+          ],
+          "vmmSocketPath": "vmmSocketPathValue"
+        },
+        "virtLauncherConfiguration": {
+          "virtLauncherCapabilities": [
+            "virtLauncherCapabilitiesValue"
+          ],
+          "virtLauncherOverhead": "virtLauncherOverheadValue",
+          "virtLauncherImage": "virtLauncherImageValue"
+        }
       }
     },
     "infra": {

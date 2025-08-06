@@ -34,6 +34,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
+	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 	"kubevirt.io/kubevirt/pkg/virt-operator/resource/generate/components"
 	"kubevirt.io/kubevirt/pkg/virt-operator/resource/generate/rbac"
 	"kubevirt.io/kubevirt/tools/util"
@@ -44,7 +45,7 @@ const (
 	infraReplicasPlaceholder = 255
 )
 
-func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates string, infraReplicas uint8) *virtv1.KubeVirt {
+func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates string, infraReplicas uint8, qemuVirtStack virtv1.VirtualizationProfile) *virtv1.KubeVirt {
 	cr := &virtv1.KubeVirt{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: virtv1.GroupVersion.String(),
@@ -59,11 +60,11 @@ func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates stri
 		},
 	}
 
+	cr.Spec.Configuration.VirtualizationProfile = &qemuVirtStack
+
 	if featureGates != "" {
-		cr.Spec.Configuration = virtv1.KubeVirtConfiguration{
-			DeveloperConfiguration: &virtv1.DeveloperConfiguration{
-				FeatureGates: strings.Split(featureGates, ","),
-			},
+		cr.Spec.Configuration.DeveloperConfiguration = &virtv1.DeveloperConfiguration{
+			FeatureGates: strings.Split(featureGates, ","),
 		}
 	}
 
@@ -74,7 +75,7 @@ func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates stri
 	return cr
 }
 
-func generateKubeVirtCR(namespace *string, imagePullPolicy v1.PullPolicy, featureGatesFlag *string, infraReplicasFlag *string) {
+func generateKubeVirtCR(namespace *string, imagePullPolicy v1.PullPolicy, featureGatesFlag *string, infraReplicasFlag *string, qemuVirtStack virtv1.VirtualizationProfile) {
 	var featureGates string
 	if strings.HasPrefix(*featureGatesFlag, "{{") {
 		featureGates = featureGatesPlaceholder
@@ -92,7 +93,7 @@ func generateKubeVirtCR(namespace *string, imagePullPolicy v1.PullPolicy, featur
 		infraReplicas = uint8(val)
 	}
 	var buf bytes.Buffer
-	err := util.MarshallObject(newKubeVirtCR(*namespace, imagePullPolicy, featureGates, infraReplicas), &buf)
+	err := util.MarshallObject(newKubeVirtCR(*namespace, imagePullPolicy, featureGates, infraReplicas, qemuVirtStack), &buf)
 	if err != nil {
 		panic(err)
 	}
@@ -140,6 +141,7 @@ func main() {
 	pullPolicy := flag.String("pullPolicy", "IfNotPresent", "ImagePullPolicy to use.")
 	featureGates := flag.String("featureGates", "", "Feature gates to enable.")
 	infraReplicas := flag.String("infraReplicas", "2", "Number of replicas for virt-controller and virt-api")
+	virtLauncherImage := flag.String("virtLauncherImage", "", "Container image URI of virt-launcher")
 
 	flag.Parse()
 
@@ -156,7 +158,11 @@ func main() {
 			panic(err)
 		}
 	case "kv-cr":
-		generateKubeVirtCR(namespace, imagePullPolicy, featureGates, infraReplicas)
+		// Set the virtualization stack to the default
+		qemuVirtualizationStack := services.QemuVirtualizationStackSpec
+		qemuVirtualizationStack.VirtLauncherConfiguration.VirtLauncherImage = *virtLauncherImage
+
+		generateKubeVirtCR(namespace, imagePullPolicy, featureGates, infraReplicas, qemuVirtualizationStack)
 	case "operator-rbac":
 		all := rbac.GetAllOperator(*namespace)
 		for _, r := range all {

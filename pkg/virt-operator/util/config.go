@@ -49,7 +49,6 @@ const (
 	VirtApiImageEnvName                       = "VIRT_API_IMAGE"
 	VirtControllerImageEnvName                = "VIRT_CONTROLLER_IMAGE"
 	VirtHandlerImageEnvName                   = "VIRT_HANDLER_IMAGE"
-	VirtLauncherImageEnvName                  = "VIRT_LAUNCHER_IMAGE"
 	VirtExportProxyImageEnvName               = "VIRT_EXPORTPROXY_IMAGE"
 	VirtExportServerImageEnvName              = "VIRT_EXPORTSERVER_IMAGE"
 	VirtSynchronizationControllerImageEnvName = "VIRT_SYNCHRONIZATIONCONTROLLER_IMAGE"
@@ -65,8 +64,6 @@ const (
 	VirtControllerShasumEnvName = "VIRT_CONTROLLER_SHASUM"
 	// Deprecated, use VirtHandlerImageEnvName instead
 	VirtHandlerShasumEnvName = "VIRT_HANDLER_SHASUM"
-	// Deprecated, use VirtLauncherImageEnvName instead
-	VirtLauncherShasumEnvName = "VIRT_LAUNCHER_SHASUM"
 	// Deprecated, use VirtExportProxyImageEnvName instead
 	VirtExportProxyShasumEnvName = "VIRT_EXPORTPROXY_SHASUM"
 	// Deprecated, use VirtExportServerImageEnvName instead
@@ -208,7 +205,8 @@ func GetConfigFromEnvWithEnvVarManager(envVarManager EnvVarManager) (*KubeVirtDe
 	additionalProperties := make(map[string]string)
 	additionalProperties[AdditionalPropertiesNamePullPolicy] = pullPolicy
 
-	return getConfig("", "", ns, additionalProperties, envVarManager), nil
+	return getConfig("", "", ns, nil, additionalProperties, envVarManager),
+		nil
 }
 
 func GetTargetConfigFromKV(kv *v1.KubeVirt) *KubeVirtDeploymentConfig {
@@ -233,6 +231,7 @@ func GetTargetConfigFromKVWithEnvVarManager(kv *v1.KubeVirt, envVarManager EnvVa
 	return getConfig(kv.Spec.ImageRegistry,
 		kv.Spec.ImageTag,
 		kv.Namespace,
+		kv.Spec.Configuration.VirtualizationProfile,
 		additionalProperties,
 		envVarManager)
 }
@@ -289,7 +288,7 @@ func GetOperatorImageWithEnvVarManager(envVarManager EnvVarManager) string {
 	return envVarManager.Getenv(OldOperatorImageEnvName)
 }
 
-func getConfig(registry, tag, namespace string, additionalProperties map[string]string, envVarManager EnvVarManager) *KubeVirtDeploymentConfig {
+func getConfig(registry, tag, namespace string, virtStack *v1.VirtualizationProfile, additionalProperties map[string]string, envVarManager EnvVarManager) *KubeVirtDeploymentConfig {
 
 	// get registry and tag/shasum from operator image
 	imageString := GetOperatorImageWithEnvVarManager(envVarManager)
@@ -348,13 +347,14 @@ func getConfig(registry, tag, namespace string, additionalProperties map[string]
 	apiImage := envVarManager.Getenv(VirtApiImageEnvName)
 	controllerImage := envVarManager.Getenv(VirtControllerImageEnvName)
 	handlerImage := envVarManager.Getenv(VirtHandlerImageEnvName)
-	launcherImage := envVarManager.Getenv(VirtLauncherImageEnvName)
 	exportProxyImage := envVarManager.Getenv(VirtExportProxyImageEnvName)
 	exportServerImage := envVarManager.Getenv(VirtExportServerImageEnvName)
 	synchronizationControllerImage := envVarManager.Getenv(VirtSynchronizationControllerImageEnvName)
 	GsImage := envVarManager.Getenv(GsImageEnvName)
 	PrHelperImage := envVarManager.Getenv(PrHelperImageEnvName)
 	SidecarShimImage := envVarManager.Getenv(SidecarShimImageEnvName)
+
+	launcherImage := virtStack.VirtLauncherConfiguration.VirtLauncherImage
 
 	config := newDeploymentConfigWithTag(registry, imagePrefix, tag, namespace, operatorImage, apiImage, controllerImage, handlerImage, launcherImage, exportProxyImage, exportServerImage, synchronizationControllerImage, GsImage, PrHelperImage, SidecarShimImage, additionalProperties, passthroughEnv)
 	if skipShasums {
@@ -365,13 +365,15 @@ func getConfig(registry, tag, namespace string, additionalProperties map[string]
 	apiSha := envVarManager.Getenv(VirtApiShasumEnvName)
 	controllerSha := envVarManager.Getenv(VirtControllerShasumEnvName)
 	handlerSha := envVarManager.Getenv(VirtHandlerShasumEnvName)
-	launcherSha := envVarManager.Getenv(VirtLauncherShasumEnvName)
 	exportProxySha := envVarManager.Getenv(VirtExportProxyShasumEnvName)
 	exportServerSha := envVarManager.Getenv(VirtExportServerShasumEnvName)
 	synchronizationControllerSha := envVarManager.Getenv(VirtSynchronizationControllerShasumEnvName)
 	gsSha := envVarManager.Getenv(GsEnvShasumName)
 	prHelperSha := envVarManager.Getenv(PrHelperShasumEnvName)
 	sidecarShimSha := envVarManager.Getenv(SidecarShimShasumEnvName)
+
+	launcherSha := "" // TODO Add support for launcher shasum in VirtualizationStackSpec
+
 	if operatorSha != "" && apiSha != "" && controllerSha != "" && handlerSha != "" && launcherSha != "" && kubeVirtVersion != "" {
 		config = newDeploymentConfigWithShasums(registry, imagePrefix, kubeVirtVersion, operatorSha, apiSha, controllerSha, handlerSha, launcherSha, exportProxySha, exportServerSha, synchronizationControllerSha, gsSha, prHelperSha, sidecarShimSha, namespace, additionalProperties, passthroughEnv)
 	}

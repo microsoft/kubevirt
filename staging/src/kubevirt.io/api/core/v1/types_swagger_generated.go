@@ -608,6 +608,31 @@ func (KubeVirtSpec) SwaggerDoc() map[string]string {
 	}
 }
 
+func (VirtualizationComponentsConfiguration) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"hypervisorDevice":      "HypervisorDevice specifies the path to the hypervisor device.",
+		"vCpuRegex":             "VCPURegex defines the regular expression used to identify vCPU devices.",
+		"pitPidPrefix":          "Prefix of the Programmable Interrupt Timer (PIT) PID.",
+		"vmmDaemonProcess":      "VMMDaemonProcess specifies the name of the VMM daemon process.",
+		"vmmProcessExecutables": "VMMProcessExecutables specifies the names of the VMM process executable.",
+		"vmmSocketPath":         "Socket used to interact with the VMM.",
+	}
+}
+
+func (VirtLauncherConfiguration) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"virtLauncherCapabilities": "virtLauncherCapabilities specifies the capabilities of the virt-launcher.\n+listType=atomic",
+		"virtLauncherOverhead":     "virtLauncherOverhead specifies the overhead associated with the virt-launcher.",
+		"virtLauncherImage":        "Container image URI for virt-launcher for the given virtualization stack.",
+	}
+}
+
+func (VirtualizationProfile) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"name": "Name of the virtualization stack",
+	}
+}
+
 func (CustomizeComponents) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"patches": "+listType=atomic",
@@ -844,6 +869,7 @@ func (KubeVirtConfiguration) SwaggerDoc() map[string]string {
 		"vmRolloutStrategy":                  "VMRolloutStrategy defines how live-updatable fields, like CPU sockets, memory,\ntolerations, and affinity, are propagated from a VM to its VMI.\n+nullable\n+kubebuilder:validation:Enum=Stage;LiveUpdate",
 		"commonInstancetypesDeployment":      "CommonInstancetypesDeployment controls the deployment of common-instancetypes resources\n+nullable",
 		"instancetype":                       "Instancetype configuration\n+nullable",
+		"virtualizationProfile":              "Configuration of the virtualization stack on which\nthis KubeVirt cluster should be deployed\n+nullable",
 	}
 }
 

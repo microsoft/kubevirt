@@ -27,11 +27,6 @@ var (
 	cpuRangeRegex  = regexp.MustCompile(`^(\d+)-(\d+)$`)
 	negateCPURegex = regexp.MustCompile(`^\^(\d+)$`)
 	singleCPURegex = regexp.MustCompile(`^(\d+)$`)
-
-	// parse thread comm value expression
-	vcpuRegex = regexp.MustCompile(`^CPU (\d+)/KVM\n$`) // These threads follow this naming pattern as their command value (/proc/{pid}/task/{taskid}/comm)
-	// QEMU uses threads to represent vCPUs.
-
 )
 
 // configureRealTimeVCPUs parses the realtime mask value and configured the selected vcpus
@@ -41,11 +36,15 @@ func (c *VirtualMachineController) configureVCPUScheduler(vmi *v1.VirtualMachine
 	if err != nil {
 		return err
 	}
-	qemuProcess, err := res.GetQEMUProcess()
+	qemuProcess, err := res.GetQEMUProcess(c.clusterConfig.GetConfig().VirtualizationProfile.VirtualizationComponentsConfiguration.VMMProcessExecutables)
 	if err != nil {
 		return err
 	}
-	vcpus, err := getVCPUThreadIDs(qemuProcess.Pid())
+
+	// parse thread comm value expression
+	vcpuRegex := regexp.MustCompile(c.clusterConfig.GetConfig().VirtualizationProfile.VirtualizationComponentsConfiguration.VCPURegex)
+
+	vcpus, err := getVCPUThreadIDs(qemuProcess.Pid(), vcpuRegex)
 	if err != nil {
 		return err
 	}
@@ -69,14 +68,15 @@ func (c *VirtualMachineController) configureVCPUScheduler(vmi *v1.VirtualMachine
 	return nil
 }
 
-func isVCPU(comm []byte) (string, bool) {
+func isVCPU(comm []byte, vcpuRegex *regexp.Regexp) (string, bool) {
 	if !vcpuRegex.MatchString(string(comm)) {
 		return "", false
 	}
 	v := vcpuRegex.FindSubmatch(comm)
 	return string(v[1]), true
 }
-func getVCPUThreadIDs(pid int) (map[string]string, error) {
+
+func getVCPUThreadIDs(pid int, vcpuRegex *regexp.Regexp) (map[string]string, error) {
 
 	p := filepath.Join(string(os.PathSeparator), "proc", strconv.Itoa(pid), "task")
 	d, err := os.ReadDir(p)
@@ -90,7 +90,7 @@ func getVCPUThreadIDs(pid int) (map[string]string, error) {
 			if err != nil {
 				return nil, err
 			}
-			if v, ok := isVCPU(c); ok {
+			if v, ok := isVCPU(c, vcpuRegex); ok {
 				ret[v] = f.Name()
 			}
 		}

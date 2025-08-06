@@ -90,6 +90,8 @@ var _ = Describe("[sig-compute]Configurations", decorators.SigCompute, func() {
 		cgroupV2MemoryUsagePath = "/sys/fs/cgroup/memory.current"
 	)
 
+	qemuVirtStack := services.QemuVirtualizationStackSpec
+
 	getPodMemoryUsage := func(pod *k8sv1.Pod) (output string, err error) {
 		output, err = exec.ExecuteCommandOnPod(
 			pod,
@@ -1505,6 +1507,7 @@ var _ = Describe("[sig-compute]Configurations", decorators.SigCompute, func() {
 		})
 
 		Context("with geust-to-request memory ", Serial, func() {
+
 			setHeadroom := func(ratioStr string) {
 				kv := libkubevirt.GetCurrentKv(virtClient)
 
@@ -1544,8 +1547,8 @@ var _ = Describe("[sig-compute]Configurations", decorators.SigCompute, func() {
 				requestWithoutHeadroom := getComputeMemoryRequest(vmiWithoutHeadroom)
 				requestWithHeadroom := getComputeMemoryRequest(vmiWithHeadroom)
 
-				overheadWithoutHeadroom := services.GetMemoryOverhead(vmiWithoutHeadroom, runtime.GOARCH, nil)
-				overheadWithHeadroom := services.GetMemoryOverhead(vmiWithoutHeadroom, runtime.GOARCH, pointer.P(ratio))
+				overheadWithoutHeadroom := services.GetMemoryOverhead(vmiWithoutHeadroom, runtime.GOARCH, nil, &qemuVirtStack)
+				overheadWithHeadroom := services.GetMemoryOverhead(vmiWithoutHeadroom, runtime.GOARCH, pointer.P(ratio), &qemuVirtStack)
 
 				expectedDiffBetweenRequests := overheadWithHeadroom.DeepCopy()
 				expectedDiffBetweenRequests.Sub(overheadWithoutHeadroom)
@@ -1897,7 +1900,7 @@ var _ = Describe("[sig-compute]Configurations", decorators.SigCompute, func() {
 					libvmi.WithCPUCount(1, 1, 1),
 				)
 
-				vmiPodRequest := services.GetMemoryOverhead(vmi, runtime.GOARCH, nil)
+				vmiPodRequest := services.GetMemoryOverhead(vmi, runtime.GOARCH, nil, &qemuVirtStack)
 				vmiPodRequest.Add(vmiRequest)
 				value := int64(float64(vmiPodRequest.Value()) * services.DefaultMemoryLimitOverheadRatio)
 
@@ -2945,12 +2948,6 @@ var _ = Describe("[sig-compute]Configurations", decorators.SigCompute, func() {
 
 	})
 	Context("virt-launcher processes memory usage", func() {
-		doesntExceedMemoryUsage := func(processRss *map[string]resource.Quantity, process string, memoryLimit resource.Quantity) {
-			actual := (*processRss)[process]
-			ExpectWithOffset(1, (&actual).Cmp(memoryLimit)).To(Equal(-1),
-				"the %s process is taking too much RAM! (%s > %s). All processes: %v",
-				process, actual.String(), memoryLimit.String(), processRss)
-		}
 		It("should be lower than allocated size", func() {
 			By("Starting a VirtualMachineInstance")
 			vmi := libvmifact.NewFedora(libnet.WithMasqueradeNetworking())
@@ -3003,13 +3000,15 @@ var _ = Describe("[sig-compute]Configurations", decorators.SigCompute, func() {
 			}
 
 			By("Ensuring no process is using too much ram")
-			doesntExceedMemoryUsage(&processRss, "virt-launcher-monitor", resource.MustParse(services.VirtLauncherMonitorOverhead))
-			doesntExceedMemoryUsage(&processRss, "virt-launcher", resource.MustParse(services.VirtLauncherOverhead))
-			doesntExceedMemoryUsage(&processRss, "virtlogd", resource.MustParse(services.VirtlogdOverhead))
-			doesntExceedMemoryUsage(&processRss, "virtqemud", resource.MustParse(services.VirtqemudOverhead))
-			qemuExpected := resource.MustParse(services.QemuOverhead)
-			qemuExpected.Add(vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory])
-			doesntExceedMemoryUsage(&processRss, "qemu", qemuExpected)
+			totalUsedMemory := resource.NewScaledQuantity(0, resource.Kilo)
+			for _, memory := range processRss {
+				totalUsedMemory.Add(resource.MustParse(memory.String()))
+			}
+			upperLimitMemory := resource.MustParse(qemuVirtStack.VirtLauncherConfiguration.VirtLauncherOverhead)
+			upperLimitMemory.Add(vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory])
+			ExpectWithOffset(1, (totalUsedMemory).Cmp(upperLimitMemory)).To(Equal(-1),
+				"RAM Consumption exceeded expected value! (%s > %s). All processes: %v",
+				totalUsedMemory.String(), upperLimitMemory.String(), processRss)
 		})
 	})
 

@@ -93,7 +93,6 @@ var _ = Describe("Operator Config", func() {
 		envVarManager.Setenv(VirtApiShasumEnvName, envVersions.VirtApiSha)
 		envVarManager.Setenv(VirtControllerShasumEnvName, envVersions.VirtControllerSha)
 		envVarManager.Setenv(VirtHandlerShasumEnvName, envVersions.VirtHandlerSha)
-		envVarManager.Setenv(VirtLauncherShasumEnvName, envVersions.VirtLauncherSha)
 		envVarManager.Setenv(KubeVirtVersionEnvName, envVersions.KubeVirtVersion)
 
 		err := VerifyEnv()
@@ -137,8 +136,6 @@ var _ = Describe("Operator Config", func() {
 			"acme.com/kubevirt/virt-controller@sha256:virt-controller-sha")
 		envVarManager.Setenv(VirtHandlerImageEnvName,
 			"acme.com/kubevirt/virt-handler@sha256:virt-handler-sha")
-		envVarManager.Setenv(VirtLauncherImageEnvName,
-			"acme.com/kubevirt/virt-launcher@sha256:virt-launcher-sha")
 		envVarManager.Setenv(VirtExportProxyImageEnvName,
 			"acme.com/kubevirt/virt-exportproxy@sha256:virt-exportproxy-sha")
 		envVarManager.Setenv(VirtExportServerImageEnvName,
@@ -153,7 +150,6 @@ var _ = Describe("Operator Config", func() {
 		Expect("virt-api-sha").To(Equal(parsedConfig.GetApiVersion()))
 		Expect("virt-controller-sha").To(Equal(parsedConfig.GetControllerVersion()))
 		Expect("virt-handler-sha").To(Equal(parsedConfig.GetHandlerVersion()))
-		Expect("virt-launcher-sha").To(Equal(parsedConfig.GetLauncherVersion()))
 		Expect("virt-exportproxy-sha").To(Equal(parsedConfig.GetExportProxyVersion()))
 		Expect("virt-exportserver-sha").To(Equal(parsedConfig.GetExportServerVersion()))
 
@@ -359,7 +355,6 @@ var _ = Describe("Operator Config", func() {
 			apiImage := setCustomImageForComponent("virt-api")
 			controllerImage := setCustomImageForComponent("virt-controller")
 			handlerImage := setCustomImageForComponent("virt-handler")
-			launcherImage := setCustomImageForComponent("virt-launcher")
 			exportProxyImage := setCustomImageForComponent("virt-exportproxy")
 			exportServerImage := setCustomImageForComponent("virt-exportserver")
 			gsImage := setCustomImageForComponent("gs")
@@ -375,7 +370,6 @@ var _ = Describe("Operator Config", func() {
 			Expect(parsedConfig.VirtApiImage).To(Equal(apiImage), errMsg)
 			Expect(parsedConfig.VirtControllerImage).To(Equal(controllerImage), errMsg)
 			Expect(parsedConfig.VirtHandlerImage).To(Equal(handlerImage), errMsg)
-			Expect(parsedConfig.VirtLauncherImage).To(Equal(launcherImage), errMsg)
 			Expect(parsedConfig.VirtExportProxyImage).To(Equal(exportProxyImage), errMsg)
 			Expect(parsedConfig.VirtExportServerImage).To(Equal(exportServerImage), errMsg)
 			Expect(parsedConfig.GsImage).To(Equal(gsImage), errMsg)
