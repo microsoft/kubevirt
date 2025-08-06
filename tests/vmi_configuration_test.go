@@ -3004,7 +3004,7 @@ var _ = Describe("[sig-compute]Configurations", decorators.SigCompute, func() {
 			for _, memory := range processRss {
 				totalUsedMemory.Add(resource.MustParse(memory.String()))
 			}
-			upperLimitMemory := resource.MustParse(qemuVirtStack.VirtLauncherOverhead)
+			upperLimitMemory := resource.MustParse(qemuVirtStack.VirtLauncherConfiguration.VirtLauncherOverhead)
 			upperLimitMemory.Add(vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory])
 			ExpectWithOffset(1, (totalUsedMemory).Cmp(upperLimitMemory)).To(Equal(-1),
 				"RAM Consumption exceeded expected value! (%s > %s). All processes: %v",

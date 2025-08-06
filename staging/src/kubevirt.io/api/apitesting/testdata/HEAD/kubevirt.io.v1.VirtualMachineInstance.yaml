@@ -505,7 +505,6 @@ spec:
     nodeTaintsPolicy: nodeTaintsPolicyValue
     topologyKey: topologyKeyValue
     whenUnsatisfiable: whenUnsatisfiableValue
-  virtualizationStack: virtualizationStackValue
   volumes:
   - cloudInitConfigDrive:
       networkData: networkDataValue

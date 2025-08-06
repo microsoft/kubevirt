@@ -117,17 +117,21 @@ const (
 	FailedToRenderLaunchManifestErrFormat = "failed to render launch manifest: %v"
 )
 
-var QemuVirtualizationStackSpec = v1.VirtualizationStackSpec{
-	Name:                     "qemu-kvm",
-	VirtLauncherCapabilities: []string{"NET_BIND_SERVICE"},
-	VirtLauncherOverhead:     "220Mi",
-	HypervisorDevice:         "/dev/kvm",
-	VCPURegex:                `^CPU (\d+)/KVM\n$`,
-	PitPidPrefix:             "kvm-pit",
-	VMMDaemonProcess:         "virtqemud",
-	VMMProcessExecutables:    []string{"qemu-system-x86", "qemu-kvm"},
-	VmmSocketPath:            "libvirt/virtqemud-sock",
-	VirtLauncherImage:        "", // to be set by the operator"
+var QemuVirtualizationStackSpec = v1.VirtualizationProfile{
+	Name: "qemu-kvm",
+	VirtualizationComponentsConfiguration: v1.VirtualizationComponentsConfiguration{
+		HypervisorDevice:      "/dev/kvm",
+		VCPURegex:             `^CPU (\d+)/KVM\n$`,
+		PitPidPrefix:          "kvm-pit",
+		VMMDaemonProcess:      "virtqemud",
+		VMMProcessExecutables: []string{"qemu-system-x86", "qemu-kvm"},
+		VmmSocketPath:         "libvirt/virtqemud-sock",
+	},
+	VirtLauncherConfiguration: v1.VirtLauncherConfiguration{
+		VirtLauncherCapabilities: []string{"NET_BIND_SERVICE"},
+		VirtLauncherOverhead:     "220Mi",
+		VirtLauncherImage:        "", // to be set by the operator"
+	},
 }
 
 type netBindingPluginMemoryCalculator interface {
@@ -168,7 +172,7 @@ type templateService struct {
 	launcherSubGid             int64
 	resourceQuotaStore         cache.Store
 	namespaceStore             cache.Store
-	virtualizationStack        *v1.VirtualizationStackSpec
+	virtualizationProfile      *v1.VirtualizationProfile
 
 	sidecarCreators                  []SidecarCreatorFunc
 	netBindingPluginMemoryCalculator netBindingPluginMemoryCalculator
@@ -816,10 +820,10 @@ func (t *templateService) newContainerSpecRenderer(vmi *v1.VirtualMachineInstanc
 	}
 
 	kubeVirt := kubeVirtList.Items[0]
-	stack := kubeVirt.Spec.Configuration.VirtualizationStack
+	stack := kubeVirt.Spec.Configuration.VirtualizationProfile
 
-	capabilities := make([]k8sv1.Capability, 0, len(stack.VirtLauncherCapabilities))
-	for _, cap := range stack.VirtLauncherCapabilities {
+	capabilities := make([]k8sv1.Capability, 0, len(stack.VirtLauncherConfiguration.VirtLauncherCapabilities))
+	for _, cap := range stack.VirtLauncherConfiguration.VirtLauncherCapabilities {
 		capabilities = append(capabilities, k8sv1.Capability(cap))
 	}
 
@@ -1322,7 +1326,7 @@ func NewTemplateService(launcherImage string,
 	}
 
 	kubeVirt := kubeVirtList.Items[0]
-	virtstack := kubeVirt.Spec.Configuration.VirtualizationStack
+	virtstackProfile := kubeVirt.Spec.Configuration.VirtualizationProfile
 
 	precond.MustNotBeEmpty(launcherImage)
 	log.Log.V(1).Infof("Exporter Image: %s", exporterImage)
@@ -1341,7 +1345,7 @@ func NewTemplateService(launcherImage string,
 		exporterImage:              exporterImage,
 		resourceQuotaStore:         resourceQuotaStore,
 		namespaceStore:             namespaceStore,
-		virtualizationStack:        virtstack,
+		virtualizationProfile:      virtstackProfile,
 	}
 
 	for _, opt := range opts {
@@ -1536,7 +1540,7 @@ func (t *templateService) VMIResourcePredicates(vmi *v1.VirtualMachineInstance, 
 	if vmiCPUArch == "" {
 		vmiCPUArch = t.clusterConfig.GetClusterCPUArch()
 	}
-	memoryOverhead := GetMemoryOverhead(vmi, vmiCPUArch, t.clusterConfig.GetConfig().AdditionalGuestMemoryOverheadRatio, t.virtualizationStack)
+	memoryOverhead := GetMemoryOverhead(vmi, vmiCPUArch, t.clusterConfig.GetConfig().AdditionalGuestMemoryOverheadRatio, t.virtualizationProfile)
 
 	if t.netBindingPluginMemoryCalculator != nil {
 		memoryOverhead.Add(

@@ -36,13 +36,13 @@ func (c *VirtualMachineController) configureVCPUScheduler(vmi *v1.VirtualMachine
 	if err != nil {
 		return err
 	}
-	qemuProcess, err := res.GetQEMUProcess(c.clusterConfig.GetConfig().VirtualizationStack.VMMProcessExecutables)
+	qemuProcess, err := res.GetQEMUProcess(c.clusterConfig.GetConfig().VirtualizationProfile.VirtualizationComponentsConfiguration.VMMProcessExecutables)
 	if err != nil {
 		return err
 	}
 
 	// parse thread comm value expression
-	vcpuRegex := regexp.MustCompile(c.clusterConfig.GetConfig().VirtualizationStack.VCPURegex)
+	vcpuRegex := regexp.MustCompile(c.clusterConfig.GetConfig().VirtualizationProfile.VirtualizationComponentsConfiguration.VCPURegex)
 
 	vcpus, err := getVCPUThreadIDs(qemuProcess.Pid(), vcpuRegex)
 	if err != nil {

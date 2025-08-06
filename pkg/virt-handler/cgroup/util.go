@@ -190,7 +190,7 @@ func GetDefaultDeviceRules() []*devices.Rule {
 	return defaultDeviceRules
 }
 
-func GenerateDefaultDeviceRules(virtstack *virtv1.VirtualizationStackSpec) []*devices.Rule {
+func GenerateDefaultDeviceRules(virtstack *virtv1.VirtualizationProfile) []*devices.Rule {
 	if len(defaultDeviceRules) > 0 {
 		// To avoid re-computing default device rules
 		return defaultDeviceRules
@@ -238,8 +238,8 @@ func GenerateDefaultDeviceRules(virtstack *virtv1.VirtualizationStackSpec) []*de
 
 	defaultRules = append(defaultRules, &devices.Rule{
 		Type:        devices.CharDevice,
-		Major:       virtstack.HypervisorDeviceMajorNumber,
-		Minor:       virtstack.HypervisorDeviceMinorNumber,
+		Major:       virtstack.VirtualizationComponentsConfiguration.HypervisorDeviceMajorNumber,
+		Minor:       virtstack.VirtualizationComponentsConfiguration.HypervisorDeviceMinorNumber,
 		Permissions: permissions,
 		Allow:       toAllow,
 	})

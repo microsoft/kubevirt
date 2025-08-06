@@ -27,8 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-type VirtualizationStack string
-
 type IOThreadsPolicy string
 
 const (

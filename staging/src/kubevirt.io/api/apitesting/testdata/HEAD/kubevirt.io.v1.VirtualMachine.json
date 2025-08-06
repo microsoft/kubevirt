@@ -933,8 +933,7 @@
             }
           }
         ],
-        "architecture": "architectureValue",
-        "virtualizationStack": "virtualizationStackValue"
+        "architecture": "architectureValue"
       }
     },
     "dataVolumeTemplates": [

@@ -12,20 +12,22 @@ spec:
       {{- range .FeatureGates}}
       - {{.}}
       {{- end}}{{else}} []{{end}}
-    virtualizationStack:
-      hypervisorDevice: /dev/kvm
+    virtualizationProfile:
       name: qemu-kvm
-      pitPidPrefix: kvm-pit
-      vCpuRegex: ^CPU (\d+)/KVM\n$
-      virtLauncherCapabilities:
-      - NET_BIND_SERVICE
-      virtLauncherImage: {{.VirtLauncherImage}}
-      virtLauncherOverhead: 220Mi
-      vmmDaemonProcess: virtqemud
-      vmmProcessExecutables:
-      - qemu-system-x86
-      - qemu-kvm
-      vmmSocketPath: libvirt/virtqemud-sock
+      virtLauncherConfiguration:
+        virtLauncherCapabilities:
+        - NET_BIND_SERVICE
+        virtLauncherImage: {{.VirtLauncherImage}}
+        virtLauncherOverhead: 220Mi
+      virtualizationComponentsConfiguration:
+        hypervisorDevice: /dev/kvm
+        pitPidPrefix: kvm-pit
+        vCpuRegex: ^CPU (\d+)/KVM\n$
+        vmmDaemonProcess: virtqemud
+        vmmProcessExecutables:
+        - qemu-system-x86
+        - qemu-kvm
+        vmmSocketPath: libvirt/virtqemud-sock
   customizeComponents: {}
   imagePullPolicy: {{.ImagePullPolicy}}{{if .InfraReplicas}}
   infra:

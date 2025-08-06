@@ -171,9 +171,6 @@ type VirtualMachineInstanceSpec struct {
 	AccessCredentials []AccessCredential `json:"accessCredentials,omitempty"`
 	// Specifies the architecture of the vm guest you are attempting to run. Defaults to the compiled architecture of the KubeVirt components
 	Architecture string `json:"architecture,omitempty"`
-
-	// Virtualization Stack on which to create the VM.
-	VirtualizationStack VirtualizationStack `json:"virtualizationStack,omitempty"`
 }
 
 func (vmiSpec *VirtualMachineInstanceSpec) UnmarshalJSON(data []byte) error {
@@ -2230,16 +2227,7 @@ type KubeVirtSpec struct {
 	CustomizeComponents CustomizeComponents `json:"customizeComponents,omitempty"`
 }
 
-type VirtualizationStackSpec struct {
-	// Name of the virtualization stack
-	Name string `json:"name,omitempty"`
-
-	// virtLauncherCapabilities specifies the capabilities of the virt-launcher.
-	// +listType=atomic
-	VirtLauncherCapabilities []string `json:"virtLauncherCapabilities,omitempty"`
-
-	// virtLauncherOverhead specifies the overhead associated with the virt-launcher.
-	VirtLauncherOverhead string `json:"virtLauncherOverhead,omitempty"`
+type VirtualizationComponentsConfiguration struct {
 
 	// HypervisorDevice specifies the path to the hypervisor device.
 	HypervisorDevice string `json:"hypervisorDevice,omitempty"`
@@ -2260,11 +2248,29 @@ type VirtualizationStackSpec struct {
 	// VMMProcessExecutables specifies the names of the VMM process executable.
 	VMMProcessExecutables []string `json:"vmmProcessExecutables,omitempty"`
 
+	// Socket used to interact with the VMM.
+	VmmSocketPath string `json:"vmmSocketPath,omitempty"`
+}
+
+type VirtLauncherConfiguration struct {
+	// virtLauncherCapabilities specifies the capabilities of the virt-launcher.
+	// +listType=atomic
+	VirtLauncherCapabilities []string `json:"virtLauncherCapabilities,omitempty"`
+
+	// virtLauncherOverhead specifies the overhead associated with the virt-launcher.
+	VirtLauncherOverhead string `json:"virtLauncherOverhead,omitempty"`
+
 	// Container image URI for virt-launcher for the given virtualization stack.
 	VirtLauncherImage string `json:"virtLauncherImage,omitempty"`
+}
 
-	// Set to libvirt/virtqemud-sock for Libvirt
-	VmmSocketPath string `json:"vmmSocketPath,omitempty"`
+type VirtualizationProfile struct {
+	// Name of the virtualization stack
+	Name string `json:"name,omitempty"`
+
+	VirtualizationComponentsConfiguration VirtualizationComponentsConfiguration `json:"virtualizationComponentsConfiguration,omitempty"`
+
+	VirtLauncherConfiguration VirtLauncherConfiguration `json:"virtLauncherConfiguration,omitempty"`
 }
 
 type CustomizeComponents struct {
@@ -2786,10 +2792,10 @@ type KubeVirtConfiguration struct {
 	// +nullable
 	Instancetype *InstancetypeConfiguration `json:"instancetype,omitempty"`
 
-	// VirtualizationStack on which
+	// Configuration of the virtualization stack on which
 	// this KubeVirt cluster should be deployed
 	// +nullable
-	VirtualizationStack *VirtualizationStackSpec `json:"virtualizationStack,omitempty"`
+	VirtualizationProfile *VirtualizationProfile `json:"virtualizationProfile,omitempty"`
 }
 
 type InstancetypeConfiguration struct {

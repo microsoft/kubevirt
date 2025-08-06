@@ -1570,60 +1570,67 @@ var CRDsValidation map[string]string = map[string]string{
                     The value can be individually overridden for each VM, not relevant if AutoattachSerialConsole is disabled.
                   type: object
               type: object
-            virtualizationStack:
+            virtualizationProfile:
               description: |-
-                VirtualizationStack on which
+                Configuration of the virtualization stack on which
                 this KubeVirt cluster should be deployed
               nullable: true
               properties:
-                hypervisorDevice:
-                  description: HypervisorDevice specifies the path to the hypervisor
-                    device.
-                  type: string
-                hypervisorDeviceMajorNumber:
-                  format: int64
-                  type: integer
-                hypervisorDeviceMinorNumber:
-                  format: int64
-                  type: integer
                 name:
                   description: Name of the virtualization stack
                   type: string
-                pitPidPrefix:
-                  description: Prefix of the Programmable Interrupt Timer (PIT) PID.
-                  type: string
-                vCpuRegex:
-                  description: VCPURegex defines the regular expression used to identify
-                    vCPU devices.
-                  type: string
-                virtLauncherCapabilities:
-                  description: virtLauncherCapabilities specifies the capabilities
-                    of the virt-launcher.
-                  items:
-                    type: string
-                  type: array
-                  x-kubernetes-list-type: atomic
-                virtLauncherImage:
-                  description: Container image URI for virt-launcher for the given
-                    virtualization stack.
-                  type: string
-                virtLauncherOverhead:
-                  description: virtLauncherOverhead specifies the overhead associated
-                    with the virt-launcher.
-                  type: string
-                vmmDaemonProcess:
-                  description: VMMDaemonProcess specifies the name of the VMM daemon
-                    process.
-                  type: string
-                vmmProcessExecutables:
-                  description: VMMProcessExecutables specifies the names of the VMM
-                    process executable.
-                  items:
-                    type: string
-                  type: array
-                vmmSocketPath:
-                  description: Set to libvirt/virtqemud-sock for Libvirt
-                  type: string
+                virtLauncherConfiguration:
+                  properties:
+                    virtLauncherCapabilities:
+                      description: virtLauncherCapabilities specifies the capabilities
+                        of the virt-launcher.
+                      items:
+                        type: string
+                      type: array
+                      x-kubernetes-list-type: atomic
+                    virtLauncherImage:
+                      description: Container image URI for virt-launcher for the given
+                        virtualization stack.
+                      type: string
+                    virtLauncherOverhead:
+                      description: virtLauncherOverhead specifies the overhead associated
+                        with the virt-launcher.
+                      type: string
+                  type: object
+                virtualizationComponentsConfiguration:
+                  properties:
+                    hypervisorDevice:
+                      description: HypervisorDevice specifies the path to the hypervisor
+                        device.
+                      type: string
+                    hypervisorDeviceMajorNumber:
+                      format: int64
+                      type: integer
+                    hypervisorDeviceMinorNumber:
+                      format: int64
+                      type: integer
+                    pitPidPrefix:
+                      description: Prefix of the Programmable Interrupt Timer (PIT)
+                        PID.
+                      type: string
+                    vCpuRegex:
+                      description: VCPURegex defines the regular expression used to
+                        identify vCPU devices.
+                      type: string
+                    vmmDaemonProcess:
+                      description: VMMDaemonProcess specifies the name of the VMM
+                        daemon process.
+                      type: string
+                    vmmProcessExecutables:
+                      description: VMMProcessExecutables specifies the names of the
+                        VMM process executable.
+                      items:
+                        type: string
+                      type: array
+                    vmmSocketPath:
+                      description: Socket used to interact with the VMM.
+                      type: string
+                  type: object
               type: object
             vmRolloutStrategy:
               description: |-
@@ -7618,9 +7625,6 @@ var CRDsValidation map[string]string = map[string]string{
                   - topologyKey
                   - whenUnsatisfiable
                   x-kubernetes-list-type: map
-                virtualizationStack:
-                  description: Virtualization Stack on which to create the VM.
-                  type: string
                 volumes:
                   description: List of volumes that can be mounted by disks belonging
                     to the vmi.
@@ -12930,9 +12934,6 @@ var CRDsValidation map[string]string = map[string]string{
           - topologyKey
           - whenUnsatisfiable
           x-kubernetes-list-type: map
-        virtualizationStack:
-          description: Virtualization Stack on which to create the VM.
-          type: string
         volumes:
           description: List of volumes that can be mounted by disks belonging to the
             vmi.
@@ -18846,9 +18847,6 @@ var CRDsValidation map[string]string = map[string]string{
                   - topologyKey
                   - whenUnsatisfiable
                   x-kubernetes-list-type: map
-                virtualizationStack:
-                  description: Virtualization Stack on which to create the VM.
-                  type: string
                 volumes:
                   description: List of volumes that can be mounted by disks belonging
                     to the vmi.
@@ -23391,10 +23389,6 @@ var CRDsValidation map[string]string = map[string]string{
                           - topologyKey
                           - whenUnsatisfiable
                           x-kubernetes-list-type: map
-                        virtualizationStack:
-                          description: Virtualization Stack on which to create the
-                            VM.
-                          type: string
                         volumes:
                           description: List of volumes that can be mounted by disks
                             belonging to the vmi.
@@ -28618,10 +28612,6 @@ var CRDsValidation map[string]string = map[string]string{
                               - topologyKey
                               - whenUnsatisfiable
                               x-kubernetes-list-type: map
-                            virtualizationStack:
-                              description: Virtualization Stack on which to create
-                                the VM.
-                              type: string
                             volumes:
                               description: List of volumes that can be mounted by
                                 disks belonging to the vmi.

@@ -51,7 +51,7 @@ type PodIsolationDetector interface {
 	DetectForSocket(vm *v1.VirtualMachineInstance, socket string) (IsolationResult, error)
 
 	// Adjust system resources to run the passed VM
-	AdjustResources(vm *v1.VirtualMachineInstance, additionalOverheadRatio *string, virtstack *v1.VirtualizationStackSpec) error
+	AdjustResources(vm *v1.VirtualMachineInstance, additionalOverheadRatio *string, virtstack *v1.VirtualizationProfile) error
 }
 
 const isolationDialTimeout = 5
@@ -94,7 +94,7 @@ func (s *socketBasedIsolationDetector) DetectForSocket(vm *v1.VirtualMachineInst
 	return NewIsolationResult(pid, ppid), nil
 }
 
-func (s *socketBasedIsolationDetector) AdjustResources(vm *v1.VirtualMachineInstance, additionalOverheadRatio *string, virtstack *v1.VirtualizationStackSpec) error {
+func (s *socketBasedIsolationDetector) AdjustResources(vm *v1.VirtualMachineInstance, additionalOverheadRatio *string, virtstack *v1.VirtualizationProfile) error {
 	// only VFIO attached or with lock guest memory domains require MEMLOCK adjustment
 	if !util.IsVFIOVMI(vm) && !vm.IsRealtimeEnabled() && !util.IsSEVVMI(vm) {
 		return nil
@@ -119,7 +119,7 @@ func (s *socketBasedIsolationDetector) AdjustResources(vm *v1.VirtualMachineInst
 		}
 
 		// virtqemud process sets the memory lock limit before fork/exec-ing into qemu
-		if process.Executable() != virtstack.VMMDaemonProcess {
+		if process.Executable() != virtstack.VirtualizationComponentsConfiguration.VMMDaemonProcess {
 			continue
 		}
 
@@ -142,7 +142,7 @@ func (s *socketBasedIsolationDetector) AdjustResources(vm *v1.VirtualMachineInst
 // AdjustQemuProcessMemoryLimits adjusts QEMU process MEMLOCK rlimits that runs inside
 // virt-launcher pod on the given VMI according to its spec.
 // Only VMI's with VFIO devices (e.g: SRIOV, GPU), SEV or RealTime workloads require QEMU process MEMLOCK adjustment.
-func AdjustQemuProcessMemoryLimits(podIsoDetector PodIsolationDetector, vmi *v1.VirtualMachineInstance, additionalOverheadRatio *string, virtstack *v1.VirtualizationStackSpec) error {
+func AdjustQemuProcessMemoryLimits(podIsoDetector PodIsolationDetector, vmi *v1.VirtualMachineInstance, additionalOverheadRatio *string, virtstack *v1.VirtualizationProfile) error {
 	if !util.IsVFIOVMI(vmi) && !vmi.IsRealtimeEnabled() && !util.IsSEVVMI(vmi) {
 		return nil
 	}
@@ -152,7 +152,7 @@ func AdjustQemuProcessMemoryLimits(podIsoDetector PodIsolationDetector, vmi *v1.
 		return err
 	}
 
-	qemuProcess, err := isolationResult.GetQEMUProcess(virtstack.VMMProcessExecutables)
+	qemuProcess, err := isolationResult.GetQEMUProcess(virtstack.VirtualizationComponentsConfiguration.VMMProcessExecutables)
 	if err != nil {
 		return err
 	}

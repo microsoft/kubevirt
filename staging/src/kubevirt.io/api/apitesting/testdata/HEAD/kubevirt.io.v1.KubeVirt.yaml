@@ -229,21 +229,23 @@ spec:
     virtualMachineOptions:
       disableFreePageReporting: {}
       disableSerialConsoleLog: {}
-    virtualizationStack:
-      hypervisorDevice: hypervisorDeviceValue
-      hypervisorDeviceMajorNumber: -27
-      hypervisorDeviceMinorNumber: -27
+    virtualizationProfile:
       name: nameValue
-      pitPidPrefix: pitPidPrefixValue
-      vCpuRegex: vCpuRegexValue
-      virtLauncherCapabilities:
-      - virtLauncherCapabilitiesValue
-      virtLauncherImage: virtLauncherImageValue
-      virtLauncherOverhead: virtLauncherOverheadValue
-      vmmDaemonProcess: vmmDaemonProcessValue
-      vmmProcessExecutables:
-      - vmmProcessExecutablesValue
-      vmmSocketPath: vmmSocketPathValue
+      virtLauncherConfiguration:
+        virtLauncherCapabilities:
+        - virtLauncherCapabilitiesValue
+        virtLauncherImage: virtLauncherImageValue
+        virtLauncherOverhead: virtLauncherOverheadValue
+      virtualizationComponentsConfiguration:
+        hypervisorDevice: hypervisorDeviceValue
+        hypervisorDeviceMajorNumber: -27
+        hypervisorDeviceMinorNumber: -27
+        pitPidPrefix: pitPidPrefixValue
+        vCpuRegex: vCpuRegexValue
+        vmmDaemonProcess: vmmDaemonProcessValue
+        vmmProcessExecutables:
+        - vmmProcessExecutablesValue
+        vmmSocketPath: vmmSocketPathValue
     vmRolloutStrategy: vmRolloutStrategyValue
     vmStateStorageClass: vmStateStorageClassValue
     webhookConfiguration:

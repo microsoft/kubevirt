@@ -45,7 +45,7 @@ const (
 	infraReplicasPlaceholder = 255
 )
 
-func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates string, infraReplicas uint8, qemuVirtStack virtv1.VirtualizationStackSpec) *virtv1.KubeVirt {
+func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates string, infraReplicas uint8, qemuVirtStack virtv1.VirtualizationProfile) *virtv1.KubeVirt {
 	cr := &virtv1.KubeVirt{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: virtv1.GroupVersion.String(),
@@ -60,7 +60,7 @@ func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates stri
 		},
 	}
 
-	cr.Spec.Configuration.VirtualizationStack = &qemuVirtStack
+	cr.Spec.Configuration.VirtualizationProfile = &qemuVirtStack
 
 	if featureGates != "" {
 		cr.Spec.Configuration.DeveloperConfiguration = &virtv1.DeveloperConfiguration{
@@ -75,7 +75,7 @@ func newKubeVirtCR(namespace string, pullPolicy v1.PullPolicy, featureGates stri
 	return cr
 }
 
-func generateKubeVirtCR(namespace *string, imagePullPolicy v1.PullPolicy, featureGatesFlag *string, infraReplicasFlag *string, qemuVirtStack virtv1.VirtualizationStackSpec) {
+func generateKubeVirtCR(namespace *string, imagePullPolicy v1.PullPolicy, featureGatesFlag *string, infraReplicasFlag *string, qemuVirtStack virtv1.VirtualizationProfile) {
 	var featureGates string
 	if strings.HasPrefix(*featureGatesFlag, "{{") {
 		featureGates = featureGatesPlaceholder
@@ -161,7 +161,7 @@ func main() {
 	case "kv-cr":
 		// Set the virtualization stack to the default
 		qemuVirtualizationStack := services.QemuVirtualizationStackSpec
-		qemuVirtualizationStack.VirtLauncherImage = *virtLauncherImage
+		qemuVirtualizationStack.VirtLauncherConfiguration.VirtLauncherImage = *virtLauncherImage
 
 		generateKubeVirtCR(namespace, imagePullPolicy, featureGates, infraReplicas, qemuVirtualizationStack)
 	case "operator-rbac":

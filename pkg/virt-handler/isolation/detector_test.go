@@ -137,7 +137,7 @@ var _ = Describe("findIsolatedQemuProcess", func() {
 
 	DescribeTable("should return QEMU process",
 		func(processes []ps.Process, pid int, expectedProcess ps.Process) {
-			proc, err := findIsolatedQemuProcess(processes, pid, qemuVirtStack.VMMProcessExecutables)
+			proc, err := findIsolatedQemuProcess(processes, pid, qemuVirtStack.VirtualizationComponentsConfiguration.VMMProcessExecutables)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(proc).To(Equal(expectedProcess))
 		},
@@ -153,7 +153,7 @@ var _ = Describe("findIsolatedQemuProcess", func() {
 		),
 	)
 	It("should fail when no QEMU process exists", func() {
-		proc, err := findIsolatedQemuProcess(virtLauncherProcesses, virtLauncherPid, qemuVirtStack.VMMProcessExecutables)
+		proc, err := findIsolatedQemuProcess(virtLauncherProcesses, virtLauncherPid, qemuVirtStack.VirtualizationComponentsConfiguration.VMMProcessExecutables)
 		Expect(err).To(HaveOccurred())
 		Expect(proc).To(BeNil())
 	})

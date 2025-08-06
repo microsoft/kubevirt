@@ -231,7 +231,7 @@ func GetTargetConfigFromKVWithEnvVarManager(kv *v1.KubeVirt, envVarManager EnvVa
 	return getConfig(kv.Spec.ImageRegistry,
 		kv.Spec.ImageTag,
 		kv.Namespace,
-		kv.Spec.Configuration.VirtualizationStack,
+		kv.Spec.Configuration.VirtualizationProfile,
 		additionalProperties,
 		envVarManager)
 }
@@ -288,7 +288,7 @@ func GetOperatorImageWithEnvVarManager(envVarManager EnvVarManager) string {
 	return envVarManager.Getenv(OldOperatorImageEnvName)
 }
 
-func getConfig(registry, tag, namespace string, virtStack *v1.VirtualizationStackSpec, additionalProperties map[string]string, envVarManager EnvVarManager) *KubeVirtDeploymentConfig {
+func getConfig(registry, tag, namespace string, virtStack *v1.VirtualizationProfile, additionalProperties map[string]string, envVarManager EnvVarManager) *KubeVirtDeploymentConfig {
 
 	// get registry and tag/shasum from operator image
 	imageString := GetOperatorImageWithEnvVarManager(envVarManager)
@@ -354,7 +354,7 @@ func getConfig(registry, tag, namespace string, virtStack *v1.VirtualizationStac
 	PrHelperImage := envVarManager.Getenv(PrHelperImageEnvName)
 	SidecarShimImage := envVarManager.Getenv(SidecarShimImageEnvName)
 
-	launcherImage := virtStack.VirtLauncherImage
+	launcherImage := virtStack.VirtLauncherConfiguration.VirtLauncherImage
 
 	config := newDeploymentConfigWithTag(registry, imagePrefix, tag, namespace, operatorImage, apiImage, controllerImage, handlerImage, launcherImage, exportProxyImage, exportServerImage, synchronizationControllerImage, GsImage, PrHelperImage, SidecarShimImage, additionalProperties, passthroughEnv)
 	if skipShasums {

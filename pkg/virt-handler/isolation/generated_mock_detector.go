@@ -41,7 +41,7 @@ func (m *MockPodIsolationDetector) EXPECT() *MockPodIsolationDetectorMockRecorde
 }
 
 // AdjustResources mocks base method.
-func (m *MockPodIsolationDetector) AdjustResources(vm *v1.VirtualMachineInstance, additionalOverheadRatio *string, virtstack *v1.VirtualizationStackSpec) error {
+func (m *MockPodIsolationDetector) AdjustResources(vm *v1.VirtualMachineInstance, additionalOverheadRatio *string, virtstack *v1.VirtualizationProfile) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AdjustResources", vm, additionalOverheadRatio, virtstack)
 	ret0, _ := ret[0].(error)

@@ -366,23 +366,27 @@
       "instancetype": {
         "referencePolicy": "referencePolicyValue"
       },
-      "virtualizationStack": {
+      "virtualizationProfile": {
         "name": "nameValue",
-        "virtLauncherCapabilities": [
-          "virtLauncherCapabilitiesValue"
-        ],
-        "virtLauncherOverhead": "virtLauncherOverheadValue",
-        "hypervisorDevice": "hypervisorDeviceValue",
-        "hypervisorDeviceMajorNumber": -27,
-        "hypervisorDeviceMinorNumber": -27,
-        "vCpuRegex": "vCpuRegexValue",
-        "pitPidPrefix": "pitPidPrefixValue",
-        "vmmDaemonProcess": "vmmDaemonProcessValue",
-        "vmmProcessExecutables": [
-          "vmmProcessExecutablesValue"
-        ],
-        "virtLauncherImage": "virtLauncherImageValue",
-        "vmmSocketPath": "vmmSocketPathValue"
+        "virtualizationComponentsConfiguration": {
+          "hypervisorDevice": "hypervisorDeviceValue",
+          "hypervisorDeviceMajorNumber": -27,
+          "hypervisorDeviceMinorNumber": -27,
+          "vCpuRegex": "vCpuRegexValue",
+          "pitPidPrefix": "pitPidPrefixValue",
+          "vmmDaemonProcess": "vmmDaemonProcessValue",
+          "vmmProcessExecutables": [
+            "vmmProcessExecutablesValue"
+          ],
+          "vmmSocketPath": "vmmSocketPathValue"
+        },
+        "virtLauncherConfiguration": {
+          "virtLauncherCapabilities": [
+            "virtLauncherCapabilitiesValue"
+          ],
+          "virtLauncherOverhead": "virtLauncherOverheadValue",
+          "virtLauncherImage": "virtLauncherImageValue"
+        }
       }
     },
     "infra": {

@@ -526,6 +526,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/api/core/v1.VGPUOptions":                                                        schema_kubevirtio_api_core_v1_VGPUOptions(ref),
 		"kubevirt.io/api/core/v1.VMISelector":                                                        schema_kubevirtio_api_core_v1_VMISelector(ref),
 		"kubevirt.io/api/core/v1.VSOCKOptions":                                                       schema_kubevirtio_api_core_v1_VSOCKOptions(ref),
+		"kubevirt.io/api/core/v1.VirtLauncherConfiguration":                                          schema_kubevirtio_api_core_v1_VirtLauncherConfiguration(ref),
 		"kubevirt.io/api/core/v1.VirtualMachine":                                                     schema_kubevirtio_api_core_v1_VirtualMachine(ref),
 		"kubevirt.io/api/core/v1.VirtualMachineCondition":                                            schema_kubevirtio_api_core_v1_VirtualMachineCondition(ref),
 		"kubevirt.io/api/core/v1.VirtualMachineInstance":                                             schema_kubevirtio_api_core_v1_VirtualMachineInstance(ref),
@@ -573,7 +574,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/api/core/v1.VirtualMachineStateChangeRequest":                                   schema_kubevirtio_api_core_v1_VirtualMachineStateChangeRequest(ref),
 		"kubevirt.io/api/core/v1.VirtualMachineStatus":                                               schema_kubevirtio_api_core_v1_VirtualMachineStatus(ref),
 		"kubevirt.io/api/core/v1.VirtualMachineVolumeRequest":                                        schema_kubevirtio_api_core_v1_VirtualMachineVolumeRequest(ref),
-		"kubevirt.io/api/core/v1.VirtualizationStackSpec":                                            schema_kubevirtio_api_core_v1_VirtualizationStackSpec(ref),
+		"kubevirt.io/api/core/v1.VirtualizationComponentsConfiguration":                              schema_kubevirtio_api_core_v1_VirtualizationComponentsConfiguration(ref),
+		"kubevirt.io/api/core/v1.VirtualizationProfile":                                              schema_kubevirtio_api_core_v1_VirtualizationProfile(ref),
 		"kubevirt.io/api/core/v1.Volume":                                                             schema_kubevirtio_api_core_v1_Volume(ref),
 		"kubevirt.io/api/core/v1.VolumeMigrationState":                                               schema_kubevirtio_api_core_v1_VolumeMigrationState(ref),
 		"kubevirt.io/api/core/v1.VolumeSnapshotStatus":                                               schema_kubevirtio_api_core_v1_VolumeSnapshotStatus(ref),
@@ -21589,17 +21591,17 @@ func schema_kubevirtio_api_core_v1_KubeVirtConfiguration(ref common.ReferenceCal
 							Ref:         ref("kubevirt.io/api/core/v1.InstancetypeConfiguration"),
 						},
 					},
-					"virtualizationStack": {
+					"virtualizationProfile": {
 						SchemaProps: spec.SchemaProps{
-							Description: "VirtualizationStack on which this KubeVirt cluster should be deployed",
-							Ref:         ref("kubevirt.io/api/core/v1.VirtualizationStackSpec"),
+							Description: "Configuration of the virtualization stack on which this KubeVirt cluster should be deployed",
+							Ref:         ref("kubevirt.io/api/core/v1.VirtualizationProfile"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/api/resource.Quantity", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "kubevirt.io/api/core/v1.ArchConfiguration", "kubevirt.io/api/core/v1.CommonInstancetypesDeployment", "kubevirt.io/api/core/v1.DeveloperConfiguration", "kubevirt.io/api/core/v1.InstancetypeConfiguration", "kubevirt.io/api/core/v1.KSMConfiguration", "kubevirt.io/api/core/v1.LiveUpdateConfiguration", "kubevirt.io/api/core/v1.MediatedDevicesConfiguration", "kubevirt.io/api/core/v1.MigrationConfiguration", "kubevirt.io/api/core/v1.NetworkConfiguration", "kubevirt.io/api/core/v1.PermittedHostDevices", "kubevirt.io/api/core/v1.ReloadableComponentConfiguration", "kubevirt.io/api/core/v1.SMBiosConfiguration", "kubevirt.io/api/core/v1.SeccompConfiguration", "kubevirt.io/api/core/v1.SupportContainerResources", "kubevirt.io/api/core/v1.TLSConfiguration", "kubevirt.io/api/core/v1.VirtualMachineOptions", "kubevirt.io/api/core/v1.VirtualizationStackSpec"},
+			"k8s.io/apimachinery/pkg/api/resource.Quantity", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "kubevirt.io/api/core/v1.ArchConfiguration", "kubevirt.io/api/core/v1.CommonInstancetypesDeployment", "kubevirt.io/api/core/v1.DeveloperConfiguration", "kubevirt.io/api/core/v1.InstancetypeConfiguration", "kubevirt.io/api/core/v1.KSMConfiguration", "kubevirt.io/api/core/v1.LiveUpdateConfiguration", "kubevirt.io/api/core/v1.MediatedDevicesConfiguration", "kubevirt.io/api/core/v1.MigrationConfiguration", "kubevirt.io/api/core/v1.NetworkConfiguration", "kubevirt.io/api/core/v1.PermittedHostDevices", "kubevirt.io/api/core/v1.ReloadableComponentConfiguration", "kubevirt.io/api/core/v1.SMBiosConfiguration", "kubevirt.io/api/core/v1.SeccompConfiguration", "kubevirt.io/api/core/v1.SupportContainerResources", "kubevirt.io/api/core/v1.TLSConfiguration", "kubevirt.io/api/core/v1.VirtualMachineOptions", "kubevirt.io/api/core/v1.VirtualizationProfile"},
 	}
 }
 
@@ -24909,6 +24911,52 @@ func schema_kubevirtio_api_core_v1_VSOCKOptions(ref common.ReferenceCallback) co
 	}
 }
 
+func schema_kubevirtio_api_core_v1_VirtLauncherConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"virtLauncherCapabilities": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "virtLauncherCapabilities specifies the capabilities of the virt-launcher.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"virtLauncherOverhead": {
+						SchemaProps: spec.SchemaProps{
+							Description: "virtLauncherOverhead specifies the overhead associated with the virt-launcher.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"virtLauncherImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Container image URI for virt-launcher for the given virtualization stack.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func schema_kubevirtio_api_core_v1_VirtualMachine(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -27099,13 +27147,6 @@ func schema_kubevirtio_api_core_v1_VirtualMachineInstanceSpec(ref common.Referen
 							Format:      "",
 						},
 					},
-					"virtualizationStack": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Virtualization Stack on which to create the VM.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 				},
 				Required: []string{"domain"},
 			},
@@ -27866,46 +27907,12 @@ func schema_kubevirtio_api_core_v1_VirtualMachineVolumeRequest(ref common.Refere
 	}
 }
 
-func schema_kubevirtio_api_core_v1_VirtualizationStackSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_kubevirtio_api_core_v1_VirtualizationComponentsConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Name of the virtualization stack",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"virtLauncherCapabilities": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
-						SchemaProps: spec.SchemaProps{
-							Description: "virtLauncherCapabilities specifies the capabilities of the virt-launcher.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
-									},
-								},
-							},
-						},
-					},
-					"virtLauncherOverhead": {
-						SchemaProps: spec.SchemaProps{
-							Description: "virtLauncherOverhead specifies the overhead associated with the virt-launcher.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 					"hypervisorDevice": {
 						SchemaProps: spec.SchemaProps{
 							Description: "HypervisorDevice specifies the path to the hypervisor device.",
@@ -27961,16 +27968,9 @@ func schema_kubevirtio_api_core_v1_VirtualizationStackSpec(ref common.ReferenceC
 							},
 						},
 					},
-					"virtLauncherImage": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Container image URI for virt-launcher for the given virtualization stack.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 					"vmmSocketPath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Set to libvirt/virtqemud-sock for Libvirt",
+							Description: "Socket used to interact with the VMM.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -27978,6 +27978,39 @@ func schema_kubevirtio_api_core_v1_VirtualizationStackSpec(ref common.ReferenceC
 				},
 			},
 		},
+	}
+}
+
+func schema_kubevirtio_api_core_v1_VirtualizationProfile(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the virtualization stack",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"virtualizationComponentsConfiguration": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("kubevirt.io/api/core/v1.VirtualizationComponentsConfiguration"),
+						},
+					},
+					"virtLauncherConfiguration": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("kubevirt.io/api/core/v1.VirtLauncherConfiguration"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"kubevirt.io/api/core/v1.VirtLauncherConfiguration", "kubevirt.io/api/core/v1.VirtualizationComponentsConfiguration"},
 	}
 }
 

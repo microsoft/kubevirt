@@ -447,8 +447,10 @@ var _ = Describe("Resource pod spec renderer", func() {
 var _ = Describe("GetMemoryOverhead calculation", func() {
 	// VirtLauncherMonitorOverhead + VirtLauncherOverhead + VirtlogdOverhead + VirtqemudOverhead + QemuOverhead + IothreadsOverhead
 	const ioThreadsOverheadString = "8Mi"
-	qemuVirtStack := v1.VirtualizationStackSpec{
-		VirtLauncherOverhead: "220Mi",
+	qemuVirtStack := v1.VirtualizationProfile{
+		VirtLauncherConfiguration: v1.VirtLauncherConfiguration{
+			VirtLauncherOverhead: "220Mi",
+		},
 	}
 
 	var (
@@ -480,7 +482,7 @@ var _ = Describe("GetMemoryOverhead calculation", func() {
 			},
 		}
 		ioThreadsOverhead = pointer.P(resource.MustParse(ioThreadsOverheadString))
-		virtStackOverhead = pointer.P(resource.MustParse(qemuVirtStack.VirtLauncherOverhead))
+		virtStackOverhead = pointer.P(resource.MustParse(qemuVirtStack.VirtLauncherConfiguration.VirtLauncherOverhead))
 		// MemoryReq / 512bit
 		baseOverhead = pointer.P(resource.MustParse("7Mi"))
 		coresOverhead = pointer.P(resource.MustParse("8Mi"))
