@@ -33,9 +33,8 @@ import (
 )
 
 const (
-	sysfsNodePath  = "/sys/devices/system/node/"
-	systemPageSize = 4096 // bytes	// TODO Get this page size dynamically.
-	kilobyte       = 1024
+	sysfsNodePath = "/sys/devices/system/node/"
+	kilobyte      = 1024
 )
 
 func readMemTotalKB(meminfoPath string) uint64 {
