@@ -21,6 +21,7 @@ package util
 
 const (
 	DefaultMinCPUModel = "Penryn"
+	KVMPath            = "/dev/kvm"
 	RequirePolicy      = "require"
 	VmxFeature         = "vmx"
 )
