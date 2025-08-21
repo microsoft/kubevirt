@@ -27,6 +27,8 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/sys/unix"
+
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 )
 
@@ -123,8 +125,13 @@ func populatePageInfo(cell *cmdv1.Cell, node string) error {
 	regularMemKB := totalMemKB - hugepagesMemKB
 	regularMemBytes := regularMemKB * kilobyte
 
+	systemPageSize := unix.Getpagesize()
+	if systemPageSize <= 0 {
+		return fmt.Errorf("failed to get system page size. It must be greater than 0")
+	}
+
 	cell.Pages = append(cell.Pages, &cmdv1.Pages{
-		Count: regularMemBytes / systemPageSize,
+		Count: regularMemBytes / uint64(systemPageSize),
 		Unit:  "KiB",
 		Size:  uint32(systemPageSize / kilobyte),
 	})
