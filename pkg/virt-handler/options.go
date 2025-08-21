@@ -17,11 +17,7 @@ limitations under the License.
 package virthandler
 
 import (
-	"strconv"
-	"strings"
-
 	v1 "kubevirt.io/api/core/v1"
-	"libvirt.org/go/libvirtxml"
 
 	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
 
@@ -36,13 +32,13 @@ func virtualMachineOptions(
 	smbios *v1.SMBiosConfiguration,
 	period uint32,
 	preallocatedVolumes []string,
-	capabilities *libvirtxml.Caps,
+	nodeTopology *cmdv1.Topology,
 	clusterConfig *virtconfig.ClusterConfig,
 ) *cmdv1.VirtualMachineOptions {
 	options := &cmdv1.VirtualMachineOptions{
 		MemBalloonStatsPeriod: period,
 		PreallocatedVolumes:   preallocatedVolumes,
-		Topology:              capabilitiesToTopology(capabilities),
+		Topology:              nodeTopology,
 		// New virt-launcher images no longer use this value, it's kept empty for backward compatibility.
 		DisksInfo: map[string]*cmdv1.DiskInfo{},
 	}
@@ -71,79 +67,4 @@ func virtualMachineOptions(
 	}
 
 	return options
-}
-
-func capabilitiesToTopology(capabilities *libvirtxml.Caps) *cmdv1.Topology {
-	topology := &cmdv1.Topology{}
-	if capabilities == nil {
-		return topology
-	}
-
-	for _, cell := range capabilities.Host.NUMA.Cells.Cells {
-		topology.NumaCells = append(topology.NumaCells, cellToCell(cell))
-	}
-	return topology
-}
-
-func cellToCell(cell libvirtxml.CapsHostNUMACell) *cmdv1.Cell {
-	c := &cmdv1.Cell{
-		Id: uint32(cell.ID),
-	}
-
-	if cell.Memory != nil {
-		c.Memory = &cmdv1.Memory{
-			Amount: cell.Memory.Size,
-			Unit:   cell.Memory.Unit,
-		}
-	}
-
-	for _, page := range cell.PageInfo {
-		c.Pages = append(c.Pages, pageToPage(page))
-	}
-	if cell.Distances != nil {
-		for _, distance := range cell.Distances.Siblings {
-			c.Distances = append(c.Distances, distanceToDistance(distance))
-		}
-	}
-	if cell.CPUS != nil {
-		for _, cpu := range cell.CPUS.CPUs {
-			c.Cpus = append(c.Cpus, cpuToCPU(cpu))
-		}
-	}
-	return c
-}
-
-func pageToPage(pages libvirtxml.CapsHostNUMAPageInfo) *cmdv1.Pages {
-	return &cmdv1.Pages{
-		Count: pages.Count,
-		Unit:  pages.Unit,
-		Size:  uint32(pages.Size),
-	}
-}
-
-func distanceToDistance(distance libvirtxml.CapsHostNUMASibling) *cmdv1.Sibling {
-	return &cmdv1.Sibling{
-		Id:    uint32(distance.ID),
-		Value: uint64(distance.Value),
-	}
-}
-
-func cpuToCPU(cpu libvirtxml.CapsHostNUMACPU) *cmdv1.CPU {
-	return &cmdv1.CPU{
-		Id:       uint32(cpu.ID),
-		Siblings: convertListOfIntStringToSlice(cpu.Siblings),
-	}
-}
-
-func convertListOfIntStringToSlice(siblings string) []uint32 {
-	var convertedSiblings []uint32
-	for _, sibling := range strings.Split(siblings, ",") {
-		num, err := strconv.ParseUint(sibling, 10, 32)
-		if err != nil {
-			// Sibling must be int, otherwise skip
-			continue
-		}
-		convertedSiblings = append(convertedSiblings, uint32(num))
-	}
-	return convertedSiblings
 }

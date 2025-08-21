@@ -309,6 +309,8 @@ func (app *virtHandlerApp) Run() {
 		panic(err)
 	}
 
+	nodeTopology := nodelabeller.ReadNodeTopology()
+
 	nodeLabellerrecorder := broadcaster.NewRecorder(scheme.Scheme, k8sv1.EventSource{Component: "node-labeller", Host: app.HostOverride})
 	nodeLabellerController, err := nodelabeller.NewNodeLabeller(app.clusterConfig,
 		app.virtCli.CoreV1().Nodes(),
@@ -349,7 +351,7 @@ func (app *virtHandlerApp) Run() {
 		podIsolationDetector,
 		migrationProxy,
 		downwardMetricsManager,
-		&capabilities,
+		nodeTopology,
 		hostCpuModel,
 		netsetup.NewNetConf(app.clusterConfig),
 		netsetup.NewNetStat(),
