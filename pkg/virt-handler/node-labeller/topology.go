@@ -32,7 +32,7 @@ import (
 
 const (
 	sysfsNodePath  = "/sys/devices/system/node/"
-	systemPageSize = 4096 // bytes
+	systemPageSize = 4096 // bytes	// TODO Get this page size dynamically.
 	kilobyte       = 1024
 )
 
@@ -132,6 +132,49 @@ func populatePageInfo(cell *cmdv1.Cell, node string) error {
 	return nil
 }
 
+func populateMemoryInfo(cell *cmdv1.Cell, node string) error {
+	memInfoPath := filepath.Join(node, "meminfo")
+	memInfoBytes, _ := ioutil.ReadFile(memInfoPath)
+	for _, line := range strings.Split(string(memInfoBytes), "\n") {
+		if strings.Contains(line, "MemTotal") {
+			// Extract the total memory in kB
+			fields := strings.Fields(line)
+			if len(fields) >= 4 {
+				totalMemKB, err := strconv.ParseUint(fields[3], 10, 64)
+				if err == nil {
+					cell.Memory = &cmdv1.Memory{
+						Unit:   "KiB",
+						Amount: totalMemKB,
+					}
+					return nil
+				} else {
+					return err
+				}
+			}
+		}
+	}
+	return fmt.Errorf("failed to parse memory info for node %s", node)
+}
+
+func populateDistanceInfo(cell *cmdv1.Cell, node string) error {
+	distancePath := filepath.Join(node, "distance")
+	distanceBytes, err := ioutil.ReadFile(distancePath)
+	if err != nil {
+		return err
+	}
+	distances := strings.Fields(string(distanceBytes))
+	for siblingId, distanceStr := range distances {
+		distance, err := strconv.ParseUint(distanceStr, 10, 64)
+		if err != nil {
+			return err
+		}
+		cell.Distances = append(cell.Distances, &cmdv1.Sibling{
+			Id:    uint32(siblingId),
+			Value: distance})
+	}
+	return nil
+}
+
 func ReadNodeTopology() *cmdv1.Topology {
 	topology := &cmdv1.Topology{}
 
@@ -146,7 +189,9 @@ func ReadNodeTopology() *cmdv1.Topology {
 			Id: uint32(cellId),
 		}
 
+		populateMemoryInfo(cell, node)
 		populatePageInfo(cell, node)
+		populateDistanceInfo(cell, node)
 
 		topology.NumaCells = append(topology.NumaCells, cell)
 	}
