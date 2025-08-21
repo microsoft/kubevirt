@@ -30,8 +30,6 @@ type hostCPUModel struct {
 	requiredFeatures cpuFeatures
 }
 
-// TODO Remove unused data structures pertaining to Domain and Node Capabilities
-
 // HostDomCapabilities represents structure for parsing output of virsh capabilities
 type HostDomCapabilities struct {
 	CPU CPU              `xml:"cpu"`
