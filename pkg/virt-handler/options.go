@@ -24,10 +24,6 @@ import (
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 )
 
-// TODO: This file needs to be updated.
-// TODO: virtualMachineOptions function args should have topology instead of capabilities
-// TODO: Remove topology conversion functions below
-
 func virtualMachineOptions(
 	smbios *v1.SMBiosConfiguration,
 	period uint32,
