@@ -632,9 +632,9 @@ func (app *virtHandlerApp) setupTLS(factory controller.KubeInformerFactory) erro
 	return nil
 }
 
-/*func main() {
+func main() {
 	app := &virtHandlerApp{}
 	service.Setup(app)
 	log.InitializeLogging("virt-handler")
 	app.Run()
-}*/
+}
