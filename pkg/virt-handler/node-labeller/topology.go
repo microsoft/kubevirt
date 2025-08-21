@@ -175,6 +175,56 @@ func populateDistanceInfo(cell *cmdv1.Cell, node string) error {
 	return nil
 }
 
+func populateCpus(cell *cmdv1.Cell, node string) error {
+	cpuDirs, err := filepath.Glob(filepath.Join(node, "cpu[0-9]*"))
+	if err != nil {
+		return err
+	}
+
+	for _, cpuDir := range cpuDirs {
+		cpuName := filepath.Base(cpuDir)
+		cpuIDStr := strings.TrimPrefix(cpuName, "cpu")
+		cpuID, err := strconv.ParseUint(cpuIDStr, 10, 64)
+		if err != nil {
+			continue
+		}
+
+		// Read thread siblings
+		siblingsPath := filepath.Join(cpuDir, "topology/thread_siblings_list")
+		siblingsBytes, err := ioutil.ReadFile(siblingsPath)
+		if err != nil {
+			continue
+		}
+		siblingsStr := strings.TrimSpace(string(siblingsBytes))
+		siblings := parseCPURange(siblingsStr)
+
+		cell.Cpus = append(cell.Cpus, &cmdv1.CPU{
+			Id:       uint32(cpuID),
+			Siblings: siblings,
+		})
+	}
+	return nil
+}
+
+func parseCPURange(cpuRange string) []uint32 {
+	var cpus []uint32
+	parts := strings.Split(cpuRange, ",")
+	for _, part := range parts {
+		if strings.Contains(part, "-") {
+			bounds := strings.Split(part, "-")
+			start, _ := strconv.Atoi(bounds[0])
+			end, _ := strconv.Atoi(bounds[1])
+			for i := start; i <= end; i++ {
+				cpus = append(cpus, uint32(i))
+			}
+		} else {
+			val, _ := strconv.Atoi(part)
+			cpus = append(cpus, uint32(val))
+		}
+	}
+	return cpus
+}
+
 func ReadNodeTopology() *cmdv1.Topology {
 	topology := &cmdv1.Topology{}
 
@@ -192,6 +242,7 @@ func ReadNodeTopology() *cmdv1.Topology {
 		populateMemoryInfo(cell, node)
 		populatePageInfo(cell, node)
 		populateDistanceInfo(cell, node)
+		populateCpus(cell, node)
 
 		topology.NumaCells = append(topology.NumaCells, cell)
 	}
