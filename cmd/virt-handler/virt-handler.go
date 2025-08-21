@@ -309,7 +309,10 @@ func (app *virtHandlerApp) Run() {
 		panic(err)
 	}
 
-	nodeTopology := nodelabeller.ReadNodeTopology()
+	nodeTopology, err := nodelabeller.ReadNodeTopology()
+	if err != nil {
+		panic(err)
+	}
 
 	nodeLabellerrecorder := broadcaster.NewRecorder(scheme.Scheme, k8sv1.EventSource{Component: "node-labeller", Host: app.HostOverride})
 	nodeLabellerController, err := nodelabeller.NewNodeLabeller(app.clusterConfig,

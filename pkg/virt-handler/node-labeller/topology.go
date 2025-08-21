@@ -95,7 +95,7 @@ func getAvailableHugepages(hugepagesDir string, size uint64) (uint64, error) {
 	return nrPages, nil
 }
 
-func populatePageInfo(cell *cmdv1.Cell, node string) error {
+func populatePageInfo(cell *cmdv1.Cell, node string, systemPageSize int) error {
 	meminfoPath := filepath.Join(node, "meminfo")
 	totalMemKB := readMemTotalKB(meminfoPath)
 
@@ -123,11 +123,6 @@ func populatePageInfo(cell *cmdv1.Cell, node string) error {
 	// The remaining memory is divided into pages of the regular systemPageSize
 	regularMemKB := totalMemKB - hugepagesMemKB
 	regularMemBytes := regularMemKB * kilobyte
-
-	systemPageSize := unix.Getpagesize()
-	if systemPageSize <= 0 {
-		return fmt.Errorf("failed to get system page size. It must be greater than 0")
-	}
 
 	cell.Pages = append(cell.Pages, &cmdv1.Pages{
 		Count: regularMemBytes / uint64(systemPageSize),
@@ -231,8 +226,13 @@ func parseCPURange(cpuRange string) []uint32 {
 	return cpus
 }
 
-func ReadNodeTopology() *cmdv1.Topology {
+func ReadNodeTopology() (*cmdv1.Topology, error) {
 	topology := &cmdv1.Topology{}
+
+	systemPageSize := unix.Getpagesize()
+	if systemPageSize <= 0 {
+		return nil, fmt.Errorf("failed to get system page size. It must be greater than 0")
+	}
 
 	// Iterate over the different NUMA nodes
 	nodes, _ := filepath.Glob(filepath.Join(sysfsNodePath, "node[0-9]*"))
@@ -241,17 +241,33 @@ func ReadNodeTopology() *cmdv1.Topology {
 		if err != nil {
 			continue
 		}
+
 		cell := &cmdv1.Cell{
 			Id: uint32(cellId),
 		}
 
-		populateMemoryInfo(cell, node)
-		populatePageInfo(cell, node)
-		populateDistanceInfo(cell, node)
-		populateCpus(cell, node)
+		err = populateMemoryInfo(cell, node)
+		if err != nil {
+			return nil, err
+		}
+
+		err = populatePageInfo(cell, node, systemPageSize)
+		if err != nil {
+			return nil, err
+		}
+
+		err = populateDistanceInfo(cell, node)
+		if err != nil {
+			return nil, err
+		}
+
+		err = populateCpus(cell, node)
+		if err != nil {
+			return nil, err
+		}
 
 		topology.NumaCells = append(topology.NumaCells, cell)
 	}
 
-	return topology
+	return topology, nil
 }
