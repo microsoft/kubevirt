@@ -1,0 +1,155 @@
+/*
+ * This file is part of the KubeVirt project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Copyright the KubeVirt Authors.
+ *
+ */
+
+package nodelabeller
+
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+
+	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
+)
+
+const (
+	sysfsNodePath  = "/sys/devices/system/node/"
+	systemPageSize = 4096 // bytes
+	kilobyte       = 1024
+)
+
+func readMemTotalKB(meminfoPath string) uint64 {
+	data, err := ioutil.ReadFile(meminfoPath)
+	if err != nil {
+		return 0
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "Node") && strings.Contains(line, "MemTotal") {
+			fields := strings.Fields(line)
+			if len(fields) >= 4 {
+				val, err := strconv.ParseUint(fields[3], 10, 64)
+				if err == nil {
+					return val
+				}
+			}
+		}
+	}
+	return 0
+}
+
+func getHugepageSizes(hugepagesDir string) []uint64 {
+	hugepageSizes := make([]uint64, 0)
+	entries, err := os.ReadDir(hugepagesDir)
+	if err != nil {
+		return hugepageSizes
+	}
+
+	// Iterate over the entries in the hugepages directory
+	for _, entry := range entries {
+		name := entry.Name()
+		parts := strings.Split(name, "-")
+		if len(parts) < 2 {
+			continue
+		}
+		sizeStr := strings.TrimSuffix(parts[1], "kB")
+		pageSizeKB, err := strconv.ParseUint(sizeStr, 10, 64)
+		if err != nil {
+			continue
+		}
+
+		hugepageSizes = append(hugepageSizes, pageSizeKB)
+	}
+
+	return hugepageSizes
+}
+
+func getAvailableHugepages(hugepagesDir string, size uint64) (uint64, error) {
+	nrPath := filepath.Join(hugepagesDir, fmt.Sprintf("hugepages-%dkB/nr_hugepages", size))
+	nrData, err := ioutil.ReadFile(nrPath)
+	if err != nil {
+		return 0, err
+	}
+	nrPages, err := strconv.ParseUint(strings.TrimSpace(string(nrData)), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return nrPages, nil
+}
+
+func populatePageInfo(cell *cmdv1.Cell, node string) error {
+	meminfoPath := filepath.Join(node, "meminfo")
+	totalMemKB := readMemTotalKB(meminfoPath)
+
+	hugepagesDir := filepath.Join(node, "hugepages")
+	hugepageSizes := getHugepageSizes(hugepagesDir)
+
+	var hugepagesMemKB uint64 = 0
+
+	for _, sizeKB := range hugepageSizes {
+		// Read the number of available hugepages for this size
+		nrHugepages, err := getAvailableHugepages(hugepagesDir, sizeKB)
+		if err != nil {
+			return err
+		}
+
+		cell.Pages = append(cell.Pages, &cmdv1.Pages{
+			Count: nrHugepages,
+			Unit:  "KiB",
+			Size:  uint32(sizeKB),
+		})
+
+		hugepagesMemKB += sizeKB * nrHugepages
+	}
+
+	// The remaining memory is divided into pages of the regular systemPageSize
+	regularMemKB := totalMemKB - hugepagesMemKB
+	regularMemBytes := regularMemKB * kilobyte
+
+	cell.Pages = append(cell.Pages, &cmdv1.Pages{
+		Count: regularMemBytes / systemPageSize,
+		Unit:  "KiB",
+		Size:  uint32(systemPageSize / kilobyte),
+	})
+
+	return nil
+}
+
+func ReadNodeTopology() *cmdv1.Topology {
+	topology := &cmdv1.Topology{}
+
+	// Iterate over the different NUMA nodes
+	nodes, _ := filepath.Glob(filepath.Join(sysfsNodePath, "node[0-9]*"))
+	for _, node := range nodes {
+		cellId, err := strconv.ParseUint(strings.TrimPrefix(filepath.Base(node), "node"), 10, 32)
+		if err != nil {
+			continue
+		}
+		cell := &cmdv1.Cell{
+			Id: uint32(cellId),
+		}
+
+		populatePageInfo(cell, node)
+
+		topology.NumaCells = append(topology.NumaCells, cell)
+	}
+
+	return topology
+}

@@ -22,10 +22,10 @@ package util
 const (
 	DefaultMinCPUModel = "Penryn"
 	RequirePolicy      = "require"
-	KVMPath            = "/dev/kvm"
 	VmxFeature         = "vmx"
 )
 
+// TODO: Should we move these to the virt-launcher?
 var DefaultObsoleteCPUModels = map[string]bool{
 	"486":           true,
 	"486-v1":        true,
