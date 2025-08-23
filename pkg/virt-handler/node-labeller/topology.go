@@ -182,14 +182,14 @@ func populateCpus(cell *cmdv1.Cell, node string) error {
 		cpuIDStr := strings.TrimPrefix(cpuName, "cpu")
 		cpuID, err := strconv.ParseUint(cpuIDStr, 10, 64)
 		if err != nil {
-			continue
+			return err
 		}
 
 		// Read thread siblings
 		siblingsPath := filepath.Join(cpuDir, "topology/thread_siblings_list")
 		siblingsBytes, err := ioutil.ReadFile(siblingsPath)
 		if err != nil {
-			continue
+			return err
 		}
 		siblingsStr := strings.TrimSpace(string(siblingsBytes))
 		siblings := parseCPURange(siblingsStr)
@@ -206,6 +206,9 @@ func parseCPURange(cpuRange string) []uint32 {
 	var cpus []uint32
 	parts := strings.Split(cpuRange, ",")
 	for _, part := range parts {
+		if part == "" {
+			continue
+		}
 		if strings.Contains(part, "-") {
 			bounds := strings.Split(part, "-")
 			start, _ := strconv.Atoi(bounds[0])

@@ -25,11 +25,11 @@ import (
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 
 	"os"
+	"strings"
 )
 
 /*
 4. Read distances properly
-5. Read CPUs properly
 6. parseCPURange should work for both single CPU, comma-separated ranges and hyphen-separated ranges.
 
 */
@@ -65,6 +65,48 @@ func writeNodeWithMemoryInfo(dir string, nodeID int, memTotalKB uint64, hugepage
 		}
 		nrHugepagesPath := filepath.Join(sizeDir, "nr_hugepages")
 		err = os.WriteFile(nrHugepagesPath, []byte(fmt.Sprintf("%d\n", count)), 0644)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// test function to create and populate a temporary directory
+// with cpus and thread_siblings for testing topology.go functions.
+func writeNodeWithCPUInfo(dir string, nodeID int, cpus []int, threadSiblings map[int][]int) error {
+	nodeDir := filepath.Join(dir, fmt.Sprintf("node%d", nodeID))
+	err := os.MkdirAll(nodeDir, 0755)
+	if err != nil {
+		return err
+	}
+
+	for _, cpu := range cpus {
+		cpuSubDir := filepath.Join(nodeDir, fmt.Sprintf("cpu%d", cpu))
+		err = os.MkdirAll(cpuSubDir, 0755)
+		if err != nil {
+			return err
+		}
+		siblings, ok := threadSiblings[cpu]
+		if !ok {
+			siblings = []int{}
+		}
+		siblingStrs := make([]string, len(siblings))
+		for i, sib := range siblings {
+			siblingStrs[i] = fmt.Sprintf("%d", sib)
+		}
+		topologyDir := filepath.Join(cpuSubDir, "topology")
+		err := os.MkdirAll(topologyDir, 0755)
+		if err != nil {
+			return err
+		}
+		threadSiblingsPath := filepath.Join(cpuSubDir, "topology", "thread_siblings_list")
+		err = os.MkdirAll(filepath.Dir(threadSiblingsPath), 0755)
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile(threadSiblingsPath, []byte(fmt.Sprintf("%s\n", strings.Join(siblingStrs, ","))), 0644)
 		if err != nil {
 			return err
 		}
@@ -147,5 +189,48 @@ var _ = Describe("Extracting Node Topology", func() {
 			Entry("only size of hugepages are configured", map[uint32]uint64{2048: 0, 1048576: 4}),
 			Entry("multiple sizes of hugepages are configured", map[uint32]uint64{2048: 16, 1048576: 4}),
 		)
+	})
+
+	Context("when reading CPU info", func() {
+		DescribeTable("it should read correct CPU Ids and thread siblings when", func(cpus []int, threadSiblings map[int][]int) {
+			nodeId := 0
+			cell := &cmdv1.Cell{
+				Id: uint32(nodeId),
+			}
+			writeNodeWithCPUInfo(tempDir, nodeId, cpus, threadSiblings)
+			nodeDir := filepath.Join(tempDir, fmt.Sprintf("node%d", nodeId))
+			err := populateCpus(cell, nodeDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(len(cell.Cpus)).To(Equal(len(cpus)))
+			cpuIDs := make(map[uint32]bool)
+			for _, cpu := range cell.Cpus {
+				cpuIDs[cpu.Id] = true
+			}
+			for _, cpuID := range cpus {
+				Expect(cpuIDs).To(HaveKey(uint32(cpuID)))
+			}
+
+			// Check thread siblings
+			for _, cpu := range cell.Cpus {
+				expectedSiblings, ok := threadSiblings[int(cpu.Id)]
+				if !ok {
+					expectedSiblings = []int{}
+				}
+				// Check that the slices cpu.Siblings and expectedSiblings contain the same elements
+				Expect(len(cpu.Siblings)).To(Equal(len(expectedSiblings)), fmt.Sprintf("CPU %d: expected %d siblings, got %d", cpu.Id, len(expectedSiblings), len(cpu.Siblings)))
+				siblingMap := make(map[uint32]bool)
+				for _, sib := range cpu.Siblings {
+					siblingMap[sib] = true
+				}
+				for _, expectedSib := range expectedSiblings {
+					Expect(siblingMap).To(HaveKey(uint32(expectedSib)), fmt.Sprintf("CPU %d: expected sibling %d not found", cpu.Id, expectedSib))
+				}
+			}
+		},
+			Entry("no thread siblings are configured", []int{0, 1, 2, 3}, map[int][]int{}),
+			Entry("thread siblings are configured", []int{0, 1, 2, 3}, map[int][]int{0: {0, 2}, 1: {1, 3}, 2: {2, 0}, 3: {3, 1}}),
+		)
+
 	})
 })
