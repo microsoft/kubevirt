@@ -37,10 +37,10 @@ const (
 	kilobyte      = 1024
 )
 
-func readMemTotalKB(meminfoPath string) uint64 {
+func readMemTotalKB(meminfoPath string) (uint64, error) {
 	data, err := ioutil.ReadFile(meminfoPath)
 	if err != nil {
-		return 0
+		return 0, err
 	}
 	for _, line := range strings.Split(string(data), "\n") {
 		if strings.HasPrefix(line, "Node") && strings.Contains(line, "MemTotal") {
@@ -48,12 +48,28 @@ func readMemTotalKB(meminfoPath string) uint64 {
 			if len(fields) >= 4 {
 				val, err := strconv.ParseUint(fields[3], 10, 64)
 				if err == nil {
-					return val
+					return val, nil
+				} else {
+					return 0, err
 				}
 			}
 		}
 	}
-	return 0
+	return 0, fmt.Errorf("MemTotal not found in %s", meminfoPath)
+}
+
+func populateMemoryInfo(cell *cmdv1.Cell, node string) error {
+	memInfoPath := filepath.Join(node, "meminfo")
+	totalMemKB, err := readMemTotalKB(memInfoPath)
+	if err != nil {
+		return err
+	}
+
+	cell.Memory = &cmdv1.Memory{
+		Unit:   "KiB",
+		Amount: totalMemKB,
+	}
+	return nil
 }
 
 func getHugepageSizes(hugepagesDir string) []uint64 {
@@ -95,9 +111,12 @@ func getAvailableHugepages(hugepagesDir string, size uint64) (uint64, error) {
 	return nrPages, nil
 }
 
-func populatePageInfo(cell *cmdv1.Cell, node string, systemPageSize int) error {
+func populatePageInfo(cell *cmdv1.Cell, node string, systemPageSize uint64) error {
 	meminfoPath := filepath.Join(node, "meminfo")
-	totalMemKB := readMemTotalKB(meminfoPath)
+	totalMemKB, err := readMemTotalKB(meminfoPath)
+	if err != nil {
+		return err
+	}
 
 	hugepagesDir := filepath.Join(node, "hugepages")
 	hugepageSizes := getHugepageSizes(hugepagesDir)
@@ -131,30 +150,6 @@ func populatePageInfo(cell *cmdv1.Cell, node string, systemPageSize int) error {
 	})
 
 	return nil
-}
-
-func populateMemoryInfo(cell *cmdv1.Cell, node string) error {
-	memInfoPath := filepath.Join(node, "meminfo")
-	memInfoBytes, _ := ioutil.ReadFile(memInfoPath)
-	for _, line := range strings.Split(string(memInfoBytes), "\n") {
-		if strings.Contains(line, "MemTotal") {
-			// Extract the total memory in kB
-			fields := strings.Fields(line)
-			if len(fields) >= 4 {
-				totalMemKB, err := strconv.ParseUint(fields[3], 10, 64)
-				if err == nil {
-					cell.Memory = &cmdv1.Memory{
-						Unit:   "KiB",
-						Amount: totalMemKB,
-					}
-					return nil
-				} else {
-					return err
-				}
-			}
-		}
-	}
-	return fmt.Errorf("failed to parse memory info for node %s", node)
 }
 
 func populateDistanceInfo(cell *cmdv1.Cell, node string) error {
@@ -251,7 +246,7 @@ func ReadNodeTopology() (*cmdv1.Topology, error) {
 			return nil, err
 		}
 
-		err = populatePageInfo(cell, node, systemPageSize)
+		err = populatePageInfo(cell, node, uint64(systemPageSize))
 		if err != nil {
 			return nil, err
 		}
