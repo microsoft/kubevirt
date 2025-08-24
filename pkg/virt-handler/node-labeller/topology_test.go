@@ -231,6 +231,40 @@ var _ = Describe("Extracting Node Topology", func() {
 			Entry("no thread siblings are configured", []int{0, 1, 2, 3}, map[int][]int{}),
 			Entry("thread siblings are configured", []int{0, 1, 2, 3}, map[int][]int{0: {0, 2}, 1: {1, 3}, 2: {2, 0}, 3: {3, 1}}),
 		)
+	})
 
+	Context("parsing CPU ranges", func() {
+		It("should parse single CPU", func() {
+			cpuList, err := parseCPURange("5")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cpuList).To(Equal([]uint32{5}))
+		})
+
+		It("should parse comma-separated CPUs", func() {
+			cpuList, err := parseCPURange("1,3,5")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cpuList).To(Equal([]uint32{1, 3, 5}))
+		})
+
+		It("should parse hyphen-separated CPU range", func() {
+			cpuList, err := parseCPURange("2-5")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cpuList).To(Equal([]uint32{2, 3, 4, 5}))
+		})
+
+		It("should parse mixed CPU list", func() {
+			cpuList, err := parseCPURange("1,3-5,7")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cpuList).To(Equal([]uint32{1, 3, 4, 5, 7}))
+		})
+
+		It("should return error for invalid format", func() {
+			_, err := parseCPURange("1,3-")
+			Expect(err).To(HaveOccurred())
+			_, err = parseCPURange("1,2,")
+			Expect(err).To(HaveOccurred())
+			_, err = parseCPURange("a,b,c")
+			Expect(err).To(HaveOccurred())
+		})
 	})
 })

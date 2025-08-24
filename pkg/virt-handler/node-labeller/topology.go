@@ -192,7 +192,11 @@ func populateCpus(cell *cmdv1.Cell, node string) error {
 			return err
 		}
 		siblingsStr := strings.TrimSpace(string(siblingsBytes))
-		siblings := parseCPURange(siblingsStr)
+		siblings, err := parseCPURange(siblingsStr)
+
+		if err != nil {
+			return err
+		}
 
 		cell.Cpus = append(cell.Cpus, &cmdv1.CPU{
 			Id:       uint32(cpuID),
@@ -202,26 +206,40 @@ func populateCpus(cell *cmdv1.Cell, node string) error {
 	return nil
 }
 
-func parseCPURange(cpuRange string) []uint32 {
+func parseCPURange(cpuRange string) ([]uint32, error) {
+	if cpuRange == "" {
+		return []uint32{}, nil
+	}
 	var cpus []uint32
 	parts := strings.Split(cpuRange, ",")
 	for _, part := range parts {
 		if part == "" {
-			continue
+			return nil, fmt.Errorf("invalid CPU range: empty part in %q", cpuRange)
 		}
 		if strings.Contains(part, "-") {
 			bounds := strings.Split(part, "-")
-			start, _ := strconv.Atoi(bounds[0])
-			end, _ := strconv.Atoi(bounds[1])
+			if len(bounds) != 2 {
+				return nil, fmt.Errorf("invalid CPU range: %q", part)
+			}
+
+			start, errStart := strconv.Atoi(bounds[0])
+			end, errEnd := strconv.Atoi(bounds[1])
+			if errStart != nil || errEnd != nil || start > end {
+				return nil, fmt.Errorf("invalid CPU range: %q", part)
+			}
+
 			for i := start; i <= end; i++ {
 				cpus = append(cpus, uint32(i))
 			}
 		} else {
-			val, _ := strconv.Atoi(part)
+			val, err := strconv.Atoi(part)
+			if err != nil {
+				return nil, fmt.Errorf("invalid CPU value: %q", part)
+			}
 			cpus = append(cpus, uint32(val))
 		}
 	}
-	return cpus
+	return cpus, nil
 }
 
 func ReadNodeTopology() (*cmdv1.Topology, error) {
