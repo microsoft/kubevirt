@@ -21,7 +21,6 @@ package virthandler
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -38,7 +37,7 @@ const (
 )
 
 func readMemTotalKB(meminfoPath string) (uint64, error) {
-	data, err := ioutil.ReadFile(meminfoPath)
+	data, err := os.ReadFile(meminfoPath)
 	if err != nil {
 		return 0, err
 	}
@@ -100,7 +99,7 @@ func getHugepageSizes(hugepagesDir string) []uint64 {
 
 func getAvailableHugepages(hugepagesDir string, size uint64) (uint64, error) {
 	nrPath := filepath.Join(hugepagesDir, fmt.Sprintf("hugepages-%dkB/nr_hugepages", size))
-	nrData, err := ioutil.ReadFile(nrPath)
+	nrData, err := os.ReadFile(nrPath)
 	if err != nil {
 		return 0, err
 	}
@@ -154,7 +153,7 @@ func populatePageInfo(cell *cmdv1.Cell, node string, systemPageSize uint64) erro
 
 func populateDistanceInfo(cell *cmdv1.Cell, node string) error {
 	distancePath := filepath.Join(node, "distance")
-	distanceBytes, err := ioutil.ReadFile(distancePath)
+	distanceBytes, err := os.ReadFile(distancePath)
 	if err != nil {
 		return err
 	}
@@ -187,7 +186,7 @@ func populateCpus(cell *cmdv1.Cell, node string) error {
 
 		// Read thread siblings
 		siblingsPath := filepath.Join(cpuDir, "topology/thread_siblings_list")
-		siblingsBytes, err := ioutil.ReadFile(siblingsPath)
+		siblingsBytes, err := os.ReadFile(siblingsPath)
 		if err != nil {
 			return err
 		}
