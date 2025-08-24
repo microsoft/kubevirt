@@ -45,6 +45,7 @@ go_test(
         "cpu_plugin_test.go",
         "node_labeller_suite_test.go",
         "node_labeller_test.go",
+        "topology_test.go",
     ],
     data = glob(["testdata/**"]),
     embed = [":go_default_library"],
