@@ -39,7 +39,6 @@ import (
 	"github.com/mitchellh/go-ps"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"golang.org/x/sys/unix"
-	"libvirt.org/go/libvirtxml"
 
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -174,7 +173,7 @@ func NewController(
 	podIsolationDetector isolation.PodIsolationDetector,
 	migrationProxy migrationproxy.ProxyManager,
 	downwardMetricsManager downwardMetricsManager,
-	capabilities *libvirtxml.Caps,
+	nodeTopology *cmdv1.Topology,
 	hostCpuModel string,
 	netConf netconf,
 	netStat netstat,
@@ -213,7 +212,7 @@ func NewController(
 		hotplugVolumeMounter:             hotplug_volume.NewVolumeMounter(hotplugState, kubeletPodsDir, host),
 		clusterConfig:                    clusterConfig,
 		virtLauncherFSRunDirPattern:      "/proc/%d/root/var/run",
-		capabilities:                     capabilities,
+		nodeTopology:                     nodeTopology,
 		hostCpuModel:                     hostCpuModel,
 		vmiExpectations:                  controller.NewUIDTrackingControllerExpectations(controller.NewControllerExpectations()),
 		sriovHotplugExecutorPool:         executor.NewRateLimitedExecutorPool(executor.NewExponentialLimitedBackoffCreator()),
@@ -319,7 +318,7 @@ type VirtualMachineController struct {
 	domainNotifyPipes           map[string]string
 	virtLauncherFSRunDirPattern string
 	heartBeat                   *heartbeat.HeartBeat
-	capabilities                *libvirtxml.Caps
+	nodeTopology                *cmdv1.Topology
 	hostCpuModel                string
 	vmiExpectations             *controller.UIDTrackingControllerExpectations
 	ioErrorRetryManager         *FailRetryManager
@@ -2836,7 +2835,7 @@ func (c *VirtualMachineController) vmUpdateHelperMigrationTarget(origVMI *v1.Vir
 		}
 	}
 
-	options := virtualMachineOptions(nil, 0, nil, c.capabilities, c.clusterConfig)
+	options := virtualMachineOptions(nil, 0, nil, c.nodeTopology, c.clusterConfig)
 	options.InterfaceDomainAttachment = domainspec.DomainAttachmentByInterfaceName(vmi.Spec.Domain.Devices.Interfaces, c.clusterConfig.GetNetworkBindings())
 
 	if err := client.SyncMigrationTarget(vmi, options); err != nil {
@@ -3208,7 +3207,7 @@ func (c *VirtualMachineController) syncVirtualMachine(client cmdclient.LauncherC
 	smbios := c.clusterConfig.GetSMBIOS()
 	period := c.clusterConfig.GetMemBalloonStatsPeriod()
 
-	options := virtualMachineOptions(smbios, period, preallocatedVolumes, c.capabilities, c.clusterConfig)
+	options := virtualMachineOptions(smbios, period, preallocatedVolumes, c.nodeTopology, c.clusterConfig)
 	options.InterfaceDomainAttachment = domainspec.DomainAttachmentByInterfaceName(vmi.Spec.Domain.Devices.Interfaces, c.clusterConfig.GetNetworkBindings())
 
 	err := client.SyncVirtualMachine(vmi, options)
@@ -3617,7 +3616,7 @@ func (c *VirtualMachineController) reportDedicatedCPUSetForMigratingVMI(vmi *v1.
 }
 
 func (c *VirtualMachineController) reportTargetTopologyForMigratingVMI(vmi *v1.VirtualMachineInstance) error {
-	options := virtualMachineOptions(nil, 0, nil, c.capabilities, c.clusterConfig)
+	options := virtualMachineOptions(nil, 0, nil, c.nodeTopology, c.clusterConfig)
 	topology, err := json.Marshal(options.Topology)
 	if err != nil {
 		return err
@@ -3689,7 +3688,7 @@ func (c *VirtualMachineController) hotplugCPU(vmi *v1.VirtualMachineInstance, cl
 		nil,
 		0,
 		nil,
-		c.capabilities,
+		c.nodeTopology,
 		c.clusterConfig)
 
 	if err := client.SyncVirtualMachineCPUs(vmi, options); err != nil {
@@ -3740,7 +3739,7 @@ func (c *VirtualMachineController) hotplugMemory(vmi *v1.VirtualMachineInstance,
 		return fmt.Errorf("amount of requested guest memory (%s) exceeds the launcher memory request (%s)", vmi.Spec.Domain.Memory.Guest.String(), podMemReqStr)
 	}
 
-	options := virtualMachineOptions(nil, 0, nil, c.capabilities, c.clusterConfig)
+	options := virtualMachineOptions(nil, 0, nil, c.nodeTopology, c.clusterConfig)
 
 	if err := client.SyncVirtualMachineMemory(vmi, options); err != nil {
 		// mark hotplug as failed

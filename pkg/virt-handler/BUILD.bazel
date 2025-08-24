@@ -12,6 +12,7 @@ go_library(
         "realtime.go",
         "retry_manager.go",
         "setsched.go",
+        "topology.go",
         "vm.go",
     ],
     importpath = "kubevirt.io/kubevirt/pkg/virt-handler",
@@ -71,7 +72,6 @@ go_library(
         "//vendor/k8s.io/client-go/tools/cache:go_default_library",
         "//vendor/k8s.io/client-go/tools/record:go_default_library",
         "//vendor/k8s.io/client-go/util/workqueue:go_default_library",
-        "//vendor/libvirt.org/go/libvirtxml:go_default_library",
     ],
 )
 
@@ -81,9 +81,9 @@ go_test(
     srcs = [
         "ksm_test.go",
         "migration_test.go",
-        "options_test.go",
         "realtime_test.go",
         "retry_manager_test.go",
+        "topology_test.go",
         "virt_handler_suite_test.go",
         "vm_test.go",
     ],
@@ -135,7 +135,6 @@ go_test(
         "//vendor/k8s.io/client-go/kubernetes/fake:go_default_library",
         "//vendor/k8s.io/client-go/tools/cache:go_default_library",
         "//vendor/k8s.io/client-go/tools/record:go_default_library",
-        "//vendor/libvirt.org/go/libvirtxml:go_default_library",
     ],
 )
 

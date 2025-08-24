@@ -1,0 +1,288 @@
+/*
+ * This file is part of the KubeVirt project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Copyright the KubeVirt Authors.
+ *
+ */
+
+package virthandler
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+
+	"golang.org/x/sys/unix"
+
+	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
+)
+
+const (
+	sysfsNodePath = "/sys/devices/system/node/"
+	kilobyte      = 1024
+)
+
+func readMemTotalKB(meminfoPath string) (uint64, error) {
+	data, err := os.ReadFile(meminfoPath)
+	if err != nil {
+		return 0, err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "Node") && strings.Contains(line, "MemTotal") {
+			fields := strings.Fields(line)
+			if len(fields) >= 4 {
+				val, err := strconv.ParseUint(fields[3], 10, 64)
+				if err == nil {
+					return val, nil
+				} else {
+					return 0, err
+				}
+			}
+		}
+	}
+	return 0, fmt.Errorf("MemTotal not found in %s", meminfoPath)
+}
+
+func populateMemoryInfo(cell *cmdv1.Cell, node string) error {
+	memInfoPath := filepath.Join(node, "meminfo")
+	totalMemKB, err := readMemTotalKB(memInfoPath)
+	if err != nil {
+		return err
+	}
+
+	cell.Memory = &cmdv1.Memory{
+		Unit:   "KiB",
+		Amount: totalMemKB,
+	}
+	return nil
+}
+
+func getHugepageSizes(hugepagesDir string) []uint64 {
+	hugepageSizes := make([]uint64, 0)
+	entries, err := os.ReadDir(hugepagesDir)
+	if err != nil {
+		return hugepageSizes
+	}
+
+	// Iterate over the entries in the hugepages directory
+	for _, entry := range entries {
+		name := entry.Name()
+		parts := strings.Split(name, "-")
+		if len(parts) < 2 {
+			continue
+		}
+		sizeStr := strings.TrimSuffix(parts[1], "kB")
+		pageSizeKB, err := strconv.ParseUint(sizeStr, 10, 64)
+		if err != nil {
+			continue
+		}
+
+		hugepageSizes = append(hugepageSizes, pageSizeKB)
+	}
+
+	return hugepageSizes
+}
+
+func getAvailableHugepages(hugepagesDir string, size uint64) (uint64, error) {
+	nrPath := filepath.Join(hugepagesDir, fmt.Sprintf("hugepages-%dkB/nr_hugepages", size))
+	nrData, err := os.ReadFile(nrPath)
+	if err != nil {
+		return 0, err
+	}
+	nrPages, err := strconv.ParseUint(strings.TrimSpace(string(nrData)), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return nrPages, nil
+}
+
+func populatePageInfo(cell *cmdv1.Cell, node string, systemPageSize uint64) error {
+	meminfoPath := filepath.Join(node, "meminfo")
+	totalMemKB, err := readMemTotalKB(meminfoPath)
+	if err != nil {
+		return err
+	}
+
+	hugepagesDir := filepath.Join(node, "hugepages")
+	hugepageSizes := getHugepageSizes(hugepagesDir)
+
+	var hugepagesMemKB uint64 = 0
+
+	for _, sizeKB := range hugepageSizes {
+		// Read the number of available hugepages for this size
+		nrHugepages, err := getAvailableHugepages(hugepagesDir, sizeKB)
+		if err != nil {
+			return err
+		}
+
+		cell.Pages = append(cell.Pages, &cmdv1.Pages{
+			Count: nrHugepages,
+			Unit:  "KiB",
+			Size:  uint32(sizeKB),
+		})
+
+		hugepagesMemKB += sizeKB * nrHugepages
+	}
+
+	// The remaining memory is divided into pages of the regular systemPageSize
+	regularMemKB := totalMemKB - hugepagesMemKB
+	regularMemBytes := regularMemKB * kilobyte
+
+	cell.Pages = append(cell.Pages, &cmdv1.Pages{
+		Count: regularMemBytes / uint64(systemPageSize),
+		Unit:  "KiB",
+		Size:  uint32(systemPageSize / kilobyte),
+	})
+
+	return nil
+}
+
+func populateDistanceInfo(cell *cmdv1.Cell, node string) error {
+	distancePath := filepath.Join(node, "distance")
+	distanceBytes, err := os.ReadFile(distancePath)
+	if err != nil {
+		return err
+	}
+	distances := strings.Fields(string(distanceBytes))
+	for siblingId, distanceStr := range distances {
+		distance, err := strconv.ParseUint(distanceStr, 10, 64)
+		if err != nil {
+			return err
+		}
+		cell.Distances = append(cell.Distances, &cmdv1.Sibling{
+			Id:    uint32(siblingId),
+			Value: distance})
+	}
+	return nil
+}
+
+func populateCpus(cell *cmdv1.Cell, node string) error {
+	cpuDirs, err := filepath.Glob(filepath.Join(node, "cpu[0-9]*"))
+	if err != nil {
+		return err
+	}
+
+	for _, cpuDir := range cpuDirs {
+		cpuName := filepath.Base(cpuDir)
+		cpuIDStr := strings.TrimPrefix(cpuName, "cpu")
+		cpuID, err := strconv.ParseUint(cpuIDStr, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		// Read thread siblings
+		siblingsPath := filepath.Join(cpuDir, "topology/thread_siblings_list")
+		siblingsBytes, err := os.ReadFile(siblingsPath)
+		if err != nil {
+			return err
+		}
+		siblingsStr := strings.TrimSpace(string(siblingsBytes))
+		siblings, err := parseCPURange(siblingsStr)
+
+		if err != nil {
+			return err
+		}
+
+		cell.Cpus = append(cell.Cpus, &cmdv1.CPU{
+			Id:       uint32(cpuID),
+			Siblings: siblings,
+		})
+	}
+	return nil
+}
+
+func parseCPURange(cpuRange string) ([]uint32, error) {
+	if cpuRange == "" {
+		return []uint32{}, nil
+	}
+	var cpus []uint32
+	parts := strings.Split(cpuRange, ",")
+	for _, part := range parts {
+		if part == "" {
+			return nil, fmt.Errorf("invalid CPU range: empty part in %q", cpuRange)
+		}
+		if strings.Contains(part, "-") {
+			bounds := strings.Split(part, "-")
+			if len(bounds) != 2 {
+				return nil, fmt.Errorf("invalid CPU range: %q", part)
+			}
+
+			start, errStart := strconv.Atoi(bounds[0])
+			end, errEnd := strconv.Atoi(bounds[1])
+			if errStart != nil || errEnd != nil || start > end {
+				return nil, fmt.Errorf("invalid CPU range: %q", part)
+			}
+
+			for i := start; i <= end; i++ {
+				cpus = append(cpus, uint32(i))
+			}
+		} else {
+			val, err := strconv.Atoi(part)
+			if err != nil {
+				return nil, fmt.Errorf("invalid CPU value: %q", part)
+			}
+			cpus = append(cpus, uint32(val))
+		}
+	}
+	return cpus, nil
+}
+
+func ReadNodeTopology() (*cmdv1.Topology, error) {
+	topology := &cmdv1.Topology{}
+
+	systemPageSize := unix.Getpagesize()
+	if systemPageSize <= 0 {
+		return nil, fmt.Errorf("failed to get system page size. It must be greater than 0")
+	}
+
+	// Iterate over the different NUMA nodes
+	nodes, _ := filepath.Glob(filepath.Join(sysfsNodePath, "node[0-9]*"))
+	for _, node := range nodes {
+		cellId, err := strconv.ParseUint(strings.TrimPrefix(filepath.Base(node), "node"), 10, 32)
+		if err != nil {
+			continue
+		}
+
+		cell := &cmdv1.Cell{
+			Id: uint32(cellId),
+		}
+
+		err = populateMemoryInfo(cell, node)
+		if err != nil {
+			return nil, err
+		}
+
+		err = populatePageInfo(cell, node, uint64(systemPageSize))
+		if err != nil {
+			return nil, err
+		}
+
+		err = populateDistanceInfo(cell, node)
+		if err != nil {
+			return nil, err
+		}
+
+		err = populateCpus(cell, node)
+		if err != nil {
+			return nil, err
+		}
+
+		topology.NumaCells = append(topology.NumaCells, cell)
+	}
+
+	return topology, nil
+}
