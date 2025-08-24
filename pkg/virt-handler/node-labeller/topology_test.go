@@ -28,12 +28,6 @@ import (
 	"strings"
 )
 
-/*
-4. Read distances properly
-6. parseCPURange should work for both single CPU, comma-separated ranges and hyphen-separated ranges.
-
-*/
-
 // test function to create and populate a temporary directory
 // with node memory and hugepages info for testing topology.go functions.
 func writeNodeWithMemoryInfo(dir string, nodeID int, memTotalKB uint64, hugepages map[uint32]uint64) error {
@@ -123,11 +117,13 @@ var _ = Describe("Extracting Node Topology", func() {
 
 	BeforeEach(func() {
 		var err error
+		// Create a temporary directory to hold fake sysfs data
 		tempDir, err = os.MkdirTemp("", "topology-test-*")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
+		// Delete the temporary directory after each test
 		os.RemoveAll(tempDir)
 	})
 
