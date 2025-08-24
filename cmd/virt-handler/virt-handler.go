@@ -309,7 +309,7 @@ func (app *virtHandlerApp) Run() {
 		panic(err)
 	}
 
-	nodeTopology, err := nodelabeller.ReadNodeTopology()
+	nodeTopology, err := virthandler.ReadNodeTopology()
 	if err != nil {
 		panic(err)
 	}

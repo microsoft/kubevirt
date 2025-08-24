@@ -17,7 +17,7 @@
  *
  */
 
-package nodelabeller
+package virthandler
 
 import (
 	"fmt"
