@@ -1,0 +1,6 @@
+FROM mcr.microsoft.com/azurelinux-beta/base/core:4.0 as builder
+WORKDIR /workspace
+
+RUN --mount=type=cache,target=/var/cache/tdnf \
+    tdnf -y install --skip-unavailable gcc golang pkgconfig build-essential libvirt-devel git glibc-static
+
