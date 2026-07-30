@@ -118,6 +118,38 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(linkedDisk).To(Equal(imageVolumeDisk))
 	})
 
+	It("persists OpenVMM stderr for later inspection", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, _ := newManager(tempDir)
+		manager.commandFactory = func(string, ...string) *exec.Cmd {
+			return exec.Command("/bin/sh", "-c", "echo openvmm-failure >&2; exit 1")
+		}
+
+		_, err := manager.SyncVMI(newVMI(), false, nil)
+		Expect(err).ToNot(HaveOccurred())
+		stderrPath := filepath.Join(tempDir, "console", "test-uid", openVMMStderrFile)
+		Eventually(func() string {
+			contents, _ := os.ReadFile(stderrPath)
+			return string(contents)
+		}).Should(Equal("openvmm-failure\n"))
+	})
+
+	It("provides OpenVMM with a controlling terminal", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, _ := newManager(tempDir)
+		manager.commandFactory = func(string, ...string) *exec.Cmd {
+			return exec.Command("/bin/sh", "-c", "test -t 0 && test -t 1 || { echo missing-tty >&2; exit 1; }")
+		}
+
+		_, err := manager.SyncVMI(newVMI(), false, nil)
+		Expect(err).ToNot(HaveOccurred())
+		stderrPath := filepath.Join(tempDir, "console", "test-uid", openVMMStderrFile)
+		Consistently(func() string {
+			contents, _ := os.ReadFile(stderrPath)
+			return string(contents)
+		}).Should(BeEmpty())
+	})
+
 	It("starts OpenVMM only once across concurrent SyncVMI calls", func() {
 		tempDir := GinkgoT().TempDir()
 		manager, _ := newManager(tempDir)

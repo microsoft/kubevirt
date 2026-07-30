@@ -22,6 +22,7 @@ package virtwrap
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,6 +31,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/goterm/term"
 	k8sv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -53,8 +55,9 @@ import (
 const (
 	openVMMBinaryPath = "/openvmm/openvmm"
 	openVMMKernelPath = "/openvmm/vmlinux.bin"
-	openVMMKernelArgs = "root=/dev/vda1 console=ttyS0 cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
+	openVMMKernelArgs = "'root=/dev/vda1 console=ttyS0 cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1'"
 	openVMMConsoleDir = "/var/run/kubevirt-private"
+	openVMMStderrFile = "openvmm.stderr.log"
 )
 
 type openVMMState uint8
@@ -128,21 +131,50 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 		return nil, err
 	}
 
+	stderrPath := filepath.Join(l.consoleDir, string(vmi.UID), openVMMStderrFile)
+	stderrFile, err := os.OpenFile(stderrPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		l.mutex.Unlock()
+		return nil, fmt.Errorf("failed to open OpenVMM stderr log %s: %w", stderrPath, err)
+	}
+	pty, err := term.OpenPTY()
+	if err != nil {
+		_ = stderrFile.Close()
+		l.mutex.Unlock()
+		return nil, fmt.Errorf("failed to create OpenVMM controlling terminal: %w", err)
+	}
+
 	command := l.commandFactory(openVMMBinaryPath, args...)
+	command.Stdin = pty.Slave
+	command.Stdout = pty.Slave
+	command.Stderr = stderrFile
+	command.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true}
 	// Add logging for the OpenVMM command being executed
-	log.Log.Infof("Starting OpenVMM with command: %s %v", openVMMBinaryPath, args)
+	log.Log.Infof("Starting OpenVMM with command: %s %v; stderr: %s", openVMMBinaryPath, args, stderrPath)
 	if err := command.Start(); err != nil {
+		_ = stderrFile.Close()
+		_ = pty.Close()
 		l.state = openVMMFailed
 		l.mutex.Unlock()
 		return nil, fmt.Errorf("failed to start OpenVMM: %w", err)
 	}
+	if err := stderrFile.Close(); err != nil {
+		log.Log.Reason(err).Warningf("failed to close parent copy of OpenVMM stderr log %s", stderrPath)
+	}
+	if err := pty.Slave.Close(); err != nil {
+		log.Log.Reason(err).Warning("failed to close parent copy of OpenVMM PTY slave")
+	}
+	go func() { _, _ = io.Copy(io.Discard, pty.Master) }()
 
 	l.command = command
 	l.domain = domain
 	l.state = openVMMRunning
 	if err := l.writePIDFileLocked(domain.Spec.Name, command.Process.Pid); err != nil {
 		_ = command.Process.Kill()
-		go func() { _ = command.Wait() }()
+		go func() {
+			_ = command.Wait()
+			_ = pty.Master.Close()
+		}()
 		l.state = openVMMFailed
 		l.mutex.Unlock()
 		return nil, err
@@ -152,7 +184,7 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 	l.mutex.Unlock()
 
 	l.publish(event)
-	go l.waitForExit(command)
+	go l.waitForExit(command, pty.Master)
 	return spec, nil
 }
 
@@ -347,8 +379,11 @@ func (l *OpenVMMDomainManager) writePIDFileLocked(domainName string, pid int) er
 	return nil
 }
 
-func (l *OpenVMMDomainManager) waitForExit(command *exec.Cmd) {
+func (l *OpenVMMDomainManager) waitForExit(command *exec.Cmd, ptyMaster *os.File) {
 	err := command.Wait()
+	if err := ptyMaster.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+		log.Log.Reason(err).Warning("failed to close OpenVMM PTY master")
+	}
 
 	l.mutex.Lock()
 	if command != l.command || l.state == openVMMStopped {
@@ -359,7 +394,8 @@ func (l *OpenVMMDomainManager) waitForExit(command *exec.Cmd) {
 	l.state = openVMMStopped
 	if err != nil && !l.stopPending {
 		// Log the reason for the failure
-		log.Log.Reason(err).Error("OpenVMM process exited with an error")
+		stderrPath := filepath.Join(l.consoleDir, string(l.domain.UID), openVMMStderrFile)
+		log.Log.Reason(err).Errorf("OpenVMM process exited with an error; inspect stderr at %s", stderrPath)
 		l.state = openVMMFailed
 		reason = api.ReasonCrashed
 	}
