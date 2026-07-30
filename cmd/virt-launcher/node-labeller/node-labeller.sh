@@ -6,23 +6,72 @@ set -xeo pipefail
 KVM_HYPERVISOR_DEVICE="kvm"
 KVM_VIRTTYPE="kvm"
 
-NODE_LABELLER_DIR="/var/lib/kubevirt-node-labeller"
-mkdir -p "$NODE_LABELLER_DIR"
+if [ -z "$HYPERVISOR_DEVICE" ] || [ -z "$PREFERRED_VIRTTYPE" ]; then
+    echo "Warning: Env vars HYPERVISOR_DEVICE or PREFERRED_VIRTTYPE not set. Defaulting to KVM values for both vars"
+    echo "Currently specified values: HYPERVISOR_DEVICE='$HYPERVISOR_DEVICE', PREFERRED_VIRTTYPE='$PREFERRED_VIRTTYPE'"
+    HYPERVISOR_DEVICE="$KVM_HYPERVISOR_DEVICE"
+    PREFERRED_VIRTTYPE="$KVM_VIRTTYPE"
+fi
 
-cat > "$NODE_LABELLER_DIR/capabilities.xml" <<'EOF'
-<capabilities>
-	<host>
-		<cpu/>
-	</host>
-</capabilities>
-EOF
+ARCH=$(uname -m)
+MACHINE=q35
+if [ "$ARCH" == "aarch64" ]; then
+  MACHINE=virt
+elif [ "$ARCH" == "s390x" ]; then
+  MACHINE=s390-ccw-virtio
+elif [ "$ARCH" != "x86_64" ]; then
+  exit 0
+fi
 
-cat > "$NODE_LABELLER_DIR/supported_features.xml" <<'EOF'
-<cpu/>
-EOF
+set +o pipefail
 
-cat > "$NODE_LABELLER_DIR/virsh_domcapabilities.xml" <<'EOF'
-<domainCapabilities>
-	<cpu/>
-</domainCapabilities>
-EOF
+HYPERVISOR_DEV_PATH="/dev/${HYPERVISOR_DEVICE}"
+HYPERVISOR_DEV_MINOR=$(grep -w ${HYPERVISOR_DEVICE} /proc/misc | cut -f 1 -d' ')
+set -o pipefail
+
+# OpenVMM uses MSHV, but node-labeller probes must use unaccelerated QEMU.
+VIRTTYPE=qemu
+
+if [ ! -e "$HYPERVISOR_DEV_PATH" ] && [ -n "$HYPERVISOR_DEV_MINOR" ]; then
+  mknod "$HYPERVISOR_DEV_PATH" c 10 "$HYPERVISOR_DEV_MINOR"
+fi
+
+if [ -e "$HYPERVISOR_DEV_PATH" ]; then
+    chmod o+rw "$HYPERVISOR_DEV_PATH"
+fi
+
+if [ -e /dev/sev ]; then
+  # QEMU requires RW access to query SEV capabilities
+  chmod o+rw /dev/sev
+fi
+
+virtqemud -d
+
+EXPAND_CPU_FEATURES=""
+if virsh domcapabilities --help 2>&1 | grep -q -- '--expand-cpu-features'; then
+   EXPAND_CPU_FEATURES="--expand-cpu-features"
+fi
+
+SUPPORTED_CPU_FEATURES=""
+if virsh domcapabilities --help 2>&1 | grep -q -- '--supported-cpu-features'; then
+   SUPPORTED_CPU_FEATURES="--supported-cpu-features"
+fi
+
+virsh domcapabilities --machine $MACHINE --arch $ARCH --virttype $VIRTTYPE $EXPAND_CPU_FEATURES > /var/lib/kubevirt-node-labeller/virsh_domcapabilities.xml
+
+# hypervisor-cpu-baseline command only works on x86 and s390x
+if [ "$ARCH" == "x86_64" ] || [ "$ARCH" == "s390x" ]; then
+   virsh domcapabilities --machine $MACHINE --arch $ARCH --virttype $VIRTTYPE $EXPAND_CPU_FEATURES $SUPPORTED_CPU_FEATURES | virsh hypervisor-cpu-baseline --features /dev/stdin --machine $MACHINE --arch $ARCH --virttype $VIRTTYPE > /var/lib/kubevirt-node-labeller/supported_features.xml
+fi
+
+virsh capabilities > /var/lib/kubevirt-node-labeller/capabilities.xml
+
+# Detect cross-architecture emulation capabilities by probing for the
+# cross-arch QEMU emulator via virsh domcapabilities. The resulting XML
+# file is read by the node labeller to decide whether to advertise the
+# cross-arch vm-arch label.
+if [ "$ARCH" == "x86_64" ]; then
+  virsh domcapabilities --machine virt --arch aarch64 --virttype qemu > /var/lib/kubevirt-node-labeller/virsh_domcapabilities_aarch64.xml 2>/dev/null || true
+elif [ "$ARCH" == "aarch64" ]; then
+  virsh domcapabilities --machine q35 --arch x86_64 --virttype qemu > /var/lib/kubevirt-node-labeller/virsh_domcapabilities_x86_64.xml 2>/dev/null || true
+fi
