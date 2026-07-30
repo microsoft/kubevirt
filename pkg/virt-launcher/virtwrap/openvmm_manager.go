@@ -55,7 +55,7 @@ import (
 const (
 	openVMMBinaryPath = "/openvmm/openvmm"
 	openVMMKernelPath = "/openvmm/vmlinux.bin"
-	openVMMKernelArgs = "'root=/dev/vda1 console=ttyS0 cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1'"
+	openVMMKernelArgs = "root=/dev/vda1 console=ttyS0 cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
 	openVMMConsoleDir = "/var/run/kubevirt-private"
 	openVMMStderrFile = "openvmm.stderr.log"
 )

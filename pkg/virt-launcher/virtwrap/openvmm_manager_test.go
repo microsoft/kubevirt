@@ -72,7 +72,7 @@ var _ = Describe("OpenVMM manager", func() {
 			"--processors", "2",
 			"--memory", "512M",
 			"--virtio-blk", "file:" + diskPath + ",ro,pcie_port=rp0",
-			"-c", openVMMKernelArgs,
+			"-c", "root=/dev/vda1 console=ttyS0 cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1",
 			"--pcie-root-complex", "rc0",
 			"--pcie-root-port", "rc0:rp0",
 			"--com1", "listen=" + filepath.Join(tempDir, "console", "test-uid", "virt-serial0"),
