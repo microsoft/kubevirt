@@ -62,7 +62,8 @@ COPY --from=builder /build/_out/cmd/container-disk-v2alpha/container-disk /usr/b
 COPY --from=builder /build/_out/cmd/virt-launcher/virt-launcher /usr/bin/
 COPY --from=builder /build/_out/cmd/virt-launcher-monitor/virt-launcher-monitor /usr/bin/
 COPY --from=builder /build/_out/cmd/virt-freezer/virt-freezer /usr/bin/
-# TODO Removed virt-tail and virt-probe copy from here
+COPY --from=builder /build/_out/cmd/virt-tail/virt-tail /usr/bin/
+COPY --from=builder /build/_out/cmd/virt-probe/virt-probe /usr/bin/
 COPY --from=builder /build/cmd/virt-launcher/node-labeller/node-labeller.sh /usr/bin/
 
 RUN mkdir -p /usr/share/kube-virt/virt-launcher
