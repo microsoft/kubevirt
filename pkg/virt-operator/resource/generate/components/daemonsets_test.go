@@ -31,4 +31,9 @@ var _ = Describe("Handler DaemonSet", func() {
 		Expect(kubeletMount.MountPropagation).NotTo(BeNil())
 		Expect(*kubeletMount.MountPropagation).To(Equal(corev1.MountPropagationHostToContainer))
 	})
+
+	It("should disable node labelling", func() {
+		ds := NewHandlerDaemonSet(config, "", "", "")
+		Expect(ds.Spec.Template.Spec.Containers[0].Args).To(ContainElement("--enable-node-labeller=false"))
+	})
 })
