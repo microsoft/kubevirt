@@ -291,7 +291,7 @@ func main() {
 	allowEmulation := pflag.Bool("allow-emulation", false, "Allow use of software emulation as fallback")
 	pflag.Bool("allow-cross-arch-emulation", false, "Allow cross-architecture software emulation via QEMU TCG")
 	runWithNonRoot := pflag.Bool("run-as-nonroot", false, "Run virtqemud with the 'virt' user")
-	pflag.Bool("image-volume", false, "Generated with ImageVolume instead of containerDisk") //remove this once ImageVolume is GAed
+	imageVolumeEnabled := pflag.Bool("image-volume", false, "Generated with ImageVolume instead of containerDisk") //remove this once ImageVolume is GAed
 	pflag.Bool("libvirt-hook-server-and-client", false, "Enable pre-migration hooks on the target virt-launcher pod")
 	pflag.Bool("upgrade-ordinal-ifaces", false, "Enable upgrade of ordinal ifaces naming scheme")
 	pflag.Bool("vgpu-dedicated-hook", false, "Enable target mdev UUID mutation for vGPU live migration")
@@ -361,7 +361,7 @@ func main() {
 		pidDir = "/run/libvirt/qemu/run"
 	}
 	events := make(chan watch.Event, 2)
-	domainManager := virtwrap.NewOpenVMMDomainManager(pidDir, notifier, events)
+	domainManager := virtwrap.NewOpenVMMDomainManager(pidDir, notifier, events, *imageVolumeEnabled)
 
 	// Start the virt-launcher command service.
 	// Clients can use this service to tell virt-launcher

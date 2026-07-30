@@ -43,6 +43,8 @@ import (
 	"kubevirt.io/kubevirt/pkg/network/cache"
 	netsetup "kubevirt.io/kubevirt/pkg/network/setup/launcher"
 	netvmispec "kubevirt.io/kubevirt/pkg/network/vmispec"
+	"kubevirt.io/kubevirt/pkg/safepath"
+	"kubevirt.io/kubevirt/pkg/unsafepath"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
@@ -79,21 +81,25 @@ type OpenVMMDomainManager struct {
 	notifier    domainEventNotifier
 	events      chan<- watch.Event
 
-	commandFactory func(string, ...string) *exec.Cmd
-	diskPath       func(int) string
-	consoleDir     string
-	networkSetup   func(*v1.VirtualMachineInstance, *api.Domain, *cmdv1.VirtualMachineOptions) (string, error)
+	commandFactory      func(string, ...string) *exec.Cmd
+	diskPath            func(int) string
+	imageVolumeDiskPath func(int, string) (*safepath.Path, error)
+	imageVolumeEnabled  bool
+	consoleDir          string
+	networkSetup        func(*v1.VirtualMachineInstance, *api.Domain, *cmdv1.VirtualMachineOptions) (string, error)
 }
 
-func NewOpenVMMDomainManager(pidDir string, notifier domainEventNotifier, events chan<- watch.Event) DomainManager {
+func NewOpenVMMDomainManager(pidDir string, notifier domainEventNotifier, events chan<- watch.Event, imageVolumeEnabled bool) DomainManager {
 	return &OpenVMMDomainManager{
-		state:          openVMMNotStarted,
-		pidDir:         pidDir,
-		notifier:       notifier,
-		events:         events,
-		commandFactory: exec.Command,
-		diskPath:       containerdisk.GetDiskTargetPathFromLauncherView,
-		consoleDir:     openVMMConsoleDir,
+		state:               openVMMNotStarted,
+		pidDir:              pidDir,
+		notifier:            notifier,
+		events:              events,
+		commandFactory:      exec.Command,
+		diskPath:            containerdisk.GetDiskTargetPathFromLauncherView,
+		imageVolumeDiskPath: getDiskTargetPathFromImageVolumeView,
+		imageVolumeEnabled:  imageVolumeEnabled,
+		consoleDir:          openVMMConsoleDir,
 	}
 }
 
@@ -109,6 +115,13 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 		return nil, fmt.Errorf("OpenVMM has already failed and will not be restarted")
 	}
 
+	if l.imageVolumeEnabled {
+		if err := l.linkImageVolumeFilePaths(vmi); err != nil {
+			l.mutex.Unlock()
+			return nil, err
+		}
+	}
+
 	domain, args, err := l.buildDomainAndCommand(vmi, options)
 	if err != nil {
 		l.mutex.Unlock()
@@ -116,6 +129,8 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 	}
 
 	command := l.commandFactory(openVMMBinaryPath, args...)
+	// Add logging for the OpenVMM command being executed
+	log.Log.Infof("Starting OpenVMM with command: %s %v", openVMMBinaryPath, args)
 	if err := command.Start(); err != nil {
 		l.state = openVMMFailed
 		l.mutex.Unlock()
@@ -139,6 +154,23 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 	l.publish(event)
 	go l.waitForExit(command)
 	return spec, nil
+}
+
+func (l *OpenVMMDomainManager) linkImageVolumeFilePaths(vmi *v1.VirtualMachineInstance) error {
+	for volumeIndex, volume := range vmi.Spec.Volumes {
+		if volume.ContainerDisk == nil {
+			continue
+		}
+		backingFile := l.diskPath(volumeIndex)
+		fileToSoftLink, err := l.imageVolumeDiskPath(volumeIndex, volume.ContainerDisk.Path)
+		if err != nil {
+			return fmt.Errorf("failed to find disk file from ImageVolume: %v", err)
+		}
+		if err := os.Symlink(unsafepath.UnsafeAbsolute(fileToSoftLink.Raw()), backingFile); err != nil && !os.IsExist(err) {
+			return fmt.Errorf("error creating symlink for containerDisk: %v", err)
+		}
+	}
+	return nil
 }
 
 func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) (*api.Domain, []string, error) {
@@ -326,6 +358,8 @@ func (l *OpenVMMDomainManager) waitForExit(command *exec.Cmd) {
 	reason := api.ReasonShutdown
 	l.state = openVMMStopped
 	if err != nil && !l.stopPending {
+		// Log the reason for the failure
+		log.Log.Reason(err).Error("OpenVMM process exited with an error")
 		l.state = openVMMFailed
 		reason = api.ReasonCrashed
 	}

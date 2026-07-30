@@ -34,6 +34,7 @@ import (
 
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	"kubevirt.io/kubevirt/pkg/libvmi"
+	"kubevirt.io/kubevirt/pkg/safepath"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 )
 
@@ -53,7 +54,7 @@ var _ = Describe("OpenVMM manager", func() {
 	newManager := func(tempDir string) (*OpenVMMDomainManager, string) {
 		diskPath := filepath.Join(tempDir, "disk.raw")
 		Expect(os.WriteFile(diskPath, []byte("disk"), 0600)).To(Succeed())
-		manager := NewOpenVMMDomainManager(filepath.Join(tempDir, "pids"), nil, nil).(*OpenVMMDomainManager)
+		manager := NewOpenVMMDomainManager(filepath.Join(tempDir, "pids"), nil, nil, false).(*OpenVMMDomainManager)
 		manager.diskPath = func(int) string { return diskPath }
 		manager.consoleDir = filepath.Join(tempDir, "console")
 		return manager, diskPath
@@ -94,6 +95,27 @@ var _ = Describe("OpenVMM manager", func() {
 			"rc0:rp2",
 			"pcie_port=rp2:tap:tap0",
 		))
+	})
+
+	It("links an ImageVolume disk before resolving the root disk", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, diskPath := newManager(tempDir)
+		Expect(os.Remove(diskPath)).To(Succeed())
+		imageVolumeDisk := filepath.Join(tempDir, "provisioned-image.qcow2")
+		Expect(os.WriteFile(imageVolumeDisk, []byte("disk"), 0600)).To(Succeed())
+		manager.imageVolumeEnabled = true
+		manager.imageVolumeDiskPath = func(int, string) (*safepath.Path, error) {
+			return safepath.JoinAndResolveWithRelativeRoot("/", imageVolumeDisk)
+		}
+		manager.commandFactory = func(string, ...string) *exec.Cmd {
+			return exec.Command("/bin/sh", "-c", "exit 0")
+		}
+
+		_, err := manager.SyncVMI(newVMI(), false, nil)
+		Expect(err).ToNot(HaveOccurred())
+		linkedDisk, err := os.Readlink(diskPath)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(linkedDisk).To(Equal(imageVolumeDisk))
 	})
 
 	It("starts OpenVMM only once across concurrent SyncVMI calls", func() {
