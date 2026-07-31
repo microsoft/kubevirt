@@ -3,7 +3,7 @@ FROM $BUILDER_IMAGE AS builder
 WORKDIR /workspace
 
 RUN --mount=type=bind,rw,target=. \
-    hack/build-mariner-based-imgs/slim-build.sh /build \
+    hack/build-openvmm-virt-launcher/slim-build.sh /build \
       cmd/virt-launcher \
       cmd/virt-launcher-monitor \
       cmd/virt-freezer \
@@ -83,7 +83,7 @@ RUN cp /usr/share/kube-virt/virt-launcher/nsswitch.conf /etc/
 
 # Copy OpenVMM executable from the host
 RUN mkdir -p /openvmm
-COPY hack/build-mariner-based-imgs/openvmm/openvmm /openvmm/openvmm
+COPY hack/build-openvmm-virt-launcher/openvmm/openvmm /openvmm/openvmm
 RUN chmod 0755 /openvmm/openvmm
 
 RUN ls /usr/bin/virt-launcher
