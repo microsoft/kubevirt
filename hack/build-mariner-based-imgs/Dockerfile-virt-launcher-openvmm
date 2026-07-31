@@ -81,12 +81,10 @@ RUN cp /usr/share/kube-virt/virt-launcher/qemu.conf /etc/libvirt/
 RUN cp /usr/share/kube-virt/virt-launcher/virtqemud.conf /etc/libvirt/
 RUN cp /usr/share/kube-virt/virt-launcher/nsswitch.conf /etc/
 
-# Copy OpenVMM files from the host
+# Copy OpenVMM executable from the host
 RUN mkdir -p /openvmm
 COPY hack/build-mariner-based-imgs/openvmm/openvmm /openvmm/openvmm
-COPY hack/build-mariner-based-imgs/openvmm/vmlinux.bin /openvmm/vmlinux.bin
-RUN chmod 0755 /openvmm/openvmm \
-    && chmod 0644 /openvmm/vmlinux.bin
+RUN chmod 0755 /openvmm/openvmm
 
 RUN ls /usr/bin/virt-launcher
 
