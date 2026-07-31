@@ -225,7 +225,6 @@ func NewHandlerDaemonSet(config *operatorutil.KubeVirtDeploymentConfig, productN
 		"8186",
 		"--vmstats-server-port",
 		"8187",
-		"--enable-node-labeller=false",
 		"--graceful-shutdown-seconds",
 		fmt.Sprintf("%d", handlerGracePeriod),
 		"-v",
