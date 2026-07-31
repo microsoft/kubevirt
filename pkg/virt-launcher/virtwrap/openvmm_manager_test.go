@@ -44,6 +44,7 @@ var _ = Describe("OpenVMM manager", func() {
 			libvmi.WithContainerDisk("root", "example.invalid/root:latest"),
 			libvmi.WithCPUCount(2, 1, 1),
 			libvmi.WithMemoryRequest("512Mi"),
+			libvmi.WithKernelBoot("example.invalid/kernel:latest", "/boot/vmlinuz", "", "root=/dev/vda1 console=ttyS0"),
 		)
 		vmi.Name = "testvmi"
 		vmi.Namespace = "testnamespace"
@@ -54,8 +55,12 @@ var _ = Describe("OpenVMM manager", func() {
 	newManager := func(tempDir string) (*OpenVMMDomainManager, string) {
 		diskPath := filepath.Join(tempDir, "disk.raw")
 		Expect(os.WriteFile(diskPath, []byte("disk"), 0600)).To(Succeed())
+		kernelPath := filepath.Join(tempDir, "kernel-boot", "vmlinuz")
+		Expect(os.MkdirAll(filepath.Dir(kernelPath), 0755)).To(Succeed())
+		Expect(os.WriteFile(kernelPath, []byte("kernel"), 0600)).To(Succeed())
 		manager := NewOpenVMMDomainManager(filepath.Join(tempDir, "pids"), nil, nil, false).(*OpenVMMDomainManager)
 		manager.diskPath = func(int) string { return diskPath }
+		manager.kernelPath = func(string) string { return kernelPath }
 		manager.consoleDir = filepath.Join(tempDir, "console")
 		return manager, diskPath
 	}
@@ -67,16 +72,56 @@ var _ = Describe("OpenVMM manager", func() {
 		domain, args, err := manager.buildDomainAndCommand(newVMI(), nil)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(domain.Spec.UUID).To(Equal("test-uid"))
+		Expect(domain.Spec.OS.Kernel).To(Equal(manager.kernelPath("/boot/vmlinuz")))
+		Expect(domain.Spec.OS.KernelArgs).To(Equal("root=/dev/vda1 console=ttyS0"))
 		Expect(args).To(Equal([]string{
-			"--kernel", openVMMKernelPath,
+			"--kernel", manager.kernelPath("/boot/vmlinuz"),
 			"--processors", "2",
 			"--memory", "512M",
 			"--virtio-blk", "file:" + diskPath + ",ro,pcie_port=rp0",
-			"-c", "root=/dev/vda1 console=ttyS0 cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1",
 			"--pcie-root-complex", "rc0",
 			"--pcie-root-port", "rc0:rp0",
+			"-c", "root=/dev/vda1 console=ttyS0",
 			"--com1", "listen=" + filepath.Join(tempDir, "console", "test-uid", "virt-serial0"),
 		}))
+	})
+
+	It("rejects a VMI without an external kernel path", func() {
+		manager, _ := newManager(GinkgoT().TempDir())
+		vmi := newVMI()
+		vmi.Spec.Domain.Firmware.KernelBoot.Container.KernelPath = ""
+
+		_, _, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).To(MatchError("OpenVMM requires an external kernel path"))
+	})
+
+	It("rejects a VMI without external kernel boot configuration", func() {
+		manager, _ := newManager(GinkgoT().TempDir())
+		vmi := newVMI()
+		vmi.Spec.Domain.Firmware.KernelBoot = nil
+
+		_, _, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).To(MatchError("OpenVMM requires an external kernel boot container"))
+	})
+
+	It("rejects a VMI without an external kernel boot container", func() {
+		manager, _ := newManager(GinkgoT().TempDir())
+		vmi := newVMI()
+		vmi.Spec.Domain.Firmware.KernelBoot.Container = nil
+
+		_, _, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).To(MatchError("OpenVMM requires an external kernel boot container"))
+	})
+
+	It("omits empty kernel arguments", func() {
+		manager, _ := newManager(GinkgoT().TempDir())
+		vmi := newVMI()
+		vmi.Spec.Domain.Firmware.KernelBoot.KernelArgs = ""
+
+		domain, args, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(domain.Spec.OS.KernelArgs).To(BeEmpty())
+		Expect(args).ToNot(ContainElement("-c"))
 	})
 
 	It("places a TAP-backed virtio-net device on rp2", func() {
@@ -107,6 +152,9 @@ var _ = Describe("OpenVMM manager", func() {
 		manager.imageVolumeDiskPath = func(int, string) (*safepath.Path, error) {
 			return safepath.JoinAndResolveWithRelativeRoot("/", imageVolumeDisk)
 		}
+		manager.imageVolumeKernelPath = func(string) (*safepath.Path, error) {
+			return safepath.JoinAndResolveWithRelativeRoot("/", manager.kernelPath("/boot/vmlinuz"))
+		}
 		manager.commandFactory = func(string, ...string) *exec.Cmd {
 			return exec.Command("/bin/sh", "-c", "exit 0")
 		}
@@ -116,6 +164,31 @@ var _ = Describe("OpenVMM manager", func() {
 		linkedDisk, err := os.Readlink(diskPath)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(linkedDisk).To(Equal(imageVolumeDisk))
+	})
+
+	It("links an ImageVolume kernel before building the command", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, diskPath := newManager(tempDir)
+		kernelPath := manager.kernelPath("/boot/vmlinuz")
+		Expect(os.Remove(kernelPath)).To(Succeed())
+		imageVolumeKernel := filepath.Join(tempDir, "image-volume-vmlinuz")
+		Expect(os.WriteFile(imageVolumeKernel, []byte("kernel"), 0600)).To(Succeed())
+		manager.imageVolumeEnabled = true
+		manager.imageVolumeDiskPath = func(int, string) (*safepath.Path, error) {
+			return safepath.JoinAndResolveWithRelativeRoot("/", diskPath)
+		}
+		manager.imageVolumeKernelPath = func(string) (*safepath.Path, error) {
+			return safepath.JoinAndResolveWithRelativeRoot("/", imageVolumeKernel)
+		}
+		manager.commandFactory = func(string, ...string) *exec.Cmd {
+			return exec.Command("/bin/sh", "-c", "exit 0")
+		}
+
+		_, err := manager.SyncVMI(newVMI(), false, nil)
+		Expect(err).ToNot(HaveOccurred())
+		linkedKernel, err := os.Readlink(kernelPath)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(linkedKernel).To(Equal(imageVolumeKernel))
 	})
 
 	It("persists OpenVMM stderr for later inspection", func() {

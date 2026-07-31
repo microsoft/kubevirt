@@ -54,8 +54,6 @@ import (
 
 const (
 	openVMMBinaryPath = "/openvmm/openvmm"
-	openVMMKernelPath = "/openvmm/vmlinux.bin"
-	openVMMKernelArgs = "root=/dev/vda1 console=ttyS0 cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
 	openVMMConsoleDir = "/var/run/kubevirt-private"
 	openVMMStderrFile = "openvmm.stderr.log"
 )
@@ -84,25 +82,29 @@ type OpenVMMDomainManager struct {
 	notifier    domainEventNotifier
 	events      chan<- watch.Event
 
-	commandFactory      func(string, ...string) *exec.Cmd
-	diskPath            func(int) string
-	imageVolumeDiskPath func(int, string) (*safepath.Path, error)
-	imageVolumeEnabled  bool
-	consoleDir          string
-	networkSetup        func(*v1.VirtualMachineInstance, *api.Domain, *cmdv1.VirtualMachineOptions) (string, error)
+	commandFactory        func(string, ...string) *exec.Cmd
+	diskPath              func(int) string
+	imageVolumeDiskPath   func(int, string) (*safepath.Path, error)
+	kernelPath            func(string) string
+	imageVolumeKernelPath func(string) (*safepath.Path, error)
+	imageVolumeEnabled    bool
+	consoleDir            string
+	networkSetup          func(*v1.VirtualMachineInstance, *api.Domain, *cmdv1.VirtualMachineOptions) (string, error)
 }
 
 func NewOpenVMMDomainManager(pidDir string, notifier domainEventNotifier, events chan<- watch.Event, imageVolumeEnabled bool) DomainManager {
 	return &OpenVMMDomainManager{
-		state:               openVMMNotStarted,
-		pidDir:              pidDir,
-		notifier:            notifier,
-		events:              events,
-		commandFactory:      exec.Command,
-		diskPath:            containerdisk.GetDiskTargetPathFromLauncherView,
-		imageVolumeDiskPath: getDiskTargetPathFromImageVolumeView,
-		imageVolumeEnabled:  imageVolumeEnabled,
-		consoleDir:          openVMMConsoleDir,
+		state:                 openVMMNotStarted,
+		pidDir:                pidDir,
+		notifier:              notifier,
+		events:                events,
+		commandFactory:        exec.Command,
+		diskPath:              containerdisk.GetDiskTargetPathFromLauncherView,
+		imageVolumeDiskPath:   getDiskTargetPathFromImageVolumeView,
+		kernelPath:            containerdisk.GetKernelBootArtifactPathFromLauncherView,
+		imageVolumeKernelPath: getKernelBootArtifactPathFromImageVolumeView,
+		imageVolumeEnabled:    imageVolumeEnabled,
+		consoleDir:            openVMMConsoleDir,
 	}
 }
 
@@ -202,10 +204,42 @@ func (l *OpenVMMDomainManager) linkImageVolumeFilePaths(vmi *v1.VirtualMachineIn
 			return fmt.Errorf("error creating symlink for containerDisk: %v", err)
 		}
 	}
+
+	if vmi.Spec.Domain.Firmware == nil || vmi.Spec.Domain.Firmware.KernelBoot == nil || vmi.Spec.Domain.Firmware.KernelBoot.Container == nil {
+		return nil
+	}
+
+	kernelBoot := vmi.Spec.Domain.Firmware.KernelBoot.Container
+	if kernelBoot.KernelPath == "" {
+		return nil
+	}
+	kernelPath := l.kernelPath(kernelBoot.KernelPath)
+	if err := os.MkdirAll(filepath.Dir(kernelPath), 0755); err != nil {
+		return fmt.Errorf("failed to create kernel boot artifact directory: %w", err)
+	}
+	fileToSoftLink, err := l.imageVolumeKernelPath(kernelBoot.KernelPath)
+	if err != nil {
+		return fmt.Errorf("failed to find kernel boot artifact from ImageVolume: %v", err)
+	}
+	if err := os.Symlink(unsafepath.UnsafeAbsolute(fileToSoftLink.Raw()), kernelPath); err != nil && !os.IsExist(err) {
+		return fmt.Errorf("error creating symlink for kernel boot artifact: %v", err)
+	}
 	return nil
 }
 
 func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) (*api.Domain, []string, error) {
+	if vmi.Spec.Domain.Firmware == nil || vmi.Spec.Domain.Firmware.KernelBoot == nil || vmi.Spec.Domain.Firmware.KernelBoot.Container == nil {
+		return nil, nil, fmt.Errorf("OpenVMM requires an external kernel boot container")
+	}
+	kernelBoot := vmi.Spec.Domain.Firmware.KernelBoot
+	if kernelBoot.Container.KernelPath == "" {
+		return nil, nil, fmt.Errorf("OpenVMM requires an external kernel path")
+	}
+	kernelPath := l.kernelPath(kernelBoot.Container.KernelPath)
+	if _, err := os.Stat(kernelPath); err != nil {
+		return nil, nil, fmt.Errorf("failed to access kernel at %s: %w", kernelPath, err)
+	}
+
 	volumeName, diskPath, err := l.rootDisk(vmi)
 	if err != nil {
 		return nil, nil, err
@@ -223,6 +257,7 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 			Type:   "openvmm",
 			Name:   api.VMINamespaceKeyFunc(vmi),
 			UUID:   string(vmi.UID),
+			OS:     api.OS{Kernel: kernelPath, KernelArgs: kernelBoot.KernelArgs},
 			Memory: api.Memory{Value: uint64(memoryMiB), Unit: "MiB"},
 			VCPU:   &api.VCPU{CPUs: uint32(processorCount)},
 			CPU:    api.CPU{Topology: topology},
@@ -247,13 +282,15 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 	}
 
 	args := []string{
-		"--kernel", openVMMKernelPath,
+		"--kernel", kernelPath,
 		"--processors", strconv.FormatUint(uint64(processorCount), 10),
 		"--memory", fmt.Sprintf("%dM", memoryMiB),
 		"--virtio-blk", fmt.Sprintf("file:%s,ro,pcie_port=rp0", diskPath),
-		"-c", openVMMKernelArgs,
 		"--pcie-root-complex", "rc0",
 		"--pcie-root-port", "rc0:rp0",
+	}
+	if kernelBoot.KernelArgs != "" {
+		args = append(args, "-c", kernelBoot.KernelArgs)
 	}
 
 	if len(vmi.Spec.Domain.Devices.Interfaces) > 0 {
