@@ -31,7 +31,9 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 cd $SCRIPT_DIR/../../
 
 export KUBEVIRT_ONLY_USE_TAGS=true
-export FEATURE_GATES="Root,CPUManager,DataVolumes,HostDevices,NUMA"
+# Use the ConfigurableHypervisor Feature Gate to enable MSHV as the hypervisor
+export FEATURE_GATES="Root,ExpandDisks,ConfigurableHypervisor"
+export HYPERVISOR="hyperv-direct"
 
 make manifests
 
