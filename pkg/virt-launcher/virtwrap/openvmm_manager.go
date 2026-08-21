@@ -246,7 +246,7 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 		}
 	}
 
-	volumeName, diskPath, err := l.rootDisk(vmi)
+	volumeName, diskPath, diskBus, err := l.rootDisk(vmi)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -274,7 +274,7 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 				Device:   "disk",
 				Type:     "file",
 				Source:   api.DiskSource{File: diskPath},
-				Target:   api.DiskTarget{Device: "vda", Bus: v1.DiskBusVirtio},
+				Target:   api.DiskTarget{Device: "vda", Bus: diskBus},
 				Alias:    api.NewUserDefinedAlias(volumeName),
 				ReadOnly: &api.ReadOnly{},
 			}}},
@@ -301,10 +301,19 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 	args = append(args,
 		"--processors", strconv.FormatUint(uint64(processorCount), 10),
 		"--memory", fmt.Sprintf("%dM", memoryMiB),
-		"--virtio-blk", fmt.Sprintf("file:%s,ro,pcie_port=rp0", diskPath),
-		"--pcie-root-complex", "rc0",
-		"--pcie-root-port", "rc0:rp0",
 	)
+	if diskBus == v1.DiskBusVMBus {
+		args = append(args,
+			"--vmbus-scsi", "id=scsi0",
+			"--disk", fmt.Sprintf("file:%s,on=scsi0", diskPath),
+		)
+	} else {
+		args = append(args,
+			"--virtio-blk", fmt.Sprintf("file:%s,ro,pcie_port=rp0", diskPath),
+			"--pcie-root-complex", "rc0",
+			"--pcie-root-port", "rc0:rp0",
+		)
+	}
 	if !uefiBoot && kernelBoot.KernelArgs != "" {
 		args = append(args, "-c", kernelBoot.KernelArgs)
 	}
@@ -317,6 +326,9 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 		tapName, err := setupNetwork(vmi, domain, options)
 		if err != nil {
 			return nil, nil, err
+		}
+		if diskBus == v1.DiskBusVMBus {
+			args = append(args, "--pcie-root-complex", "rc0")
 		}
 		args = append(args,
 			"--pcie-root-port", "rc0:rp2",
@@ -373,23 +385,30 @@ func openVMMMemoryMiB(vmi *v1.VirtualMachineInstance) int64 {
 	return max(int64(1), (memoryBytes+mib-1)/mib)
 }
 
-func (l *OpenVMMDomainManager) rootDisk(vmi *v1.VirtualMachineInstance) (string, string, error) {
+func (l *OpenVMMDomainManager) rootDisk(vmi *v1.VirtualMachineInstance) (string, string, v1.DiskBus, error) {
 	if len(vmi.Spec.Domain.Devices.Disks) != 1 {
-		return "", "", fmt.Errorf("OpenVMM PoC requires exactly one root disk")
+		return "", "", "", fmt.Errorf("OpenVMM PoC requires exactly one root disk")
 	}
 	disk := vmi.Spec.Domain.Devices.Disks[0]
-	if disk.Disk == nil || (disk.Disk.Bus != "" && disk.Disk.Bus != v1.DiskBusVirtio) {
-		return "", "", fmt.Errorf("OpenVMM PoC root disk must use virtio-blk")
+	if disk.Disk == nil {
+		return "", "", "", fmt.Errorf("OpenVMM PoC root disk must be a disk device")
+	}
+	diskBus := disk.Disk.Bus
+	if diskBus == "" {
+		diskBus = v1.DiskBusVirtio
+	}
+	if diskBus != v1.DiskBusVirtio && diskBus != v1.DiskBusVMBus {
+		return "", "", "", fmt.Errorf("OpenVMM PoC root disk bus must be virtio or vmbus")
 	}
 	for index, volume := range vmi.Spec.Volumes {
 		if volume.Name == disk.Name {
 			if volume.ContainerDisk == nil {
-				return "", "", fmt.Errorf("OpenVMM PoC root disk must be a containerDisk")
+				return "", "", "", fmt.Errorf("OpenVMM PoC root disk must be a containerDisk")
 			}
-			return volume.Name, l.diskPath(index), nil
+			return volume.Name, l.diskPath(index), diskBus, nil
 		}
 	}
-	return "", "", fmt.Errorf("no volume found for root disk %s", disk.Name)
+	return "", "", "", fmt.Errorf("no volume found for root disk %s", disk.Name)
 }
 
 func (l *OpenVMMDomainManager) setupNetwork(vmi *v1.VirtualMachineInstance, domain *api.Domain, options *cmdv1.VirtualMachineOptions) (string, error) {

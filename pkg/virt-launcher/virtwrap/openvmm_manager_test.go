@@ -86,6 +86,34 @@ var _ = Describe("OpenVMM manager", func() {
 		}))
 	})
 
+	It("uses virtio-blk when the disk bus is unspecified", func() {
+		manager, _ := newManager(GinkgoT().TempDir())
+		vmi := newVMI()
+		vmi.Spec.Domain.Devices.Disks[0].Disk.Bus = ""
+
+		domain, args, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(domain.Spec.Devices.Disks[0].Target.Bus).To(Equal(v1.DiskBusVirtio))
+		Expect(args).To(ContainElement("--virtio-blk"))
+		Expect(args).ToNot(ContainElement("--vmbus-scsi"))
+	})
+
+	It("uses VMBus SCSI when the disk bus is vmbus", func() {
+		manager, diskPath := newManager(GinkgoT().TempDir())
+		vmi := newVMI()
+		vmi.Spec.Domain.Devices.Disks[0].Disk.Bus = v1.DiskBusVMBus
+
+		domain, args, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(domain.Spec.Devices.Disks[0].Target.Bus).To(Equal(v1.DiskBusVMBus))
+		Expect(args).To(ContainElements(
+			"--vmbus-scsi", "id=scsi0",
+			"--disk", "file:"+diskPath+",on=scsi0",
+		))
+		Expect(args).ToNot(ContainElement("--virtio-blk"))
+		Expect(args).ToNot(ContainElement("rc0:rp0"))
+	})
+
 	It("builds an OpenVMM UEFI command without requiring a kernel", func() {
 		tempDir := GinkgoT().TempDir()
 		manager, diskPath := newManager(tempDir)
@@ -164,6 +192,26 @@ var _ = Describe("OpenVMM manager", func() {
 			"rc0:rp2",
 			"pcie_port=rp2:tap:tap0",
 		))
+	})
+
+	It("creates a PCIe root complex for virtio-net with a VMBus disk", func() {
+		manager, _ := newManager(GinkgoT().TempDir())
+		vmi := newVMI()
+		vmi.Spec.Domain.Devices.Disks[0].Disk.Bus = v1.DiskBusVMBus
+		vmi.Spec.Domain.Devices.Interfaces = []v1.Interface{{Name: "default", InterfaceBindingMethod: v1.InterfaceBindingMethod{Bridge: &v1.InterfaceBridge{}}}}
+		vmi.Spec.Networks = []v1.Network{{Name: "default", NetworkSource: v1.NetworkSource{Pod: &v1.PodNetwork{}}}}
+		manager.networkSetup = func(*v1.VirtualMachineInstance, *api.Domain, *cmdv1.VirtualMachineOptions) (string, error) {
+			return "tap0", nil
+		}
+
+		_, args, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(args).To(ContainElements(
+			"--pcie-root-complex", "rc0",
+			"--pcie-root-port", "rc0:rp2",
+			"--virtio-net", "pcie_port=rp2:tap:tap0",
+		))
+		Expect(args).ToNot(ContainElement("rc0:rp0"))
 	})
 
 	It("links an ImageVolume disk before resolving the root disk", func() {
