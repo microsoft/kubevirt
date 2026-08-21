@@ -327,13 +327,17 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 		if err != nil {
 			return nil, nil, err
 		}
-		if diskBus == v1.DiskBusVMBus {
-			args = append(args, "--pcie-root-complex", "rc0")
+		if vmi.Spec.Domain.Devices.Interfaces[0].Model == v1.VMBus {
+			args = append(args, "--net", "tap:"+tapName)
+		} else {
+			if diskBus == v1.DiskBusVMBus {
+				args = append(args, "--pcie-root-complex", "rc0")
+			}
+			args = append(args,
+				"--pcie-root-port", "rc0:rp2",
+				"--virtio-net", fmt.Sprintf("pcie_port=rp2:tap:%s", tapName),
+			)
 		}
-		args = append(args,
-			"--pcie-root-port", "rc0:rp2",
-			"--virtio-net", fmt.Sprintf("pcie_port=rp2:tap:%s", tapName),
-		)
 	}
 	args = append(args, "--com1", "listen="+consolePath)
 

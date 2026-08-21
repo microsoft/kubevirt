@@ -214,6 +214,28 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(args).ToNot(ContainElement("rc0:rp0"))
 	})
 
+	It("uses a TAP-backed VMBus network without PCIe arguments", func() {
+		manager, _ := newManager(GinkgoT().TempDir())
+		vmi := newVMI()
+		vmi.Spec.Domain.Devices.Disks[0].Disk.Bus = v1.DiskBusVMBus
+		vmi.Spec.Domain.Devices.Interfaces = []v1.Interface{{
+			Name:                   "default",
+			Model:                  v1.VMBus,
+			InterfaceBindingMethod: v1.InterfaceBindingMethod{Bridge: &v1.InterfaceBridge{}},
+		}}
+		vmi.Spec.Networks = []v1.Network{{Name: "default", NetworkSource: v1.NetworkSource{Pod: &v1.PodNetwork{}}}}
+		manager.networkSetup = func(*v1.VirtualMachineInstance, *api.Domain, *cmdv1.VirtualMachineOptions) (string, error) {
+			return "tap0", nil
+		}
+
+		_, args, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(args).To(ContainElements("--net", "tap:tap0"))
+		Expect(args).ToNot(ContainElement("--virtio-net"))
+		Expect(args).ToNot(ContainElement("--pcie-root-port"))
+		Expect(args).ToNot(ContainElement("--pcie-root-complex"))
+	})
+
 	It("links an ImageVolume disk before resolving the root disk", func() {
 		tempDir := GinkgoT().TempDir()
 		manager, diskPath := newManager(tempDir)
