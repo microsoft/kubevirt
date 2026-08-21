@@ -144,6 +144,7 @@ var validInterfaceModels = map[string]struct{}{
 	"pcnet":    {},
 	"rtl8139":  {},
 	v1.VirtIO:  {},
+	v1.VMBus:   {},
 }
 
 func validateInterfaceModel(field *k8sfield.Path, idx int, iface v1.Interface) []metav1.StatusCause {

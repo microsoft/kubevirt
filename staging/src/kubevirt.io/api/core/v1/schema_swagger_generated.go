@@ -744,7 +744,7 @@ func (Diag288Watchdog) SwaggerDoc() map[string]string {
 func (Interface) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"name":        "Logical name of the interface as well as a reference to the associated networks.\nMust match the Name of a Network.",
-		"model":       "Interface model.\nOne of: e1000, e1000e, igb, ne2k_pci, pcnet, rtl8139, virtio.\nDefaults to virtio.",
+		"model":       "Interface model.\nOne of: e1000, e1000e, igb, ne2k_pci, pcnet, rtl8139, virtio, vmbus.\nDefaults to virtio.",
 		"binding":     "Binding specifies the binding plugin that will be used to connect the interface to the guest.\nIt provides an alternative to InterfaceBindingMethod.\nversion: 1alphav1",
 		"ports":       "List of ports to be forwarded to the virtual machine.\nMutually exclusive with portRanges.",
 		"portRanges":  "List of port ranges to be forwarded to the virtual machine.\nMutually exclusive with ports. Only supported on masquerade interfaces.\nThis feature is in Alpha.\n+optional\n+listType=atomic",

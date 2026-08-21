@@ -146,15 +146,18 @@ var _ = Describe("Validating VMI network spec", func() {
 		}))
 	})
 
-	It("should accept valid interface model", func() {
+	DescribeTable("should accept valid interface model", func(model string) {
 		spec := &v1.VirtualMachineInstanceSpec{}
 		spec.Domain.Devices.Interfaces = []v1.Interface{*v1.DefaultMasqueradeNetworkInterface()}
-		spec.Domain.Devices.Interfaces[0].Model = v1.VirtIO
+		spec.Domain.Devices.Interfaces[0].Model = model
 		spec.Networks = []v1.Network{*v1.DefaultPodNetwork()}
 
 		validator := admitter.NewValidator(k8sfield.NewPath("fake"), spec, stubClusterConfigChecker{})
 		Expect(validator.Validate()).To(BeEmpty())
-	})
+	},
+		Entry("virtio", v1.VirtIO),
+		Entry("vmbus", v1.VMBus),
+	)
 
 	DescribeTable("should reject invalid MAC addresses", func(macAddress, expectedMessage string) {
 		spec := &v1.VirtualMachineInstanceSpec{}
