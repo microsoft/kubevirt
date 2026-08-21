@@ -53,9 +53,10 @@ import (
 )
 
 const (
-	openVMMBinaryPath = "/openvmm/openvmm"
-	openVMMConsoleDir = "/var/run/kubevirt-private"
-	openVMMStderrFile = "openvmm.stderr.log"
+	openVMMBinaryPath       = "/openvmm/openvmm"
+	openVMMUEFIFirmwarePath = "/openvmm/MSVM.fd"
+	openVMMConsoleDir       = "/var/run/kubevirt-private"
+	openVMMStderrFile       = "openvmm.stderr.log"
 )
 
 type openVMMState uint8
@@ -228,16 +229,21 @@ func (l *OpenVMMDomainManager) linkImageVolumeFilePaths(vmi *v1.VirtualMachineIn
 }
 
 func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) (*api.Domain, []string, error) {
-	if vmi.Spec.Domain.Firmware == nil || vmi.Spec.Domain.Firmware.KernelBoot == nil || vmi.Spec.Domain.Firmware.KernelBoot.Container == nil {
-		return nil, nil, fmt.Errorf("OpenVMM requires an external kernel boot container")
-	}
-	kernelBoot := vmi.Spec.Domain.Firmware.KernelBoot
-	if kernelBoot.Container.KernelPath == "" {
-		return nil, nil, fmt.Errorf("OpenVMM requires an external kernel path")
-	}
-	kernelPath := l.kernelPath(kernelBoot.Container.KernelPath)
-	if _, err := os.Stat(kernelPath); err != nil {
-		return nil, nil, fmt.Errorf("failed to access kernel at %s: %w", kernelPath, err)
+	uefiBoot := vmi.IsBootloaderEFI()
+	var kernelBoot *v1.KernelBoot
+	var kernelPath string
+	if !uefiBoot {
+		if vmi.Spec.Domain.Firmware == nil || vmi.Spec.Domain.Firmware.KernelBoot == nil || vmi.Spec.Domain.Firmware.KernelBoot.Container == nil {
+			return nil, nil, fmt.Errorf("OpenVMM requires an external kernel boot container")
+		}
+		kernelBoot = vmi.Spec.Domain.Firmware.KernelBoot
+		if kernelBoot.Container.KernelPath == "" {
+			return nil, nil, fmt.Errorf("OpenVMM requires an external kernel path")
+		}
+		kernelPath = l.kernelPath(kernelBoot.Container.KernelPath)
+		if _, err := os.Stat(kernelPath); err != nil {
+			return nil, nil, fmt.Errorf("failed to access kernel at %s: %w", kernelPath, err)
+		}
 	}
 
 	volumeName, diskPath, err := l.rootDisk(vmi)
@@ -257,7 +263,7 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 			Type:   "openvmm",
 			Name:   api.VMINamespaceKeyFunc(vmi),
 			UUID:   string(vmi.UID),
-			OS:     api.OS{Kernel: kernelPath, KernelArgs: kernelBoot.KernelArgs},
+			OS:     api.OS{Kernel: kernelPath},
 			Memory: api.Memory{Value: uint64(memoryMiB), Unit: "MiB"},
 			VCPU:   &api.VCPU{CPUs: uint32(processorCount)},
 			CPU:    api.CPU{Topology: topology},
@@ -274,6 +280,11 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 			}}},
 		},
 	}
+	if uefiBoot {
+		domain.Spec.OS.BootLoader = &api.Loader{Path: openVMMUEFIFirmwarePath}
+	} else {
+		domain.Spec.OS.KernelArgs = kernelBoot.KernelArgs
+	}
 	domain.SetState(api.Running, api.ReasonUnknown)
 
 	consolePath := filepath.Join(l.consoleDir, string(vmi.UID), "virt-serial0")
@@ -281,15 +292,20 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 		return nil, nil, fmt.Errorf("failed to create OpenVMM console directory: %w", err)
 	}
 
-	args := []string{
-		"--kernel", kernelPath,
+	args := []string{}
+	if uefiBoot {
+		args = append(args, "--uefi", "--uefi-firmware", openVMMUEFIFirmwarePath)
+	} else {
+		args = append(args, "--kernel", kernelPath)
+	}
+	args = append(args,
 		"--processors", strconv.FormatUint(uint64(processorCount), 10),
 		"--memory", fmt.Sprintf("%dM", memoryMiB),
 		"--virtio-blk", fmt.Sprintf("file:%s,ro,pcie_port=rp0", diskPath),
 		"--pcie-root-complex", "rc0",
 		"--pcie-root-port", "rc0:rp0",
-	}
-	if kernelBoot.KernelArgs != "" {
+	)
+	if !uefiBoot && kernelBoot.KernelArgs != "" {
 		args = append(args, "-c", kernelBoot.KernelArgs)
 	}
 

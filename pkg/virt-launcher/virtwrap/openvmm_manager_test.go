@@ -86,6 +86,30 @@ var _ = Describe("OpenVMM manager", func() {
 		}))
 	})
 
+	It("builds an OpenVMM UEFI command without requiring a kernel", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, diskPath := newManager(tempDir)
+		vmi := newVMI()
+		vmi.Spec.Domain.Firmware.KernelBoot = nil
+		vmi.Spec.Domain.Firmware.Bootloader = &v1.Bootloader{EFI: &v1.EFI{}}
+
+		domain, args, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(domain.Spec.OS.Kernel).To(BeEmpty())
+		Expect(domain.Spec.OS.KernelArgs).To(BeEmpty())
+		Expect(domain.Spec.OS.BootLoader).To(Equal(&api.Loader{Path: openVMMUEFIFirmwarePath}))
+		Expect(args).To(Equal([]string{
+			"--uefi",
+			"--uefi-firmware", openVMMUEFIFirmwarePath,
+			"--processors", "2",
+			"--memory", "512M",
+			"--virtio-blk", "file:" + diskPath + ",ro,pcie_port=rp0",
+			"--pcie-root-complex", "rc0",
+			"--pcie-root-port", "rc0:rp0",
+			"--com1", "listen=" + filepath.Join(tempDir, "console", "test-uid", "virt-serial0"),
+		}))
+	})
+
 	It("rejects a VMI without an external kernel path", func() {
 		manager, _ := newManager(GinkgoT().TempDir())
 		vmi := newVMI()

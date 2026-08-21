@@ -20,13 +20,16 @@ Run the PoC on a Kubernetes cluster whose nodes expose `/dev/mshv` as the hyperv
 
 If you need to run the PoC on a KVM node, then update the `kubevirt-cr.yaml` manifest and set `hypervisor: kvm`. Note that this has not been tested.
 
-## 1. Getting the OpenVMM Binary
+## 1. Getting the OpenVMM Binary and MSVM firmware
 
 Download the OpenVMM binary using the instructions here: https://openvmm.dev/guide/user_guide/openvmm/run.html#pre-built-binaries
 
-After downloading the binary, it should be placed in the following directory in this repo.
+Next, get the `MSVM.fd` firmware by following OpenVMM guide: https://openvmm.dev/guide/reference/devices/firmware/mu_msvm_uefi.html
+
+After downloading the binaries, they should be placed in the following directory in this repo.
 
 `./hack/build-openvmm-virt-launcher/openvmm/`
+
 
 ## 2. Building the Container Images for KubeVirt Components
 
