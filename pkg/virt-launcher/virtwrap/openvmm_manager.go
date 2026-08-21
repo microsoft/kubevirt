@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,6 +35,7 @@ import (
 	"github.com/google/goterm/term"
 	k8sv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 
 	backupv1 "kubevirt.io/api/backup/v1alpha1"
@@ -57,6 +59,9 @@ const (
 	openVMMUEFIFirmwarePath = "/openvmm/MSVM.fd"
 	openVMMConsoleDir       = "/var/run/kubevirt-private"
 	openVMMStderrFile       = "openvmm.stderr.log"
+	openVMMVNCListenAddress = "127.0.0.1"
+	openVMMVNCPort          = "5900"
+	openVMMVNCSocket        = "virt-vnc"
 )
 
 type openVMMState uint8
@@ -91,6 +96,9 @@ type OpenVMMDomainManager struct {
 	imageVolumeEnabled    bool
 	consoleDir            string
 	networkSetup          func(*v1.VirtualMachineInstance, *api.Domain, *cmdv1.VirtualMachineOptions) (string, error)
+	vncListener           net.Listener
+	vncTargetAddress      string
+	vncSocketPath         string
 }
 
 func NewOpenVMMDomainManager(pidDir string, notifier domainEventNotifier, events chan<- watch.Event, imageVolumeEnabled bool) DomainManager {
@@ -106,6 +114,7 @@ func NewOpenVMMDomainManager(pidDir string, notifier domainEventNotifier, events
 		imageVolumeKernelPath: getKernelBootArtifactPathFromImageVolumeView,
 		imageVolumeEnabled:    imageVolumeEnabled,
 		consoleDir:            openVMMConsoleDir,
+		vncTargetAddress:      net.JoinHostPort(openVMMVNCListenAddress, openVMMVNCPort),
 	}
 }
 
@@ -146,6 +155,14 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 		l.mutex.Unlock()
 		return nil, fmt.Errorf("failed to create OpenVMM controlling terminal: %w", err)
 	}
+	if openVMMGraphicsEnabled(vmi) {
+		if err := l.startVNCProxyLocked(vmi.UID); err != nil {
+			_ = stderrFile.Close()
+			_ = pty.Close()
+			l.mutex.Unlock()
+			return nil, err
+		}
+	}
 
 	command := l.commandFactory(openVMMBinaryPath, args...)
 	command.Stdin = pty.Slave
@@ -157,6 +174,7 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 	if err := command.Start(); err != nil {
 		_ = stderrFile.Close()
 		_ = pty.Close()
+		l.stopVNCProxyLocked()
 		l.state = openVMMFailed
 		l.mutex.Unlock()
 		return nil, fmt.Errorf("failed to start OpenVMM: %w", err)
@@ -174,6 +192,7 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 	l.state = openVMMRunning
 	if err := l.writePIDFileLocked(domain.Spec.Name, command.Process.Pid); err != nil {
 		_ = command.Process.Kill()
+		l.stopVNCProxyLocked()
 		go func() {
 			_ = command.Wait()
 			_ = pty.Master.Close()
@@ -302,6 +321,12 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 		"--processors", strconv.FormatUint(uint64(processorCount), 10),
 		"--memory", fmt.Sprintf("%dM", memoryMiB),
 	)
+	if openVMMGraphicsEnabled(vmi) {
+		args = append(args,
+			"--vnc-listen", openVMMVNCListenAddress,
+			"--vnc-port", openVMMVNCPort,
+		)
+	}
 	if diskBus == v1.DiskBusVMBus {
 		args = append(args,
 			"--vmbus-scsi", "id=scsi0",
@@ -342,6 +367,86 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 	args = append(args, "--com1", "listen="+consolePath)
 
 	return domain, args, nil
+}
+
+func openVMMGraphicsEnabled(vmi *v1.VirtualMachineInstance) bool {
+	return vmi.Spec.Domain.Devices.AutoattachGraphicsDevice == nil || *vmi.Spec.Domain.Devices.AutoattachGraphicsDevice
+}
+
+func (l *OpenVMMDomainManager) startVNCProxyLocked(uid types.UID) error {
+	socketPath := filepath.Join(l.consoleDir, string(uid), openVMMVNCSocket)
+	if err := os.Remove(socketPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("failed to remove stale OpenVMM VNC socket: %w", err)
+	}
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		return fmt.Errorf("failed to listen on OpenVMM VNC socket %s: %w", socketPath, err)
+	}
+	l.vncListener = listener
+	l.vncSocketPath = socketPath
+	go l.serveVNCProxy(listener)
+	return nil
+}
+
+func (l *OpenVMMDomainManager) serveVNCProxy(listener net.Listener) {
+	for {
+		client, err := listener.Accept()
+		if err != nil {
+			if !errors.Is(err, net.ErrClosed) {
+				log.Log.Reason(err).Error("OpenVMM VNC proxy failed to accept a connection")
+			}
+			return
+		}
+		go l.proxyVNCConnection(client)
+	}
+}
+
+func (l *OpenVMMDomainManager) proxyVNCConnection(client net.Conn) {
+	defer client.Close()
+	server, err := dialOpenVMMVNC(l.vncTargetAddress)
+	if err != nil {
+		log.Log.Reason(err).Errorf("OpenVMM VNC proxy failed to connect to %s", l.vncTargetAddress)
+		return
+	}
+	defer server.Close()
+
+	done := make(chan struct{}, 2)
+	go func() {
+		_, _ = io.Copy(server, client)
+		done <- struct{}{}
+	}()
+	go func() {
+		_, _ = io.Copy(client, server)
+		done <- struct{}{}
+	}()
+	<-done
+}
+
+func dialOpenVMMVNC(address string) (net.Conn, error) {
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		conn, err := net.DialTimeout("tcp", address, 250*time.Millisecond)
+		if err == nil {
+			return conn, nil
+		}
+		if time.Now().After(deadline) {
+			return nil, err
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func (l *OpenVMMDomainManager) stopVNCProxyLocked() {
+	if l.vncListener != nil {
+		_ = l.vncListener.Close()
+		l.vncListener = nil
+	}
+	if l.vncSocketPath != "" {
+		if err := os.Remove(l.vncSocketPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Log.Reason(err).Warning("failed to remove OpenVMM VNC socket")
+		}
+		l.vncSocketPath = ""
+	}
 }
 
 func openVMMCPUTopology(vmi *v1.VirtualMachineInstance) (*api.CPUTopology, uint32) {
@@ -476,6 +581,7 @@ func (l *OpenVMMDomainManager) waitForExit(command *exec.Cmd, ptyMaster *os.File
 		reason = api.ReasonCrashed
 	}
 	l.domain.SetState(api.Shutoff, reason)
+	l.stopVNCProxyLocked()
 	now := metav1.Now()
 	l.domain.DeletionTimestamp = &now
 	event := watch.Event{Type: watch.Modified, Object: l.domain.DeepCopy()}

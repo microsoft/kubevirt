@@ -20,11 +20,14 @@
 package virtwrap
 
 import (
+	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -78,6 +81,8 @@ var _ = Describe("OpenVMM manager", func() {
 			"--kernel", manager.kernelPath("/boot/vmlinuz"),
 			"--processors", "2",
 			"--memory", "512M",
+			"--vnc-listen", "127.0.0.1",
+			"--vnc-port", "5900",
 			"--virtio-blk", "file:" + diskPath + ",ro,pcie_port=rp0",
 			"--pcie-root-complex", "rc0",
 			"--pcie-root-port", "rc0:rp0",
@@ -131,6 +136,8 @@ var _ = Describe("OpenVMM manager", func() {
 			"--uefi-firmware", openVMMUEFIFirmwarePath,
 			"--processors", "2",
 			"--memory", "512M",
+			"--vnc-listen", "127.0.0.1",
+			"--vnc-port", "5900",
 			"--virtio-blk", "file:" + diskPath + ",ro,pcie_port=rp0",
 			"--pcie-root-complex", "rc0",
 			"--pcie-root-port", "rc0:rp0",
@@ -138,6 +145,49 @@ var _ = Describe("OpenVMM manager", func() {
 		}))
 	})
 
+	It("disables the OpenVMM VNC server when graphics auto-attachment is disabled", func() {
+		manager, _ := newManager(GinkgoT().TempDir())
+		vmi := newVMI()
+		autoattachGraphics := false
+		vmi.Spec.Domain.Devices.AutoattachGraphicsDevice = &autoattachGraphics
+
+		_, args, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(args).ToNot(ContainElements("--vnc-listen", "--vnc-port"))
+	})
+
+	It("proxies the VNC unix socket to the OpenVMM TCP listener", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, _ := newManager(tempDir)
+		backend, err := net.Listen("tcp", "127.0.0.1:0")
+		Expect(err).ToNot(HaveOccurred())
+		defer backend.Close()
+		manager.vncTargetAddress = backend.Addr().String()
+
+		go func() {
+			conn, acceptErr := backend.Accept()
+			if acceptErr != nil {
+				return
+			}
+			defer conn.Close()
+			_, _ = io.Copy(conn, conn)
+		}()
+
+		vncDir := filepath.Join(tempDir, "console", "test-uid")
+		Expect(os.MkdirAll(vncDir, 0755)).To(Succeed())
+		Expect(manager.startVNCProxyLocked(types.UID("test-uid"))).To(Succeed())
+		defer manager.stopVNCProxyLocked()
+
+		client, err := net.Dial("unix", filepath.Join(vncDir, openVMMVNCSocket))
+		Expect(err).ToNot(HaveOccurred())
+		defer client.Close()
+		Expect(client.SetDeadline(time.Now().Add(time.Second))).To(Succeed())
+		Expect(client.Write([]byte("RFB test"))).To(Equal(8))
+		response := make([]byte, 8)
+		_, err = io.ReadFull(client, response)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(response).To(Equal([]byte("RFB test")))
+	})
 	It("rejects a VMI without an external kernel path", func() {
 		manager, _ := newManager(GinkgoT().TempDir())
 		vmi := newVMI()
