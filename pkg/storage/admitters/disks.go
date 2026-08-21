@@ -208,10 +208,18 @@ func validateBusSupport(field *k8sfield.Path, idx int, disk v1.Disk) []metav1.St
 				Field:   field.Index(idx).Child("disk", "bus").String(),
 			})
 		}
+	case v1.DiskBusVMBus:
+		if disk.Disk == nil {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("Bus type %s is only supported for disk devices", bus),
+				Field:   field.Index(idx).Child(diskType, "bus").String(),
+			})
+		}
 	case v1.DiskBusSCSI, v1.DiskBusUSB:
 		break
 	default:
-		supportedBuses := []v1.DiskBus{v1.DiskBusVirtio, v1.DiskBusSCSI, v1.DiskBusSATA, v1.DiskBusUSB}
+		supportedBuses := []v1.DiskBus{v1.DiskBusVirtio, v1.DiskBusSCSI, v1.DiskBusSATA, v1.DiskBusUSB, v1.DiskBusVMBus}
 		causes = append(causes, metav1.StatusCause{
 			Type:    metav1.CauseTypeFieldValueInvalid,
 			Message: fmt.Sprintf("%s is set with an unrecognized bus %s, must be one of: %v", field.Index(idx).String(), bus, supportedBuses),

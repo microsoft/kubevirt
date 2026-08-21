@@ -20652,7 +20652,7 @@ func schema_kubevirtio_api_core_v1_DiskTarget(ref common.ReferenceCallback) comm
 				Properties: map[string]spec.Schema{
 					"bus": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Bus indicates the type of disk device to emulate. supported values: virtio, sata, scsi, usb.",
+							Description: "Bus indicates the type of disk device to emulate. supported values: virtio, sata, scsi, usb, vmbus.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

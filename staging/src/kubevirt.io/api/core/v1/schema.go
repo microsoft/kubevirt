@@ -838,12 +838,13 @@ const (
 	DiskBusSCSI   DiskBus = "scsi"
 	DiskBusSATA   DiskBus = "sata"
 	DiskBusVirtio DiskBus = VirtIO
+	DiskBusVMBus  DiskBus = "vmbus"
 	DiskBusUSB    DiskBus = "usb"
 )
 
 type DiskTarget struct {
 	// Bus indicates the type of disk device to emulate.
-	// supported values: virtio, sata, scsi, usb.
+	// supported values: virtio, sata, scsi, usb, vmbus.
 	Bus DiskBus `json:"bus,omitempty"`
 	// ReadOnly.
 	// Defaults to false.

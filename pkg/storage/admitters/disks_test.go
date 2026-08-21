@@ -231,9 +231,35 @@ var _ = Describe("Disk Validation", func() {
 					Disk: &v1.DiskTarget{},
 				},
 			})
+			vmi.Spec.Domain.Devices.Disks = append(vmi.Spec.Domain.Devices.Disks, v1.Disk{
+				Name: "testdisk6",
+				DiskDevice: v1.DiskDevice{
+					Disk: &v1.DiskTarget{
+						Bus: v1.DiskBusVMBus,
+					},
+				},
+			})
 
 			causes := ValidateDisks(k8sfield.NewPath("fake"), vmi.Spec.Domain.Devices.Disks)
 			Expect(causes).To(BeEmpty())
+		})
+
+		It("should reject VMBus for non-disk devices", func() {
+			vmi.Spec.Domain.Devices.Disks = append(vmi.Spec.Domain.Devices.Disks,
+				v1.Disk{
+					Name:       "testlun",
+					DiskDevice: v1.DiskDevice{LUN: &v1.LunTarget{Bus: v1.DiskBusVMBus}},
+				},
+				v1.Disk{
+					Name:       "testcdrom",
+					DiskDevice: v1.DiskDevice{CDRom: &v1.CDRomTarget{Bus: v1.DiskBusVMBus}},
+				},
+			)
+
+			causes := ValidateDisks(k8sfield.NewPath("fake"), vmi.Spec.Domain.Devices.Disks)
+			Expect(causes).To(HaveLen(2))
+			Expect(causes[0].Field).To(Equal("fake[0].lun.bus"))
+			Expect(causes[1].Field).To(Equal("fake[1].cdrom.bus"))
 		})
 
 		It("should reject disks with unsupported buses", func() {
@@ -416,6 +442,7 @@ var _ = Describe("Disk Validation", func() {
 			Entry("SATA bus", v1.DiskBusSATA),
 			Entry("SCSI bus", v1.DiskBusSCSI),
 			Entry("USB bus", v1.DiskBusUSB),
+			Entry("VMBus", v1.DiskBusVMBus),
 		)
 
 		Context("With block size", func() {
