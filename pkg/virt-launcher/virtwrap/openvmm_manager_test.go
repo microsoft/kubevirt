@@ -32,11 +32,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	k8sv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 
 	v1 "kubevirt.io/api/core/v1"
 
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
+	hostdisk "kubevirt.io/kubevirt/pkg/host-disk"
 	"kubevirt.io/kubevirt/pkg/libvmi"
 	"kubevirt.io/kubevirt/pkg/safepath"
 	"kubevirt.io/kubevirt/pkg/storage/volumepath"
@@ -109,6 +111,40 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(volumeName).To(Equal("root"))
 		Expect(diskPath).To(Equal(volumepath.Filesystem("root")))
+	})
+
+	It("resolves a filesystem PVC after virt-handler replaces it with a HostDisk", func() {
+		manager := NewOpenVMMDomainManager("", nil, nil, false).(*OpenVMMDomainManager)
+		vmi := newPVCVMI()
+		storage := resource.MustParse("1Gi")
+		volumeMode := k8sv1.PersistentVolumeFilesystem
+		vmi.Status.VolumeStatus = []v1.VolumeStatus{{
+			Name: "root",
+			PersistentVolumeClaimInfo: &v1.PersistentVolumeClaimInfo{
+				VolumeMode: &volumeMode,
+				Capacity:   k8sv1.ResourceList{k8sv1.ResourceStorage: storage},
+				Requests:   k8sv1.ResourceList{k8sv1.ResourceStorage: storage},
+			},
+		}}
+		Expect(hostdisk.ReplacePVCByHostDisk(vmi)).To(Succeed())
+		Expect(vmi.Spec.Volumes[0].PersistentVolumeClaim).To(BeNil())
+		Expect(vmi.Spec.Volumes[0].HostDisk).ToNot(BeNil())
+
+		volumeName, diskPath, _, err := manager.rootDisk(vmi)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(volumeName).To(Equal("root"))
+		Expect(diskPath).To(Equal(volumepath.Filesystem("root")))
+	})
+
+	It("rejects a HostDisk that is not PVC-backed", func() {
+		manager := NewOpenVMMDomainManager("", nil, nil, false).(*OpenVMMDomainManager)
+		vmi := newVMI()
+		vmi.Spec.Volumes[0].VolumeSource = v1.VolumeSource{
+			HostDisk: &v1.HostDisk{Path: "/host/disk.img", Type: v1.HostDiskExists},
+		}
+
+		_, _, _, err := manager.rootDisk(vmi)
+		Expect(err).To(MatchError("OpenVMM PoC root disk must be a containerDisk or filesystem persistentVolumeClaim"))
 	})
 
 	It("uses a filesystem PVC as a virtio-blk root disk", func() {

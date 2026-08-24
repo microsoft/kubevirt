@@ -513,12 +513,15 @@ func (l *OpenVMMDomainManager) rootDisk(vmi *v1.VirtualMachineInstance) (string,
 		return "", "", "", fmt.Errorf("OpenVMM PoC root disk bus must be virtio or vmbus")
 	}
 	for index, volume := range vmi.Spec.Volumes {
+		fmt.Printf("OpenVMM volume at index %d: %+v\n", index, volume)
 		if volume.Name == disk.Name {
 			switch {
 			case volume.ContainerDisk != nil:
 				return volume.Name, l.diskPath(index), diskBus, nil
 			case volume.PersistentVolumeClaim != nil:
 				return volume.Name, l.filesystemDiskPath(volume.Name), diskBus, nil
+			case volume.HostDisk != nil && isPVCBacked(volume.Name, vmi):
+				return volume.Name, volume.HostDisk.Path, diskBus, nil
 			default:
 				return "", "", "", fmt.Errorf("OpenVMM PoC root disk must be a containerDisk or filesystem persistentVolumeClaim")
 			}
