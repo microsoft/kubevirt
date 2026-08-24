@@ -31,6 +31,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	v1 "kubevirt.io/api/core/v1"
@@ -38,6 +39,7 @@ import (
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	"kubevirt.io/kubevirt/pkg/libvmi"
 	"kubevirt.io/kubevirt/pkg/safepath"
+	"kubevirt.io/kubevirt/pkg/storage/volumepath"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 )
 
@@ -52,6 +54,15 @@ var _ = Describe("OpenVMM manager", func() {
 		vmi.Name = "testvmi"
 		vmi.Namespace = "testnamespace"
 		vmi.UID = types.UID("test-uid")
+		return vmi
+	}
+	newPVCVMI := func() *v1.VirtualMachineInstance {
+		vmi := newVMI()
+		vmi.Spec.Volumes[0].VolumeSource = v1.VolumeSource{
+			PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+				PersistentVolumeClaimVolumeSource: k8sv1.PersistentVolumeClaimVolumeSource{ClaimName: "root-pvc"},
+			},
+		}
 		return vmi
 	}
 
@@ -89,6 +100,59 @@ var _ = Describe("OpenVMM manager", func() {
 			"-c", "root=/dev/vda1 console=ttyS0",
 			"--com1", "listen=" + filepath.Join(tempDir, "console", "test-uid", "virt-serial0"),
 		}))
+	})
+
+	It("resolves filesystem PVCs through the canonical KubeVirt disk path", func() {
+		manager := NewOpenVMMDomainManager("", nil, nil, false).(*OpenVMMDomainManager)
+
+		volumeName, diskPath, _, err := manager.rootDisk(newPVCVMI())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(volumeName).To(Equal("root"))
+		Expect(diskPath).To(Equal(volumepath.Filesystem("root")))
+	})
+
+	It("uses a filesystem PVC as a virtio-blk root disk", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, _ := newManager(tempDir)
+		pvcDiskPath := filepath.Join(tempDir, "root-pvc", "disk.img")
+		Expect(os.MkdirAll(filepath.Dir(pvcDiskPath), 0755)).To(Succeed())
+		Expect(os.WriteFile(pvcDiskPath, []byte("disk"), 0600)).To(Succeed())
+		manager.filesystemDiskPath = func(string) string { return pvcDiskPath }
+
+		domain, args, err := manager.buildDomainAndCommand(newPVCVMI(), nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(domain.Spec.Devices.Disks[0].Source.File).To(Equal(pvcDiskPath))
+		Expect(args).To(ContainElements(
+			"--virtio-blk", "file:"+pvcDiskPath+",ro,pcie_port=rp0",
+		))
+	})
+
+	It("passes a VHD filesystem PVC to VMBus SCSI through disk.img", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, _ := newManager(tempDir)
+		pvcDiskPath := filepath.Join(tempDir, "root-pvc", "disk.img")
+		Expect(os.MkdirAll(filepath.Dir(pvcDiskPath), 0755)).To(Succeed())
+		Expect(os.WriteFile(pvcDiskPath, []byte("vhd image"), 0600)).To(Succeed())
+		manager.filesystemDiskPath = func(string) string { return pvcDiskPath }
+		vmi := newPVCVMI()
+		vmi.Spec.Domain.Devices.Disks[0].Disk.Bus = v1.DiskBusVMBus
+
+		domain, args, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(domain.Spec.Devices.Disks[0].Source.File).To(Equal(pvcDiskPath))
+		Expect(args).To(ContainElements(
+			"--vmbus-scsi", "id=scsi0",
+			"--disk", "file:"+pvcDiskPath+",on=scsi0",
+		))
+	})
+
+	It("rejects unsupported root volume sources", func() {
+		manager, _ := newManager(GinkgoT().TempDir())
+		vmi := newVMI()
+		vmi.Spec.Volumes[0].VolumeSource = v1.VolumeSource{}
+
+		_, _, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).To(MatchError("OpenVMM PoC root disk must be a containerDisk or filesystem persistentVolumeClaim"))
 	})
 
 	It("uses virtio-blk when the disk bus is unspecified", func() {

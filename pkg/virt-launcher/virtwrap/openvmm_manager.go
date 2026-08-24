@@ -48,6 +48,7 @@ import (
 	netsetup "kubevirt.io/kubevirt/pkg/network/setup/launcher"
 	netvmispec "kubevirt.io/kubevirt/pkg/network/vmispec"
 	"kubevirt.io/kubevirt/pkg/safepath"
+	"kubevirt.io/kubevirt/pkg/storage/volumepath"
 	"kubevirt.io/kubevirt/pkg/unsafepath"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
@@ -90,6 +91,7 @@ type OpenVMMDomainManager struct {
 
 	commandFactory        func(string, ...string) *exec.Cmd
 	diskPath              func(int) string
+	filesystemDiskPath    func(string) string
 	imageVolumeDiskPath   func(int, string) (*safepath.Path, error)
 	kernelPath            func(string) string
 	imageVolumeKernelPath func(string) (*safepath.Path, error)
@@ -109,6 +111,7 @@ func NewOpenVMMDomainManager(pidDir string, notifier domainEventNotifier, events
 		events:                events,
 		commandFactory:        exec.Command,
 		diskPath:              containerdisk.GetDiskTargetPathFromLauncherView,
+		filesystemDiskPath:    volumepath.Filesystem,
 		imageVolumeDiskPath:   getDiskTargetPathFromImageVolumeView,
 		kernelPath:            containerdisk.GetKernelBootArtifactPathFromLauncherView,
 		imageVolumeKernelPath: getKernelBootArtifactPathFromImageVolumeView,
@@ -270,7 +273,7 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 		return nil, nil, err
 	}
 	if _, err := os.Stat(diskPath); err != nil {
-		return nil, nil, fmt.Errorf("failed to access containerDisk %s at %s: %w", volumeName, diskPath, err)
+		return nil, nil, fmt.Errorf("failed to access root disk %s at %s: %w", volumeName, diskPath, err)
 	}
 
 	topology, processorCount := openVMMCPUTopology(vmi)
@@ -511,10 +514,14 @@ func (l *OpenVMMDomainManager) rootDisk(vmi *v1.VirtualMachineInstance) (string,
 	}
 	for index, volume := range vmi.Spec.Volumes {
 		if volume.Name == disk.Name {
-			if volume.ContainerDisk == nil {
-				return "", "", "", fmt.Errorf("OpenVMM PoC root disk must be a containerDisk")
+			switch {
+			case volume.ContainerDisk != nil:
+				return volume.Name, l.diskPath(index), diskBus, nil
+			case volume.PersistentVolumeClaim != nil:
+				return volume.Name, l.filesystemDiskPath(volume.Name), diskBus, nil
+			default:
+				return "", "", "", fmt.Errorf("OpenVMM PoC root disk must be a containerDisk or filesystem persistentVolumeClaim")
 			}
-			return volume.Name, l.diskPath(index), diskBus, nil
 		}
 	}
 	return "", "", "", fmt.Errorf("no volume found for root disk %s", disk.Name)
