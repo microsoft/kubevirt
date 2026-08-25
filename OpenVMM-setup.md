@@ -2,14 +2,17 @@
 
 ## Overview
 
-This proof of concept runs KubeVirt VirtualMachineInstances with OpenVMM instead of libvirt/QEMU. It implements the existing virt-launcher `DomainManager` interface and maps a limited VMI specification directly to an OpenVMM command line. The supported configuration includes a single virtio-blk container disk, an optional TAP-backed virtio-net interface, direct Linux kernel boot, and a serial console accessible through `virtctl`.
+This proof of concept runs KubeVirt VirtualMachineInstances with OpenVMM instead of libvirt/QEMU. It implements the existing virt-launcher `DomainManager` interface and maps a limited VMI specification directly to an OpenVMM command line. The supported configuration includes a single (vmbus/virtio-blk) disk exposed via containerDisk or PVC, a  TAP-backed vmbus/virtio-net interface, UEFI and direct Linux kernel boot, a serial console accessible through `virtctl` and VNC access to VM. Unmodified Azure marketplace VHD can be used to create VM with the vmbus transport.
 
 The main code changes:
 
 - Add an OpenVMM-backed `DomainManager` and configure virt-launcher to launch and monitor the OpenVMM process directly.
+- Add a new type of disk bus (`vmbus`) and a new network interface model (`vmbus`) that instructs OpenVMM to use the VMBus transport for that device.
 - Resolve ImageVolume container disks and expose them through the paths expected by virt-launcher.
+- Allow user to create a VMI based on a PVC, as long as it contains a `disk.img` file in the volume.
 - Provide OpenVMM with a controlling PTY while relaying the guest serial console through a Unix socket.
-- Package the OpenVMM binary `virt-launcher` image.
+- Configure OpenVMM to listen for VNC connections on `0.0.0.0:5900`. Implement a VNC traffic forwarder to move bytes to/from the TCP port and the UNIX socket created by KubeVirt for VNC access via `virtctl vnc` (`virt-vnc`).
+- Package the OpenVMM binary and MSVM firmware in the `virt-launcher` image.
 - Generate node capability XML through QEMU emulation, because LibVirt and QEMU packages in AzureLinux are not are not tested against MSHV.
 
 This is a focused PoC rather than a complete replacement for the libvirt backend. Features outside the supported VMI subset, including migration and most advanced device and lifecycle operations, are not implemented.
@@ -90,9 +93,124 @@ kubectl apply -f _out/manifests/release/kubevirt-cr.yaml
 # After all the pods (e.g., virt-handler) are in running state, we can say that the KubeVirt deployment is Ready.
 ```
 
-## 6. Building the Disk Images for the KubeVirt Guest VM
+## 6. Creating a Windows Guest VM with VHD Disk Image
 
-### 6.1. Building an OS Disk Image Based on KubeVirt Upstream's Fedora Image
+This is the typical configuration that this PoC aims to cater to. There are two important constraints that this type of VM brings:
+
+1. No `virtio` drivers in the VM image - because they are downloaded straight from the Azure Marketplace.
+
+2. Large filesize for the VHD images.
+
+To cater to both these constraints, this fork of KubeVirt allows users to specify that their VMI's disk needs to be passed to the VM using the `vmbus` transport instead of the default `virtio`.
+
+Furthermore, we use `hostpath` Persistent Volumes in K8s to pass the VHD from the dev/test node through the KinD node and into the guest VM.
+
+### 6.1. Mounting host directory containing VHD into KinD node
+
+IMPORTANT: The VHD file should be present in a certain directory named `disk.img`.
+Add the following additional extra mount to the KinD config at `kubevirtci/cluster-up/cluster/kind/common.sh`.
+
+```yaml
+  - containerPath: /disks
+    hostPath: <dir-containing-vhd>
+```
+
+Then run `make cluster-up`. The resultant `kind-1.35-control-plane` node should see the `/disks` directory with VHD inside.
+
+```bash
+$ docker exec -it kind-1.35-control-plane /bin/bash -c "ls -l /disks"
+total 134217768
+-rw-rw-r-- 1 1001 1003 137438953984 Aug 25 02:45 disk.img
+```
+
+### Create a HostPath Persistent Volume and Persistent Volume Claim
+
+```
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-vhd-pv
+spec:
+  capacity:
+    storage: 150Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local
+  hostPath:
+    path: /disks     # Path in KinD node containing VHD
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - kind-1.35-control-plane
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-vhd-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 150Gi
+  storageClassName: local
+  volumeName: local-vhd-pv
+```
+
+### 6.3. Create a Virtual Machine Instance (VMI)
+
+Save the following manifest into `vmi.yaml`.
+
+```yaml
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstance
+metadata:
+  labels:
+    special: vmi-windows
+  name: vmi-windows
+spec:
+  domain:
+    firmware:
+      bootloader:
+        efi:
+          secureBoot: false
+    devices:
+      disks:
+      - disk:
+          bus: vmbus  # to enable vmbus transport
+        name: vhdrootdisk
+      interfaces:
+      - masquerade: {}
+        name: default
+        model: vmbus  # to enable vmbus transport
+      rng: {}
+    memory:
+      guest: 1024M
+    resources: {}
+  networks:
+  - name: default
+    pod: {}
+  terminationGracePeriodSeconds: 0
+  volumes:
+  - persistentVolumeClaim:
+      claimName: local-vhd-pvc    # refer the above PVC in [6.2]
+    name: vhdrootdisk
+```
+
+```bash
+kubectl apply -f vmi.yaml
+```
+
+## 7. Creating a Linux Guest VM with QCOW2 Disk Image
+
+### 7.1. Building an OS Disk Image Based on KubeVirt Upstream's Fedora Image
 
 Convert the QCOW2 image format to RAW.
 
@@ -115,7 +233,7 @@ docker build -t docker.io/harshitg/fedora-with-test-tooling-container-disk:raw -
 docker push docker.io/harshitg/fedora-with-test-tooling-container-disk:raw
 ```
 
-### 6.2. Building an Image Containing the Linux Kernel for Direct Boot
+### 7.2. Building an Image Containing the Linux Kernel for Direct Boot
 
 Obtain an AzureLinux kernel image `vmlinux.bin` and follow the following steps.
 
@@ -129,7 +247,7 @@ docker build -t docker.io/harshitg/kernel:test -f .
 docker push docker.io/harshitg/kernel:test
 ```
 
-## 7. Create a Virtual Machine Instance (VMI)
+### 7.3. Create a Virtual Machine Instance (VMI)
 
 Save the following manifest into `vmi.yaml`.
 
@@ -177,12 +295,25 @@ kubectl apply -f vmi.yaml
 ## 8. Accessing the VMI Console
 
 ```bash
-virtctl console vmi-fedora
+virtctl console <vmi-name>
 
 # Login credentials are fedora/fedora
 ```
 
-## 9. Inspecting the OpenVMM Process
+## 9. Accessing the VMI via VNC
+
+OpenVMM runs a VNC server on a configurable TCP port and allows clients to stream data from the guest VM's graphics device (which is added to the guest by default). You can connect to the VNC of the guest using one of twp methods.
+
+```bash
+# Option 1: Directly connect using a VNC client
+$ virtctl vnc <vmi-name>
+
+# Option 2: For dev machines lacking a GUI, setup a VNC proxy
+# Access the VNC proxy on the given TCP host/port from a machine with GUI
+$ virtctl vnc <vmi-name> --address=0.0.0.0 --port 5900 --proxy-only
+```
+
+## 10. Inspecting the OpenVMM Process
 
 ```bash
 # Exec into the virt-launcher pod created for the above VMI
