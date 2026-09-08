@@ -267,6 +267,7 @@ spec:
           kernelPath: /boot/vmlinux.bin
         kernelArgs: "root=/dev/vda1 console=ttyS0 cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
     devices:
+      autoattachGraphicsDevice: false
       disks:
       - disk:
           bus: virtio
