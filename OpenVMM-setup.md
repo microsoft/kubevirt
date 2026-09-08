@@ -27,6 +27,8 @@ If you need to run the PoC on a KVM node, then update the `kubevirt-cr.yaml` man
 
 Download the OpenVMM binary using the instructions here: https://openvmm.dev/guide/user_guide/openvmm/run.html#pre-built-binaries
 
+For this PoC, the OpenVMM binary used was built by this CI run: https://github.com/microsoft/openvmm/actions/runs/30402572805
+
 Next, get the `MSVM.fd` firmware by following OpenVMM guide: https://openvmm.dev/guide/reference/devices/firmware/mu_msvm_uefi.html
 
 After downloading the binaries, they should be placed in the following directory in this repo.
