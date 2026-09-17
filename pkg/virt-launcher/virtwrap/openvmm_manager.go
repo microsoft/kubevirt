@@ -28,6 +28,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -361,21 +362,37 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 		if err != nil {
 			return nil, nil, err
 		}
+		networkBackend, err := openVMMNetworkBackend(domain, tapName)
+		if err != nil {
+			return nil, nil, err
+		}
 		if vmi.Spec.Domain.Devices.Interfaces[0].Model == v1.VMBus {
-			args = append(args, "--net", "tap:"+tapName)
+			args = append(args, "--net", networkBackend)
 		} else {
 			if diskBus == v1.DiskBusVMBus {
 				args = append(args, "--pcie-root-complex", "rc0")
 			}
 			args = append(args,
 				"--pcie-root-port", "rc0:rp2",
-				"--virtio-net", fmt.Sprintf("pcie_port=rp2:tap:%s", tapName),
+				"--virtio-net", "pcie_port=rp2:"+networkBackend,
 			)
 		}
 	}
 	args = append(args, "--com1", "listen="+consolePath)
 
 	return domain, args, nil
+}
+
+func openVMMNetworkBackend(domain *api.Domain, tapName string) (string, error) {
+	if len(domain.Spec.Devices.Interfaces) != 1 || domain.Spec.Devices.Interfaces[0].MAC == nil {
+		return "", fmt.Errorf("network phase 2 did not provide a MAC address")
+	}
+	mac, err := net.ParseMAC(domain.Spec.Devices.Interfaces[0].MAC.MAC)
+	if err != nil {
+		return "", fmt.Errorf("network phase 2 provided an invalid MAC address: %w", err)
+	}
+	openVMMMAC := strings.ToUpper(strings.ReplaceAll(mac.String(), ":", "-"))
+	return fmt.Sprintf("mac=%s:tap:%s", openVMMMAC, tapName), nil
 }
 
 func openVMMGraphicsEnabled(vmi *v1.VirtualMachineInstance) bool {

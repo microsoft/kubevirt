@@ -332,7 +332,8 @@ var _ = Describe("OpenVMM manager", func() {
 		vmi := newVMI()
 		vmi.Spec.Domain.Devices.Interfaces = []v1.Interface{{Name: "default", InterfaceBindingMethod: v1.InterfaceBindingMethod{Bridge: &v1.InterfaceBridge{}}}}
 		vmi.Spec.Networks = []v1.Network{{Name: "default", NetworkSource: v1.NetworkSource{Pod: &v1.PodNetwork{}}}}
-		manager.networkSetup = func(*v1.VirtualMachineInstance, *api.Domain, *cmdv1.VirtualMachineOptions) (string, error) {
+		manager.networkSetup = func(_ *v1.VirtualMachineInstance, domain *api.Domain, _ *cmdv1.VirtualMachineOptions) (string, error) {
+			domain.Spec.Devices.Interfaces = []api.Interface{{MAC: &api.MAC{MAC: "00:15:5d:12:12:13"}}}
 			return "tap0", nil
 		}
 
@@ -340,7 +341,7 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(args).To(ContainElements(
 			"rc0:rp2",
-			"pcie_port=rp2:tap:tap0",
+			"pcie_port=rp2:mac=00-15-5D-12-12-13:tap:tap0",
 		))
 	})
 
@@ -350,7 +351,8 @@ var _ = Describe("OpenVMM manager", func() {
 		vmi.Spec.Domain.Devices.Disks[0].Disk.Bus = v1.DiskBusVMBus
 		vmi.Spec.Domain.Devices.Interfaces = []v1.Interface{{Name: "default", InterfaceBindingMethod: v1.InterfaceBindingMethod{Bridge: &v1.InterfaceBridge{}}}}
 		vmi.Spec.Networks = []v1.Network{{Name: "default", NetworkSource: v1.NetworkSource{Pod: &v1.PodNetwork{}}}}
-		manager.networkSetup = func(*v1.VirtualMachineInstance, *api.Domain, *cmdv1.VirtualMachineOptions) (string, error) {
+		manager.networkSetup = func(_ *v1.VirtualMachineInstance, domain *api.Domain, _ *cmdv1.VirtualMachineOptions) (string, error) {
+			domain.Spec.Devices.Interfaces = []api.Interface{{MAC: &api.MAC{MAC: "00:15:5d:12:12:13"}}}
 			return "tap0", nil
 		}
 
@@ -359,7 +361,7 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(args).To(ContainElements(
 			"--pcie-root-complex", "rc0",
 			"--pcie-root-port", "rc0:rp2",
-			"--virtio-net", "pcie_port=rp2:tap:tap0",
+			"--virtio-net", "pcie_port=rp2:mac=00-15-5D-12-12-13:tap:tap0",
 		))
 		Expect(args).ToNot(ContainElement("rc0:rp0"))
 	})
@@ -374,13 +376,14 @@ var _ = Describe("OpenVMM manager", func() {
 			InterfaceBindingMethod: v1.InterfaceBindingMethod{Bridge: &v1.InterfaceBridge{}},
 		}}
 		vmi.Spec.Networks = []v1.Network{{Name: "default", NetworkSource: v1.NetworkSource{Pod: &v1.PodNetwork{}}}}
-		manager.networkSetup = func(*v1.VirtualMachineInstance, *api.Domain, *cmdv1.VirtualMachineOptions) (string, error) {
+		manager.networkSetup = func(_ *v1.VirtualMachineInstance, domain *api.Domain, _ *cmdv1.VirtualMachineOptions) (string, error) {
+			domain.Spec.Devices.Interfaces = []api.Interface{{MAC: &api.MAC{MAC: "00:15:5d:12:12:13"}}}
 			return "tap0", nil
 		}
 
 		_, args, err := manager.buildDomainAndCommand(vmi, nil)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(args).To(ContainElements("--net", "tap:tap0"))
+		Expect(args).To(ContainElements("--net", "mac=00-15-5D-12-12-13:tap:tap0"))
 		Expect(args).ToNot(ContainElement("--virtio-net"))
 		Expect(args).ToNot(ContainElement("--pcie-root-port"))
 		Expect(args).ToNot(ContainElement("--pcie-root-complex"))
