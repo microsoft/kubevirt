@@ -21,17 +21,17 @@ This is a focused PoC rather than a complete replacement for the libvirt backend
 
 Run the PoC on a Kubernetes cluster whose nodes expose `/dev/mshv` as the hypervisor device. The build and manifest-generation scripts used below configure KubeVirt to use the MSHV (`hyperv-direct`) hypervisor backend. OpenVMM will not start on nodes where `/dev/mshv` is unavailable or inaccessible to the virt-launcher pod.
 
+The recent code has been tested with a `kernel-mshv` kernel image built from the updated kernel spec in the [`user/guptaharshit/kernel-mshv-add-hvscrubpartition-ioctl` Azure Linux branch](https://github.com/microsoft/azurelinux/tree/user/guptaharshit/kernel-mshv-add-hvscrubpartition-ioctl/SPECS).
+
 If you need to run the PoC on a KVM node, then update the `kubevirt-cr.yaml` manifest and set `hypervisor: kvm`. Note that this has not been tested.
 
-## 1. Getting the OpenVMM Binary and MSVM firmware
+## 1. Getting the OpenVMM Binary and MSVM Firmware
 
-Download the OpenVMM binary using the instructions here: https://openvmm.dev/guide/user_guide/openvmm/run.html#pre-built-binaries
+Build the OpenVMM binary from source using the [`hg/kubevirt-support` branch](https://github.com/harshitgupta1337/openvmm/tree/hg/kubevirt-support) of the OpenVMM fork. Follow the official [OpenVMM build instructions](https://openvmm.dev/guide/dev_guide/getting_started/build_openvmm.html) to set up the required dependencies and build the binary.
 
-For this PoC, the OpenVMM binary used was built by this CI run: https://github.com/microsoft/openvmm/actions/runs/30402572805
+Get the `MSVM.fd` firmware by following the [OpenVMM firmware guide](https://openvmm.dev/guide/reference/devices/firmware/mu_msvm_uefi.html).
 
-Next, get the `MSVM.fd` firmware by following OpenVMM guide: https://openvmm.dev/guide/reference/devices/firmware/mu_msvm_uefi.html
-
-After downloading the binaries, they should be placed in the following directory in this repo.
+Place the built OpenVMM binary and the downloaded firmware in the following directory in this repository:
 
 `./hack/build-openvmm-virt-launcher/openvmm/`
 
@@ -323,8 +323,9 @@ $ virtctl vnc <vmi-name> --address=0.0.0.0 --port 5900 --proxy-only
 kubectl exec -it pod/virt-launcher-xxxx -- /bin/bash
 
 # In the virt-launcher pod, you can run ps -aux to find the OpenVMM process
-bash-5.3# ps -aux | grep openvmm
-root          54  0.0  0.0 237976 14528 pts/0    Ssl+ 19:03   0:00 /openvmm/openvmm --kernel /var/run/kubevirt/container-disks/kernel-boot/vmlinux.bin --processors 1 --memory 977M --virtio-blk file:/var/run/kubevirt/container-disks/disk_0.img,ro,pcie_port=rp0 --pcie-root-complex rc0 --pcie-root-port rc0:rp0 -c root=/dev/vda1 console=ttyS0 cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1 --pcie-root-port rc0:rp2 --virtio-net pcie_port=rp2:tap:tap0 --com1 listen=/var/run/kubevirt-private/83f5250b-c0f2-472f-83f4-0364b5562b29/virt-serial0
-root          59  0.2  0.0 6799688 214516 pts/0  Sl+  19:03   0:07 /openvmm/openvmm vm
-root          78  0.0  0.0   3456  1804 pts/1    S+   20:01   0:00 grep openvmm
+bash-5.3$ ps -aux| grep openvmm
+qemu          34  0.0  0.0 283580 34352 pts/0    Ssl+ 16:14   0:00 /openvmm/openvmm --uefi --uefi-firmware /openvmm/MSVM.fd --processors 4 --memory 4096M --vnc-listen 0.0.0.0 --vnc-port 5900 --gfx --vmbus-scsi id=scsi0 --disk file:/var/run/kubevirt-private/vmi-disks/rootdisk/disk.img,on=scsi0 --net mac=82-81-4C-D3-EB-DC:tap:tap0 --com1 listen=/var/run/kubevirt-private/81ae5f9f-5882-44ce-90dc-a6b649035403/virt-serial0
+qemu          38  0.0  0.0 223016 34112 pts/0    Sl+  16:14   0:00 /openvmm/openvmm vnc
+qemu          42  2.7  6.5 7587920 4248728 pts/0 Sl+  16:14   2:45 /openvmm/openvmm vm
+qemu         140  0.0  0.0   3456  2020 pts/1    S+   17:55   0:00 grep openvmm
 ```
