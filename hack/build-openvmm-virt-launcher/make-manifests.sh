@@ -32,7 +32,7 @@ cd $SCRIPT_DIR/../../
 
 export KUBEVIRT_ONLY_USE_TAGS=true
 # Use the ConfigurableHypervisor Feature Gate to enable MSHV as the hypervisor
-export FEATURE_GATES="Root,ExpandDisks,ConfigurableHypervisor"
+export FEATURE_GATES="ExpandDisks,ConfigurableHypervisor"
 export HYPERVISOR="hyperv-direct"
 
 make manifests
