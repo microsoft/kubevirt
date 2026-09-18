@@ -64,9 +64,7 @@ const (
 	// This is the address on which OpenVMM process's VNC server listens on
 	openVMMVNCListenAddress = "0.0.0.0"
 	// This is the address to which the VNC proxy will connect to forward VNC connections to the OpenVMM process
-	// TODO: Hardcoding the target address because connecting to localhost fails due to no route to host
-	// TODO: To fix, either resolve 127.0.0.1 address resolution, or automatically extract private IP of pod
-	vncForwarderTargetAddress = "10.0.2.1"
+	vncForwarderTargetAddress = "127.0.0.1"
 	openVMMVNCPort            = "5900"
 	openVMMVNCSocket          = "virt-vnc"
 )
