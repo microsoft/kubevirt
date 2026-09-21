@@ -17,6 +17,10 @@ The main code changes:
 
 This is a focused PoC rather than a complete replacement for the libvirt backend. Features outside the supported VMI subset, including migration and most advanced device and lifecycle operations, are not implemented.
 
+## Known Limitations
+
+- Container disks are currently attached directly to OpenVMM as read-only disks. The standard libvirt/QEMU backend creates a writable ephemeral overlay over the immutable container-disk image, but the OpenVMM backend does not yet create or attach such an overlay. Consequently, guest writes to a container disk are not supported. A future change will add an overlay layer to provide writable ephemeral container disks while preserving the underlying image.
+
 ## Prerequisites
 
 Run the PoC on a Kubernetes cluster whose nodes expose `/dev/mshv` as the hypervisor device. The build and manifest-generation scripts used below configure KubeVirt to use the MSHV (`hyperv-direct`) hypervisor backend. OpenVMM will not start on nodes where `/dev/mshv` is unavailable or inaccessible to the virt-launcher pod.

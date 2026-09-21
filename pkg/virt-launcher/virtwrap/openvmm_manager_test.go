@@ -94,8 +94,9 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(args).To(ContainElements(
 			"--pcie-root-complex", "rc0",
 			"--pcie-root-port", "rc0:disk0",
-			"--virtio-blk", "file:"+diskPath+",pcie_port=disk0",
+			"--virtio-blk", "file:"+diskPath+",ro,pcie_port=disk0",
 		))
+		Expect(domain.Spec.Devices.Disks[0].ReadOnly).ToNot(BeNil())
 	})
 
 	It("resolves filesystem PVCs through the canonical KubeVirt disk path", func() {
@@ -209,8 +210,9 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(domain.Spec.Devices.Disks[0].Target.Bus).To(Equal(v1.DiskBusVMBus))
 		Expect(args).To(ContainElements(
 			"--vmbus-scsi", "id=scsi0",
-			"--disk", "file:"+diskPath+",on=scsi0",
+			"--disk", "file:"+diskPath+",ro,on=scsi0",
 		))
+		Expect(domain.Spec.Devices.Disks[0].ReadOnly).ToNot(BeNil())
 		Expect(args).ToNot(ContainElement("--virtio-blk"))
 		Expect(args).ToNot(ContainElement("rc0:disk0"))
 	})
@@ -239,7 +241,7 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(args).To(ContainElements(
 			"--vmbus-scsi", "id=scsi0",
-			"--disk", "file:"+diskPath+",on=scsi0",
+			"--disk", "file:"+diskPath+",ro,on=scsi0",
 			"--disk", "file:"+cloudInitPath+",ro,dvd,on=scsi0",
 			"--disk", "file:"+sysprepPath+",ro,dvd,on=scsi0",
 		))
@@ -271,7 +273,7 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(domain.Spec.Devices.Disks).To(HaveLen(2))
 		Expect(args).To(ContainElements(
 			"--pcie-root-port", "rc0:disk0",
-			"--virtio-blk", "file:"+rootPath+",pcie_port=disk0",
+			"--virtio-blk", "file:"+rootPath+",ro,pcie_port=disk0",
 			"--pcie-root-port", "rc0:disk1",
 			"--virtio-blk", "file:"+cloudInitPath+",ro,pcie_port=disk1",
 		))
@@ -298,7 +300,7 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(args).To(ContainElements(
 			"--pcie-root-port", "rc0:disk0",
-			"--virtio-blk", "file:"+rootPath+",pcie_port=disk0",
+			"--virtio-blk", "file:"+rootPath+",ro,pcie_port=disk0",
 			"--vmbus-scsi", "id=scsi0",
 			"--disk", "file:"+sysprepPath+",ro,dvd,on=scsi0",
 		))
@@ -345,7 +347,7 @@ var _ = Describe("OpenVMM manager", func() {
 			"--uefi", "--uefi-firmware", openVMMUEFIFirmwarePath,
 			"--pcie-root-complex", "rc0",
 			"--pcie-root-port", "rc0:disk0",
-			"--virtio-blk", "file:"+diskPath+",pcie_port=disk0",
+			"--virtio-blk", "file:"+diskPath+",ro,pcie_port=disk0",
 		))
 	})
 

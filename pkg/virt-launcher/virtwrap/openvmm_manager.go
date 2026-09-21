@@ -634,6 +634,7 @@ func (l *OpenVMMDomainManager) disks(vmi *v1.VirtualMachineInstance) ([]openVMMD
 		switch {
 		case volume.ContainerDisk != nil:
 			diskPath = l.diskPath(volumeEntry.index)
+			readOnly = true
 		case volume.PersistentVolumeClaim != nil:
 			diskPath = l.filesystemDiskPath(volume.Name)
 		case volume.HostDisk != nil && isPVCBacked(volume.Name, vmi):
