@@ -43,6 +43,8 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/log"
 
+	cloudinit "kubevirt.io/kubevirt/pkg/cloud-init"
+	"kubevirt.io/kubevirt/pkg/config"
 	containerdisk "kubevirt.io/kubevirt/pkg/container-disk"
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	"kubevirt.io/kubevirt/pkg/network/cache"
@@ -82,6 +84,14 @@ type domainEventNotifier interface {
 	SendDomainEvent(event watch.Event) error
 }
 
+type openVMMDisk struct {
+	disk     api.Disk
+	bus      v1.DiskBus
+	path     string
+	readOnly bool
+	dvd      bool
+}
+
 type OpenVMMDomainManager struct {
 	mutex sync.RWMutex
 
@@ -102,6 +112,9 @@ type OpenVMMDomainManager struct {
 	imageVolumeEnabled    bool
 	consoleDir            string
 	networkSetup          func(*v1.VirtualMachineInstance, *api.Domain, *cmdv1.VirtualMachineOptions) (string, error)
+	prepareProvisioning   func(*v1.VirtualMachineInstance) error
+	cloudInitIsoPath      func(cloudinit.DataSourceType, string, string) string
+	sysprepDiskPath       func(string) string
 	vncListener           net.Listener
 	vncTargetAddress      string
 	vncSocketPath         string
@@ -121,6 +134,8 @@ func NewOpenVMMDomainManager(pidDir string, notifier domainEventNotifier, events
 		imageVolumeKernelPath: getKernelBootArtifactPathFromImageVolumeView,
 		imageVolumeEnabled:    imageVolumeEnabled,
 		consoleDir:            openVMMConsoleDir,
+		cloudInitIsoPath:      cloudinit.GetIsoFilePath,
+		sysprepDiskPath:       config.GetSysprepDiskPath,
 		vncTargetAddress:      net.JoinHostPort(vncForwarderTargetAddress, openVMMVNCPort),
 	}
 }
@@ -142,6 +157,14 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 			l.mutex.Unlock()
 			return nil, err
 		}
+	}
+	prepareProvisioning := l.prepareProvisioning
+	if prepareProvisioning == nil {
+		prepareProvisioning = l.prepareProvisioningMedia
+	}
+	if err := prepareProvisioning(vmi); err != nil {
+		l.mutex.Unlock()
+		return nil, err
 	}
 
 	domain, args, err := l.buildDomainAndCommand(vmi, options)
@@ -272,12 +295,14 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 		}
 	}
 
-	volumeName, diskPath, diskBus, err := l.rootDisk(vmi)
+	disks, err := l.disks(vmi)
 	if err != nil {
 		return nil, nil, err
 	}
-	if _, err := os.Stat(diskPath); err != nil {
-		return nil, nil, fmt.Errorf("failed to access root disk %s at %s: %w", volumeName, diskPath, err)
+	for _, disk := range disks {
+		if _, err := os.Stat(disk.path); err != nil {
+			return nil, nil, fmt.Errorf("failed to access disk %s at %s: %w", disk.disk.Alias.GetName(), disk.path, err)
+		}
 	}
 
 	topology, processorCount := openVMMCPUTopology(vmi)
@@ -296,15 +321,11 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 			Metadata: api.Metadata{KubeVirt: api.KubeVirtMetadata{
 				UID: vmi.UID,
 			}},
-			Devices: api.Devices{Disks: []api.Disk{{
-				Device:   "disk",
-				Type:     "file",
-				Source:   api.DiskSource{File: diskPath},
-				Target:   api.DiskTarget{Device: "vda", Bus: diskBus},
-				Alias:    api.NewUserDefinedAlias(volumeName),
-				ReadOnly: &api.ReadOnly{},
-			}}},
+			Devices: api.Devices{},
 		},
+	}
+	for _, disk := range disks {
+		domain.Spec.Devices.Disks = append(domain.Spec.Devices.Disks, disk.disk)
 	}
 	if uefiBoot {
 		domain.Spec.OS.BootLoader = &api.Loader{Path: openVMMUEFIFirmwarePath}
@@ -335,17 +356,39 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 			"--gfx",
 		)
 	}
-	if diskBus == v1.DiskBusVMBus {
-		args = append(args,
-			"--vmbus-scsi", "id=scsi0",
-			"--disk", fmt.Sprintf("file:%s,on=scsi0", diskPath),
-		)
-	} else {
-		args = append(args,
-			"--virtio-blk", fmt.Sprintf("file:%s,ro,pcie_port=rp0", diskPath),
-			"--pcie-root-complex", "rc0",
-			"--pcie-root-port", "rc0:rp0",
-		)
+	hasVMBusDisks := false
+	hasVirtioDisks := false
+	for _, disk := range disks {
+		hasVMBusDisks = hasVMBusDisks || disk.bus == v1.DiskBusVMBus
+		hasVirtioDisks = hasVirtioDisks || disk.bus == v1.DiskBusVirtio
+	}
+	if hasVMBusDisks {
+		args = append(args, "--vmbus-scsi", "id=scsi0")
+	}
+	if hasVirtioDisks {
+		args = append(args, "--pcie-root-complex", "rc0")
+	}
+	for index, disk := range disks {
+		diskSpec := "file:" + disk.path
+		if disk.readOnly {
+			diskSpec += ",ro"
+		}
+		switch disk.bus {
+		case v1.DiskBusVMBus:
+			if disk.dvd {
+				diskSpec += ",dvd"
+			}
+			args = append(args, "--disk", diskSpec+",on=scsi0")
+		case v1.DiskBusVirtio:
+			if disk.dvd {
+				return nil, nil, fmt.Errorf("OpenVMM does not support cdrom device %s on virtio-blk", disk.disk.Alias.GetName())
+			}
+			port := fmt.Sprintf("disk%d", index)
+			args = append(args,
+				"--pcie-root-port", "rc0:"+port,
+				"--virtio-blk", diskSpec+",pcie_port="+port,
+			)
+		}
 	}
 	if !uefiBoot && kernelBoot.KernelArgs != "" {
 		args = append(args, "-c", kernelBoot.KernelArgs)
@@ -367,18 +410,41 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 		if vmi.Spec.Domain.Devices.Interfaces[0].Model == v1.VMBus {
 			args = append(args, "--net", networkBackend)
 		} else {
-			if diskBus == v1.DiskBusVMBus {
+			if !hasVirtioDisks {
 				args = append(args, "--pcie-root-complex", "rc0")
 			}
 			args = append(args,
-				"--pcie-root-port", "rc0:rp2",
-				"--virtio-net", "pcie_port=rp2:"+networkBackend,
+				"--pcie-root-port", "rc0:net0",
+				"--virtio-net", "pcie_port=net0:"+networkBackend,
 			)
 		}
 	}
 	args = append(args, "--com1", "listen="+consolePath)
 
 	return domain, args, nil
+}
+
+func (l *OpenVMMDomainManager) prepareProvisioningMedia(vmi *v1.VirtualMachineInstance) error {
+	cloudInitData, err := cloudinit.ReadCloudInitVolumeDataSource(vmi, config.SecretSourceDir)
+	if err != nil {
+		return fmt.Errorf("reading cloud-init volume data failed: %w", err)
+	}
+	if cloudInitData != nil {
+		if err := cloudinit.PrepareLocalPath(vmi.Name, vmi.Namespace); err != nil {
+			return fmt.Errorf("preparing cloud-init path failed: %w", err)
+		}
+		instanceType := vmi.Annotations[v1.ClusterInstancetypeAnnotation]
+		if instanceType == "" {
+			instanceType = vmi.Annotations[v1.InstancetypeAnnotation]
+		}
+		if err := cloudinit.GenerateLocalData(vmi, instanceType, cloudInitData); err != nil {
+			return fmt.Errorf("generating cloud-init data failed: %w", err)
+		}
+	}
+	if err := config.CreateSysprepDisks(vmi, false); err != nil {
+		return fmt.Errorf("creating sysprep disks failed: %w", err)
+	}
+	return nil
 }
 
 func openVMMNetworkBackend(domain *api.Domain, tapName string) (string, error) {
@@ -518,37 +584,85 @@ func openVMMMemoryMiB(vmi *v1.VirtualMachineInstance) int64 {
 	return max(int64(1), (memoryBytes+mib-1)/mib)
 }
 
-func (l *OpenVMMDomainManager) rootDisk(vmi *v1.VirtualMachineInstance) (string, string, v1.DiskBus, error) {
-	if len(vmi.Spec.Domain.Devices.Disks) != 1 {
-		return "", "", "", fmt.Errorf("OpenVMM PoC requires exactly one root disk")
+func (l *OpenVMMDomainManager) disks(vmi *v1.VirtualMachineInstance) ([]openVMMDisk, error) {
+	if len(vmi.Spec.Domain.Devices.Disks) == 0 {
+		return nil, fmt.Errorf("OpenVMM PoC requires at least one disk")
 	}
-	disk := vmi.Spec.Domain.Devices.Disks[0]
-	if disk.Disk == nil {
-		return "", "", "", fmt.Errorf("OpenVMM PoC root disk must be a disk device")
-	}
-	diskBus := disk.Disk.Bus
-	if diskBus == "" {
-		diskBus = v1.DiskBusVirtio
-	}
-	if diskBus != v1.DiskBusVirtio && diskBus != v1.DiskBusVMBus {
-		return "", "", "", fmt.Errorf("OpenVMM PoC root disk bus must be virtio or vmbus")
-	}
+	volumes := make(map[string]struct {
+		volume v1.Volume
+		index  int
+	}, len(vmi.Spec.Volumes))
 	for index, volume := range vmi.Spec.Volumes {
-		fmt.Printf("OpenVMM volume at index %d: %+v\n", index, volume)
-		if volume.Name == disk.Name {
-			switch {
-			case volume.ContainerDisk != nil:
-				return volume.Name, l.diskPath(index), diskBus, nil
-			case volume.PersistentVolumeClaim != nil:
-				return volume.Name, l.filesystemDiskPath(volume.Name), diskBus, nil
-			case volume.HostDisk != nil && isPVCBacked(volume.Name, vmi):
-				return volume.Name, volume.HostDisk.Path, diskBus, nil
-			default:
-				return "", "", "", fmt.Errorf("OpenVMM PoC root disk must be a containerDisk or filesystem persistentVolumeClaim")
-			}
-		}
+		volumes[volume.Name] = struct {
+			volume v1.Volume
+			index  int
+		}{volume: volume, index: index}
 	}
-	return "", "", "", fmt.Errorf("no volume found for root disk %s", disk.Name)
+
+	resolved := make([]openVMMDisk, 0, len(vmi.Spec.Domain.Devices.Disks))
+	for _, diskDevice := range vmi.Spec.Domain.Devices.Disks {
+		volumeEntry, exists := volumes[diskDevice.Name]
+		if !exists {
+			return nil, fmt.Errorf("no matching volume with name %s found", diskDevice.Name)
+		}
+		volume := volumeEntry.volume
+		bus := v1.DiskBusVirtio
+		device := "disk"
+		readOnly := false
+		dvd := false
+		switch {
+		case diskDevice.Disk != nil:
+			if diskDevice.Disk.Bus != "" {
+				bus = diskDevice.Disk.Bus
+			}
+			readOnly = diskDevice.Disk.ReadOnly
+		case diskDevice.CDRom != nil:
+			device = "cdrom"
+			dvd = true
+			readOnly = true
+			if diskDevice.CDRom.Bus != "" {
+				bus = diskDevice.CDRom.Bus
+			}
+		default:
+			return nil, fmt.Errorf("OpenVMM PoC disk %s must be a disk or cdrom device", diskDevice.Name)
+		}
+		if bus != v1.DiskBusVirtio && bus != v1.DiskBusVMBus {
+			return nil, fmt.Errorf("OpenVMM PoC disk %s bus must be virtio or vmbus", diskDevice.Name)
+		}
+
+		var diskPath string
+		switch {
+		case volume.ContainerDisk != nil:
+			diskPath = l.diskPath(volumeEntry.index)
+		case volume.PersistentVolumeClaim != nil:
+			diskPath = l.filesystemDiskPath(volume.Name)
+		case volume.HostDisk != nil && isPVCBacked(volume.Name, vmi):
+			diskPath = volume.HostDisk.Path
+		case volume.CloudInitNoCloud != nil:
+			diskPath = l.cloudInitIsoPath(cloudinit.DataSourceNoCloud, vmi.Name, vmi.Namespace)
+			readOnly = true
+		case volume.CloudInitConfigDrive != nil:
+			diskPath = l.cloudInitIsoPath(cloudinit.DataSourceConfigDrive, vmi.Name, vmi.Namespace)
+			readOnly = true
+		case volume.Sysprep != nil:
+			diskPath = l.sysprepDiskPath(volume.Name)
+			readOnly = true
+		default:
+			return nil, fmt.Errorf("OpenVMM PoC disk %s has an unsupported volume source", diskDevice.Name)
+		}
+		apiDisk := api.Disk{
+			Device: device,
+			Type:   "file",
+			Source: api.DiskSource{File: diskPath},
+			Target: api.DiskTarget{Bus: bus},
+			Alias:  api.NewUserDefinedAlias(diskDevice.Name),
+		}
+		if readOnly {
+			apiDisk.ReadOnly = &api.ReadOnly{}
+		}
+		resolved = append(resolved, openVMMDisk{disk: apiDisk, bus: bus, path: diskPath, readOnly: readOnly, dvd: dvd})
+	}
+	return resolved, nil
 }
 
 func (l *OpenVMMDomainManager) setupNetwork(vmi *v1.VirtualMachineInstance, domain *api.Domain, options *cmdv1.VirtualMachineOptions) (string, error) {

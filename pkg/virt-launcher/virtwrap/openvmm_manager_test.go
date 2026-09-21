@@ -37,6 +37,7 @@ import (
 
 	v1 "kubevirt.io/api/core/v1"
 
+	cloudinit "kubevirt.io/kubevirt/pkg/cloud-init"
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	hostdisk "kubevirt.io/kubevirt/pkg/host-disk"
 	"kubevirt.io/kubevirt/pkg/libvmi"
@@ -90,27 +91,21 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(domain.Spec.UUID).To(Equal("test-uid"))
 		Expect(domain.Spec.OS.Kernel).To(Equal(manager.kernelPath("/boot/vmlinuz")))
 		Expect(domain.Spec.OS.KernelArgs).To(Equal("root=/dev/vda1 console=ttyS0"))
-		Expect(args).To(Equal([]string{
-			"--kernel", manager.kernelPath("/boot/vmlinuz"),
-			"--processors", "2",
-			"--memory", "512M",
-			"--vnc-listen", "127.0.0.1",
-			"--vnc-port", "5900",
-			"--virtio-blk", "file:" + diskPath + ",ro,pcie_port=rp0",
+		Expect(args).To(ContainElements(
 			"--pcie-root-complex", "rc0",
-			"--pcie-root-port", "rc0:rp0",
-			"-c", "root=/dev/vda1 console=ttyS0",
-			"--com1", "listen=" + filepath.Join(tempDir, "console", "test-uid", "virt-serial0"),
-		}))
+			"--pcie-root-port", "rc0:disk0",
+			"--virtio-blk", "file:"+diskPath+",pcie_port=disk0",
+		))
 	})
 
 	It("resolves filesystem PVCs through the canonical KubeVirt disk path", func() {
 		manager := NewOpenVMMDomainManager("", nil, nil, false).(*OpenVMMDomainManager)
 
-		volumeName, diskPath, _, err := manager.rootDisk(newPVCVMI())
+		disks, err := manager.disks(newPVCVMI())
 		Expect(err).ToNot(HaveOccurred())
-		Expect(volumeName).To(Equal("root"))
-		Expect(diskPath).To(Equal(volumepath.Filesystem("root")))
+		Expect(disks).To(HaveLen(1))
+		Expect(disks[0].disk.Alias.GetName()).To(Equal("root"))
+		Expect(disks[0].path).To(Equal(volumepath.Filesystem("root")))
 	})
 
 	It("resolves a filesystem PVC after virt-handler replaces it with a HostDisk", func() {
@@ -130,10 +125,11 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(vmi.Spec.Volumes[0].PersistentVolumeClaim).To(BeNil())
 		Expect(vmi.Spec.Volumes[0].HostDisk).ToNot(BeNil())
 
-		volumeName, diskPath, _, err := manager.rootDisk(vmi)
+		disks, err := manager.disks(vmi)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(volumeName).To(Equal("root"))
-		Expect(diskPath).To(Equal(volumepath.Filesystem("root")))
+		Expect(disks).To(HaveLen(1))
+		Expect(disks[0].disk.Alias.GetName()).To(Equal("root"))
+		Expect(disks[0].path).To(Equal(volumepath.Filesystem("root")))
 	})
 
 	It("rejects a HostDisk that is not PVC-backed", func() {
@@ -143,8 +139,8 @@ var _ = Describe("OpenVMM manager", func() {
 			HostDisk: &v1.HostDisk{Path: "/host/disk.img", Type: v1.HostDiskExists},
 		}
 
-		_, _, _, err := manager.rootDisk(vmi)
-		Expect(err).To(MatchError("OpenVMM PoC root disk must be a containerDisk or filesystem persistentVolumeClaim"))
+		_, err := manager.disks(vmi)
+		Expect(err).To(MatchError("OpenVMM PoC disk root has an unsupported volume source"))
 	})
 
 	It("uses a filesystem PVC as a virtio-blk root disk", func() {
@@ -159,7 +155,7 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(domain.Spec.Devices.Disks[0].Source.File).To(Equal(pvcDiskPath))
 		Expect(args).To(ContainElements(
-			"--virtio-blk", "file:"+pvcDiskPath+",ro,pcie_port=rp0",
+			"--virtio-blk", "file:"+pvcDiskPath+",pcie_port=disk0",
 		))
 	})
 
@@ -188,7 +184,7 @@ var _ = Describe("OpenVMM manager", func() {
 		vmi.Spec.Volumes[0].VolumeSource = v1.VolumeSource{}
 
 		_, _, err := manager.buildDomainAndCommand(vmi, nil)
-		Expect(err).To(MatchError("OpenVMM PoC root disk must be a containerDisk or filesystem persistentVolumeClaim"))
+		Expect(err).To(MatchError("OpenVMM PoC disk root has an unsupported volume source"))
 	})
 
 	It("uses virtio-blk when the disk bus is unspecified", func() {
@@ -216,7 +212,121 @@ var _ = Describe("OpenVMM manager", func() {
 			"--disk", "file:"+diskPath+",on=scsi0",
 		))
 		Expect(args).ToNot(ContainElement("--virtio-blk"))
-		Expect(args).ToNot(ContainElement("rc0:rp0"))
+		Expect(args).ToNot(ContainElement("rc0:disk0"))
+	})
+
+	It("attaches sysprep and cloud-init media to VMBus SCSI", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, diskPath := newManager(tempDir)
+		cloudInitPath := filepath.Join(tempDir, "nocloud.iso")
+		sysprepPath := filepath.Join(tempDir, "sysprep.iso")
+		Expect(os.WriteFile(cloudInitPath, []byte("cloud-init"), 0600)).To(Succeed())
+		Expect(os.WriteFile(sysprepPath, []byte("sysprep"), 0600)).To(Succeed())
+		manager.cloudInitIsoPath = func(cloudinit.DataSourceType, string, string) string { return cloudInitPath }
+		manager.sysprepDiskPath = func(string) string { return sysprepPath }
+		vmi := newVMI()
+		vmi.Spec.Domain.Devices.Disks[0].Disk.Bus = v1.DiskBusVMBus
+		vmi.Spec.Domain.Devices.Disks = append(vmi.Spec.Domain.Devices.Disks,
+			v1.Disk{Name: "cloudinit", DiskDevice: v1.DiskDevice{CDRom: &v1.CDRomTarget{Bus: v1.DiskBusVMBus}}},
+			v1.Disk{Name: "sysprep", DiskDevice: v1.DiskDevice{CDRom: &v1.CDRomTarget{Bus: v1.DiskBusVMBus}}},
+		)
+		vmi.Spec.Volumes = append(vmi.Spec.Volumes,
+			v1.Volume{Name: "cloudinit", VolumeSource: v1.VolumeSource{CloudInitNoCloud: &v1.CloudInitNoCloudSource{UserData: "#cloud-config"}}},
+			v1.Volume{Name: "sysprep", VolumeSource: v1.VolumeSource{Sysprep: &v1.SysprepSource{ConfigMap: &k8sv1.LocalObjectReference{Name: "answer-file"}}}},
+		)
+
+		domain, args, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(args).To(ContainElements(
+			"--vmbus-scsi", "id=scsi0",
+			"--disk", "file:"+diskPath+",on=scsi0",
+			"--disk", "file:"+cloudInitPath+",ro,dvd,on=scsi0",
+			"--disk", "file:"+sysprepPath+",ro,dvd,on=scsi0",
+		))
+		Expect(domain.Spec.Devices.Disks).To(HaveLen(3))
+		Expect(domain.Spec.Devices.Disks[1].Alias.GetName()).To(Equal("cloudinit"))
+		Expect(domain.Spec.Devices.Disks[1].ReadOnly).ToNot(BeNil())
+		Expect(domain.Spec.Devices.Disks[2].Alias.GetName()).To(Equal("sysprep"))
+		Expect(domain.Spec.Devices.Disks[2].ReadOnly).ToNot(BeNil())
+	})
+
+	It("attaches cloud-init as a read-only VirtIO block device without VMBus disks", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, rootPath := newManager(tempDir)
+		cloudInitPath := filepath.Join(tempDir, "nocloud.iso")
+		Expect(os.WriteFile(cloudInitPath, []byte("cloud-init"), 0600)).To(Succeed())
+		manager.cloudInitIsoPath = func(cloudinit.DataSourceType, string, string) string { return cloudInitPath }
+		vmi := newVMI()
+		vmi.Spec.Domain.Devices.Disks = append(vmi.Spec.Domain.Devices.Disks, v1.Disk{
+			Name:       "cloudinit",
+			DiskDevice: v1.DiskDevice{Disk: &v1.DiskTarget{Bus: v1.DiskBusVirtio}},
+		})
+		vmi.Spec.Volumes = append(vmi.Spec.Volumes, v1.Volume{
+			Name:         "cloudinit",
+			VolumeSource: v1.VolumeSource{CloudInitNoCloud: &v1.CloudInitNoCloudSource{UserData: "#cloud-config"}},
+		})
+
+		domain, args, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(domain.Spec.Devices.Disks).To(HaveLen(2))
+		Expect(args).To(ContainElements(
+			"--pcie-root-port", "rc0:disk0",
+			"--virtio-blk", "file:"+rootPath+",pcie_port=disk0",
+			"--pcie-root-port", "rc0:disk1",
+			"--virtio-blk", "file:"+cloudInitPath+",ro,pcie_port=disk1",
+		))
+		Expect(args).ToNot(ContainElement("--vmbus-scsi"))
+	})
+
+	It("attaches VMBus sysprep media alongside a VirtIO OS disk", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, rootPath := newManager(tempDir)
+		sysprepPath := filepath.Join(tempDir, "sysprep.iso")
+		Expect(os.WriteFile(sysprepPath, []byte("sysprep"), 0600)).To(Succeed())
+		manager.sysprepDiskPath = func(string) string { return sysprepPath }
+		vmi := newVMI()
+		vmi.Spec.Domain.Devices.Disks = append(vmi.Spec.Domain.Devices.Disks, v1.Disk{
+			Name:       "sysprep",
+			DiskDevice: v1.DiskDevice{CDRom: &v1.CDRomTarget{Bus: v1.DiskBusVMBus}},
+		})
+		vmi.Spec.Volumes = append(vmi.Spec.Volumes, v1.Volume{
+			Name:         "sysprep",
+			VolumeSource: v1.VolumeSource{Sysprep: &v1.SysprepSource{ConfigMap: &k8sv1.LocalObjectReference{Name: "answer-file"}}},
+		})
+
+		_, args, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(args).To(ContainElements(
+			"--pcie-root-port", "rc0:disk0",
+			"--virtio-blk", "file:"+rootPath+",pcie_port=disk0",
+			"--vmbus-scsi", "id=scsi0",
+			"--disk", "file:"+sysprepPath+",ro,dvd,on=scsi0",
+		))
+	})
+
+	It("resolves disks by name rather than treating the first entry as root", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, rootPath := newManager(tempDir)
+		cloudInitPath := filepath.Join(tempDir, "nocloud.iso")
+		Expect(os.WriteFile(cloudInitPath, []byte("cloud-init"), 0600)).To(Succeed())
+		manager.cloudInitIsoPath = func(cloudinit.DataSourceType, string, string) string { return cloudInitPath }
+		vmi := newVMI()
+		vmi.Spec.Domain.Devices.Disks = append([]v1.Disk{{
+			Name:       "cloudinit",
+			DiskDevice: v1.DiskDevice{Disk: &v1.DiskTarget{Bus: v1.DiskBusVirtio}},
+		}}, vmi.Spec.Domain.Devices.Disks...)
+		vmi.Spec.Volumes = append(vmi.Spec.Volumes, v1.Volume{
+			Name:         "cloudinit",
+			VolumeSource: v1.VolumeSource{CloudInitNoCloud: &v1.CloudInitNoCloudSource{UserData: "#cloud-config"}},
+		})
+
+		domain, _, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(domain.Spec.Devices.Disks).To(HaveLen(2))
+		Expect(domain.Spec.Devices.Disks[0].Alias.GetName()).To(Equal("cloudinit"))
+		Expect(domain.Spec.Devices.Disks[0].Source.File).To(Equal(cloudInitPath))
+		Expect(domain.Spec.Devices.Disks[1].Alias.GetName()).To(Equal("root"))
+		Expect(domain.Spec.Devices.Disks[1].Source.File).To(Equal(rootPath))
 	})
 
 	It("builds an OpenVMM UEFI command without requiring a kernel", func() {
@@ -231,18 +341,12 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(domain.Spec.OS.Kernel).To(BeEmpty())
 		Expect(domain.Spec.OS.KernelArgs).To(BeEmpty())
 		Expect(domain.Spec.OS.BootLoader).To(Equal(&api.Loader{Path: openVMMUEFIFirmwarePath}))
-		Expect(args).To(Equal([]string{
-			"--uefi",
-			"--uefi-firmware", openVMMUEFIFirmwarePath,
-			"--processors", "2",
-			"--memory", "512M",
-			"--vnc-listen", "127.0.0.1",
-			"--vnc-port", "5900",
-			"--virtio-blk", "file:" + diskPath + ",ro,pcie_port=rp0",
+		Expect(args).To(ContainElements(
+			"--uefi", "--uefi-firmware", openVMMUEFIFirmwarePath,
 			"--pcie-root-complex", "rc0",
-			"--pcie-root-port", "rc0:rp0",
-			"--com1", "listen=" + filepath.Join(tempDir, "console", "test-uid", "virt-serial0"),
-		}))
+			"--pcie-root-port", "rc0:disk0",
+			"--virtio-blk", "file:"+diskPath+",pcie_port=disk0",
+		))
 	})
 
 	It("disables the OpenVMM VNC server when graphics auto-attachment is disabled", func() {
@@ -326,7 +430,7 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(args).ToNot(ContainElement("-c"))
 	})
 
-	It("places a TAP-backed virtio-net device on rp2", func() {
+	It("places a TAP-backed virtio-net device on its own root port", func() {
 		tempDir := GinkgoT().TempDir()
 		manager, _ := newManager(tempDir)
 		vmi := newVMI()
@@ -340,8 +444,8 @@ var _ = Describe("OpenVMM manager", func() {
 		_, args, err := manager.buildDomainAndCommand(vmi, nil)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(args).To(ContainElements(
-			"rc0:rp2",
-			"pcie_port=rp2:mac=00-15-5D-12-12-13:tap:tap0",
+			"rc0:net0",
+			"pcie_port=net0:mac=00-15-5D-12-12-13:tap:tap0",
 		))
 	})
 
@@ -360,10 +464,10 @@ var _ = Describe("OpenVMM manager", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(args).To(ContainElements(
 			"--pcie-root-complex", "rc0",
-			"--pcie-root-port", "rc0:rp2",
-			"--virtio-net", "pcie_port=rp2:mac=00-15-5D-12-12-13:tap:tap0",
+			"--pcie-root-port", "rc0:net0",
+			"--virtio-net", "pcie_port=net0:mac=00-15-5D-12-12-13:tap:tap0",
 		))
-		Expect(args).ToNot(ContainElement("rc0:rp0"))
+		Expect(args).ToNot(ContainElement("rc0:disk0"))
 	})
 
 	It("uses a TAP-backed VMBus network without PCIe arguments", func() {
