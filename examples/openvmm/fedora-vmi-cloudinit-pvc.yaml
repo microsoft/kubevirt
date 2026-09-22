@@ -1,0 +1,44 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstance
+metadata:
+  labels:
+    special: vmi-fedora
+  name: vmi-fedora
+spec:
+  domain:
+    firmware:
+      kernelBoot:
+        container:
+          image: docker.io/harshitg/kernel:test
+          kernelPath: /boot/vmlinux.bin
+        kernelArgs: "root=/dev/vda1 console=ttyS0 cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
+    devices:
+      autoattachGraphicsDevice: false
+      disks:
+      - disk:
+          bus: virtio
+        name: rootdisk
+      - disk:
+          bus: virtio
+        name: cloudinitdisk
+      interfaces:
+      - masquerade: {}
+        name: default
+      rng: {}
+    memory:
+      guest: 1024M
+    resources: {}
+  networks:
+  - name: default
+    pod: {}
+  terminationGracePeriodSeconds: 0
+  volumes:
+  - persistentVolumeClaim:
+      claimName: local-ubuntu-raw-pvc
+    name: rootdisk
+  - cloudInitNoCloud:
+      userData: |-
+        #cloud-config
+        password: GPBurdell123
+        chpasswd: { expire: False }
+    name: cloudinitdisk

@@ -1,0 +1,36 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstance
+metadata:
+  name: cloudbuild00
+spec:
+  architecture: amd64
+  domain:
+    cpu:
+      cores: 4
+      model: host-model
+    devices:
+      disks:
+      - disk:
+          bus: vmbus
+        name: rootdisk
+      interfaces:
+      - bridge: {}
+        model: vmbus
+        name: default
+    features:
+      acpi:
+        enabled: true
+    firmware:
+      bootloader:
+        efi:
+          secureBoot: false
+    memory:
+      guest: 4Gi
+  evictionStrategy: None
+  networks:
+  - name: default
+    pod: {}
+  volumes:
+  - name: rootdisk
+    persistentVolumeClaim:
+      claimName: local-vhd-pvc

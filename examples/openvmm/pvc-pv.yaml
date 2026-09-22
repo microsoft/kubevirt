@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-vhd-pv
+spec:
+  capacity:
+    storage: 150Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local
+  hostPath:
+    path: /disks     # Path in KinD node containing VHD
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - kind-1.35-control-plane
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-vhd-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 150Gi
+  storageClassName: local
+  volumeName: local-vhd-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-ubuntu-raw-pv
+spec:
+  capacity:
+    storage: 150Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local
+  hostPath:
+    path: /ubuntu-disks     # Path in KinD node containing VHD
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - kind-1.35-control-plane
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-ubuntu-raw-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 150Gi
+  storageClassName: local
+  volumeName: local-ubuntu-raw-pv
+

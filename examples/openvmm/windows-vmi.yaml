@@ -1,0 +1,33 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstance
+metadata:
+  labels:
+    special: vmi-windows
+  name: vmi-windows
+spec:
+  domain:
+    firmware:
+      bootloader:
+        efi:
+          secureBoot: false
+    devices:
+      disks:
+      - disk:
+          bus: vmbus  # to enable vmbus transport
+        name: vhdrootdisk
+      interfaces:
+      - masquerade: {}
+        name: default
+        model: vmbus  # to enable vmbus transport
+      rng: {}
+    memory:
+      guest: 1024M
+    resources: {}
+  networks:
+  - name: default
+    pod: {}
+  terminationGracePeriodSeconds: 0
+  volumes:
+  - persistentVolumeClaim:
+      claimName: local-vhd-pvc    # refer the above PVC in [6.2]
+    name: vhdrootdisk

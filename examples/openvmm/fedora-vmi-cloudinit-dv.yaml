@@ -1,0 +1,61 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  labels:
+    special: vmi-fedora
+  name: vmi-fedora
+spec:  
+  dataVolumeTemplates:
+  - metadata:
+      name: fedora-raw-dv
+    spec:
+      pvc:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+        storageClassName: local
+      source:
+        registry:
+          url: docker://docker.io/harshitg/fedora-with-test-tooling-container-disk:raw
+  runStrategy: Always
+  template:
+    spec:
+      domain:
+        firmware:
+          kernelBoot:
+            container:
+              image: docker.io/harshitg/kernel:test
+              kernelPath: /boot/vmlinux.bin
+            kernelArgs: "root=/dev/vda1 console=ttyS0 cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
+        devices:
+          autoattachGraphicsDevice: false
+          disks:
+          - disk:
+              bus: virtio
+            name: rootdisk
+          - disk:
+              bus: virtio
+            name: cloudinitdisk
+          interfaces:
+          - masquerade: {}
+            name: default
+          rng: {}
+        memory:
+          guest: 1024M
+        resources: {}
+      networks:
+      - name: default
+        pod: {}
+      terminationGracePeriodSeconds: 0
+      volumes:
+      - dataVolume:
+          name: fedora-raw-dv
+        name: rootdisk
+      - cloudInitNoCloud:
+          userData: |-
+            #cloud-config
+            password: GPBurdell123
+            chpasswd: { expire: False }
+        name: cloudinitdisk
