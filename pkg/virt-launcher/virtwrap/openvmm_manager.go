@@ -59,10 +59,12 @@ import (
 )
 
 const (
-	openVMMBinaryPath       = "/openvmm/openvmm"
-	openVMMUEFIFirmwarePath = "/openvmm/MSVM.fd"
-	openVMMConsoleDir       = "/var/run/kubevirt-private"
-	openVMMStderrFile       = "openvmm.stderr.log"
+	openVMMBinaryPath              = "/openvmm/openvmm"
+	openVMMUEFIFirmwarePath        = "/openvmm/MSVM.fd"
+	openVMMX64UEFITemplatePath     = "/openvmm/uefi-templates/x64.json"
+	openVMMAArch64UEFITemplatePath = "/openvmm/uefi-templates/aarch64.json"
+	openVMMConsoleDir              = "/var/run/kubevirt-private"
+	openVMMStderrFile              = "openvmm.stderr.log"
 	// This is the address on which OpenVMM process's VNC server listens on
 	openVMMVNCListenAddress = "0.0.0.0"
 	// This is the address to which the VNC proxy will connect to forward VNC connections to the OpenVMM process
@@ -342,6 +344,19 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 	args := []string{}
 	if uefiBoot {
 		args = append(args, "--uefi", "--uefi-firmware", openVMMUEFIFirmwarePath)
+		secureBoot := vmi.Spec.Domain.Firmware.Bootloader.EFI.SecureBoot
+		if secureBoot == nil || *secureBoot {
+			var templatePath string
+			switch vmi.Spec.Architecture {
+			case "amd64":
+				templatePath = openVMMX64UEFITemplatePath
+			case "arm64":
+				templatePath = openVMMAArch64UEFITemplatePath
+			default:
+				return nil, nil, fmt.Errorf("OpenVMM secure boot does not support architecture %q", vmi.Spec.Architecture)
+			}
+			args = append(args, "--secure-boot", "--custom-uefi-json", templatePath)
+		}
 	} else {
 		args = append(args, "--kernel", kernelPath)
 	}

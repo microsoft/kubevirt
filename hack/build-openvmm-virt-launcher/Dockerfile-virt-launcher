@@ -86,6 +86,7 @@ RUN mkdir -p /openvmm
 COPY hack/build-openvmm-virt-launcher/openvmm/openvmm /openvmm/openvmm
 RUN chmod 0755 /openvmm/openvmm
 COPY hack/build-openvmm-virt-launcher/openvmm/MSVM.fd /openvmm/MSVM.fd
+COPY hack/build-openvmm-virt-launcher/openvmm/uefi-templates /openvmm/uefi-templates
 
 RUN ls /usr/bin/virt-launcher
 

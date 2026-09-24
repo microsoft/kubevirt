@@ -336,7 +336,8 @@ var _ = Describe("OpenVMM manager", func() {
 		manager, diskPath := newManager(tempDir)
 		vmi := newVMI()
 		vmi.Spec.Domain.Firmware.KernelBoot = nil
-		vmi.Spec.Domain.Firmware.Bootloader = &v1.Bootloader{EFI: &v1.EFI{}}
+		secureBoot := false
+		vmi.Spec.Domain.Firmware.Bootloader = &v1.Bootloader{EFI: &v1.EFI{SecureBoot: &secureBoot}}
 
 		domain, args, err := manager.buildDomainAndCommand(vmi, nil)
 		Expect(err).ToNot(HaveOccurred())
@@ -349,6 +350,40 @@ var _ = Describe("OpenVMM manager", func() {
 			"--pcie-root-port", "rc0:disk0",
 			"--virtio-blk", "file:"+diskPath+",ro,pcie_port=disk0",
 		))
+		Expect(args).ToNot(ContainElement("--secure-boot"))
+		Expect(args).ToNot(ContainElement("--custom-uefi-json"))
+	})
+
+	DescribeTable("enables secure boot with the architecture-specific UEFI template",
+		func(architecture, templatePath string) {
+			manager, _ := newManager(GinkgoT().TempDir())
+			vmi := newVMI()
+			vmi.Spec.Architecture = architecture
+			vmi.Spec.Domain.Firmware.KernelBoot = nil
+			secureBoot := true
+			vmi.Spec.Domain.Firmware.Bootloader = &v1.Bootloader{EFI: &v1.EFI{SecureBoot: &secureBoot}}
+
+			_, args, err := manager.buildDomainAndCommand(vmi, nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(args).To(ContainElements(
+				"--secure-boot",
+				"--custom-uefi-json", templatePath,
+			))
+		},
+		Entry("for amd64", "amd64", openVMMX64UEFITemplatePath),
+		Entry("for arm64", "arm64", openVMMAArch64UEFITemplatePath),
+	)
+
+	It("rejects secure boot for an unsupported architecture", func() {
+		manager, _ := newManager(GinkgoT().TempDir())
+		vmi := newVMI()
+		vmi.Spec.Architecture = "s390x"
+		vmi.Spec.Domain.Firmware.KernelBoot = nil
+		secureBoot := true
+		vmi.Spec.Domain.Firmware.Bootloader = &v1.Bootloader{EFI: &v1.EFI{SecureBoot: &secureBoot}}
+
+		_, _, err := manager.buildDomainAndCommand(vmi, nil)
+		Expect(err).To(MatchError(`OpenVMM secure boot does not support architecture "s390x"`))
 	})
 
 	It("disables the OpenVMM VNC server when graphics auto-attachment is disabled", func() {

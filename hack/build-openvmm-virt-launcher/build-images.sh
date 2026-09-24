@@ -34,6 +34,10 @@ set -e
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
+# Create composite UEFI Template JSONs from OpenVMM source code
+mkdir -p $SCRIPT_DIR/openvmm/uefi-templates
+$SCRIPT_DIR/generate-uefi-templates.sh $SCRIPT_DIR/openvmm/uefi-templates
+
 DOCKER_BUILDKIT=1 docker build -t afo-builder -f $SCRIPT_DIR/Dockerfile-builder $SCRIPT_DIR
 
 DOCKER_BUILDKIT=1 docker --debug build \
