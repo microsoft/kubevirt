@@ -83,8 +83,8 @@ RUN cp /usr/share/kube-virt/virt-launcher/nsswitch.conf /etc/
 
 # Copy OpenVMM executable and UEFI executable from the host
 RUN mkdir -p /openvmm
-COPY hack/build-openvmm-virt-launcher/openvmm/openvmm /openvmm/openvmm
-RUN chmod 0755 /openvmm/openvmm
+COPY hack/build-openvmm-virt-launcher/openvmm/openvmm /usr/bin/openvmm
+RUN chmod 0755 /usr/bin/openvmm
 COPY hack/build-openvmm-virt-launcher/openvmm/MSVM.fd /openvmm/MSVM.fd
 COPY hack/build-openvmm-virt-launcher/openvmm/uefi-templates /openvmm/uefi-templates
 

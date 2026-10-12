@@ -59,7 +59,7 @@ import (
 )
 
 const (
-	openVMMBinaryPath              = "/openvmm/openvmm"
+	openVMMBinaryPath              = "/usr/bin/openvmm"
 	openVMMUEFIFirmwarePath        = "/openvmm/MSVM.fd"
 	openVMMX64UEFITemplatePath     = "/openvmm/uefi-templates/x64.json"
 	openVMMAArch64UEFITemplatePath = "/openvmm/uefi-templates/aarch64.json"
