@@ -1,0 +1,54 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstance
+metadata:
+  labels:
+    special: vmi-fedora
+  name: vmi-fedora
+spec:
+  domain:
+    firmware:
+      bootloader:
+        efi:
+          secureBoot: false
+    #features:
+    #  smm: {}
+    devices:
+      disks:
+      - disk:
+          bus: virtio
+        name: rootdisk
+      - disk:
+          bus: virtio
+        name: cloudinitdisk
+      interfaces:
+      - masquerade: {}
+        name: default
+      rng: {}
+    memory:
+      guest: 1024M
+    resources: {}
+  networks:
+  - name: default
+    pod: {}
+  terminationGracePeriodSeconds: 0
+  volumes:
+  - persistentVolumeClaim:
+      claimName: local-ubuntu-raw-pvc
+    name: rootdisk
+  - cloudInitNoCloud:
+      userData: |-
+        #cloud-config
+        users:
+          - name: testuser
+            gecos: Test User
+            groups: [sudo, wheel]
+            shell: /bin/bash
+            sudo: ALL=(ALL) NOPASSWD:ALL
+            password: p@ssw0rd!
+            lock_passwd: false
+        chpasswd:
+          list: |
+            testuser:p@ssw0rd!
+          expire: false
+        ssh_pwauth: true
+    name: cloudinitdisk
