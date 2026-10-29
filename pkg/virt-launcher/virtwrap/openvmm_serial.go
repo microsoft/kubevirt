@@ -37,6 +37,9 @@ const (
 	openVMMSerialWriteTimeout   = time.Second
 	openVMMSerialBufferSize     = 32 * 1024
 	openVMMSerialQueueSize      = 16
+	openVMMSerialRetryMinDelay  = 10 * time.Millisecond
+	openVMMSerialRetryMaxDelay  = time.Second
+	openVMMSerialRetryResetTime = 5 * time.Second
 )
 
 type openVMMSerialLog interface {
@@ -71,12 +74,13 @@ type openVMMSerialBroker struct {
 	done     chan struct{}
 	log      openVMMSerialLog
 	report   func(error)
+	recovery func()
 }
 
 // Dialing starts before the VM starts, but does not prove that OpenVMM has
 // accepted the connection. Output before acceptance can still be lost.
-func newOpenVMMSerialBroker(directory string, capture bool, setOwnership func(string) error, report func(error)) (*openVMMSerialBroker, error) {
-	b := &openVMMSerialBroker{done: make(chan struct{}), report: report}
+func newOpenVMMSerialBroker(directory string, capture bool, setOwnership func(string) error, report func(error), recovery func()) (*openVMMSerialBroker, error) {
+	b := &openVMMSerialBroker{done: make(chan struct{}), report: report, recovery: recovery}
 	if capture {
 		writer, err := newOpenVMMSerialLog(filepath.Join(directory, "virt-serial0-log"), setOwnership)
 		if err != nil {
@@ -103,36 +107,88 @@ func newOpenVMMSerialBroker(directory string, capture bool, setOwnership func(st
 func (b *openVMMSerialBroker) run(ctx context.Context, address string) {
 	defer close(b.done)
 	defer b.finish()
-	warning := time.NewTimer(openVMMSerialConnectWarning)
-	defer warning.Stop()
-	ticker := time.NewTicker(10 * time.Millisecond)
-	defer ticker.Stop()
-	var conn net.Conn
-	var err error
+	connectedBefore := false
+	retryDelay := openVMMSerialRetryMinDelay
 	for {
-		conn, err = (&net.Dialer{Timeout: 250 * time.Millisecond}).DialContext(ctx, "unix", address)
-		if err == nil {
-			break
-		}
-		select {
-		case <-ctx.Done():
+		conn, err := b.connect(ctx, address, connectedBefore, &retryDelay)
+		if err != nil {
 			return
-		case <-warning.C:
+		}
+		b.mutex.Lock()
+		if b.stopping {
+			b.mutex.Unlock()
+			_ = conn.Close()
+			return
+		}
+		b.upstream = conn
+		if !connectedBefore {
+			b.workers.Add(1)
+		}
+		b.mutex.Unlock()
+		if !connectedBefore {
+			go b.acceptClients()
+		} else if b.recovery != nil {
+			b.recovery()
+		}
+		connectedBefore = true
+		connectedAt := time.Now()
+		readErr := b.readGuest(conn)
+
+		b.mutex.Lock()
+		stopping := b.stopping
+		b.upstream = nil
+		client := b.client
+		b.client = nil
+		b.mutex.Unlock()
+		if client != nil {
+			client.close()
+		}
+		_ = conn.Close()
+		if stopping {
+			if !errors.Is(readErr, io.EOF) {
+				b.report(fmt.Errorf("OpenVMM serial final drain incomplete: %w", readErr))
+			}
+			return
+		}
+		b.report(fmt.Errorf("OpenVMM serial transport lost; reconnecting, but guest output during the gap cannot be recovered: %w", readErr))
+		// Keep increasing the delay across immediately flapping connections.
+		// Only a sustained connection resets the recovery retry budget.
+		if time.Since(connectedAt) >= openVMMSerialRetryResetTime {
+			retryDelay = openVMMSerialRetryMinDelay
+		}
+		if !waitOpenVMMSerialRetry(ctx, retryDelay) {
+			return
+		}
+		retryDelay = nextOpenVMMSerialRetryDelay(retryDelay)
+	}
+}
+
+func (b *openVMMSerialBroker) connect(ctx context.Context, address string, recovering bool, retryDelay *time.Duration) (net.Conn, error) {
+	warnAt := time.Now().Add(openVMMSerialConnectWarning)
+	for {
+		conn, err := (&net.Dialer{Timeout: 250 * time.Millisecond}).DialContext(ctx, "unix", address)
+		if err == nil {
+			return conn, nil
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if !warnAt.IsZero() && time.Now().After(warnAt) {
 			b.report(fmt.Errorf("OpenVMM serial connection unavailable after %s; still retrying: %w", openVMMSerialConnectWarning, err))
-		case <-ticker.C:
+			warnAt = time.Time{}
+		}
+		delay := openVMMSerialRetryMinDelay
+		if recovering {
+			delay = *retryDelay
+			*retryDelay = nextOpenVMMSerialRetryDelay(delay)
+		}
+		if !waitOpenVMMSerialRetry(ctx, delay) {
+			return nil, ctx.Err()
 		}
 	}
-	b.mutex.Lock()
-	if b.stopping {
-		b.mutex.Unlock()
-		_ = conn.Close()
-		return
-	}
-	b.upstream = conn
-	b.workers.Add(1)
-	b.mutex.Unlock()
-	go b.acceptClients()
+}
 
+func (b *openVMMSerialBroker) readGuest(conn net.Conn) error {
 	buffer := make([]byte, openVMMSerialBufferSize)
 	for {
 		n, readErr := conn.Read(buffer)
@@ -153,16 +209,23 @@ func (b *openVMMSerialBroker) run(ctx context.Context, address string) {
 			b.deliver(buffer[:n])
 		}
 		if readErr != nil {
-			b.mutex.Lock()
-			stopping := b.stopping
-			b.mutex.Unlock()
-			if !stopping {
-				b.report(fmt.Errorf("OpenVMM serial transport ended; detached capture and console unavailable: %w", readErr))
-			} else if !errors.Is(readErr, io.EOF) {
-				b.report(fmt.Errorf("OpenVMM serial final drain incomplete: %w", readErr))
-			}
-			return
+			return readErr
 		}
+	}
+}
+
+func nextOpenVMMSerialRetryDelay(delay time.Duration) time.Duration {
+	return min(2*delay, openVMMSerialRetryMaxDelay)
+}
+
+func waitOpenVMMSerialRetry(ctx context.Context, delay time.Duration) bool {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
 	}
 }
 
@@ -178,10 +241,14 @@ func (b *openVMMSerialBroker) acceptClients() {
 		}
 		client := &openVMMSerialClient{conn: conn, tx: make(chan []byte, openVMMSerialQueueSize), done: make(chan struct{})}
 		b.mutex.Lock()
-		if b.stopping {
+		stopping := b.stopping
+		if stopping || b.upstream == nil {
 			b.mutex.Unlock()
 			client.close()
-			return
+			if stopping {
+				return
+			}
+			continue
 		}
 		if b.client != nil {
 			b.client.close()
@@ -241,6 +308,10 @@ func (b *openVMMSerialBroker) readClient(client *openVMMSerialClient) {
 			b.input.Unlock()
 			if writeErr != nil {
 				b.report(fmt.Errorf("forward OpenVMM console input: %w", writeErr))
+				var timeout net.Error
+				if !errors.As(writeErr, &timeout) || !timeout.Timeout() {
+					_ = upstream.Close()
+				}
 				return
 			}
 		}

@@ -29,6 +29,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -78,6 +79,11 @@ func serialTestWait(t *testing.T, condition func() bool) {
 
 func serialTestBroker(t *testing.T, capture bool) (*openVMMSerialBroker, net.Conn, string, *serialTestReports) {
 	t.Helper()
+	return serialTestBrokerWithRecovery(t, capture, nil)
+}
+
+func serialTestBrokerWithRecovery(t *testing.T, capture bool, recovery func()) (*openVMMSerialBroker, net.Conn, string, *serialTestReports) {
+	t.Helper()
 	directory := serialTestDirectory(t)
 	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: filepath.Join(directory, openVMMSerialSocket), Net: "unix"})
 	if err != nil {
@@ -88,7 +94,7 @@ func serialTestBroker(t *testing.T, capture bool) (*openVMMSerialBroker, net.Con
 		t.Fatal(err)
 	}
 	reports := &serialTestReports{}
-	broker, err := newOpenVMMSerialBroker(directory, capture, func(string) error { return nil }, reports.add)
+	broker, err := newOpenVMMSerialBroker(directory, capture, func(string) error { return nil }, reports.add, recovery)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,24 +324,209 @@ func TestOpenVMMSerialDrainDeadline(t *testing.T) {
 	}
 }
 
-func TestOpenVMMSerialTransportFailure(t *testing.T) {
+func TestOpenVMMSerialTransportFailureIsReportedAndRetried(t *testing.T) {
 	broker, backend, _, reports := serialTestBroker(t, true)
 	if err := backend.Close(); err != nil {
 		t.Fatal(err)
 	}
+	serialTestWait(t, func() bool { return reports.contains("reconnecting") })
 	select {
 	case <-broker.done:
-	case <-time.After(time.Second):
-		t.Fatal("transport failure did not clean up workers")
+		t.Fatal("transport failure stopped lifetime recovery")
+	default:
 	}
-	if !reports.contains("serial transport ended") {
-		t.Fatal("transport failure was not reported")
+	broker.Stop()
+	if !reports.contains("cannot be recovered") {
+		t.Fatal("unrecoverable output gap was not reported")
 	}
+}
+
+func serialTestRecoveryListener(t *testing.T, directory string) *net.UnixListener {
+	t.Helper()
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: filepath.Join(directory, openVMMSerialSocket), Net: "unix"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	if err := listener.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	return listener
+}
+
+func TestOpenVMMSerialRecoversPrivateConnection(t *testing.T) {
+	for _, capture := range []bool{true, false} {
+		t.Run(strconv.FormatBool(capture), func(t *testing.T) {
+			var recoveries atomic.Int32
+			broker, backend, directory, reports := serialTestBrokerWithRecovery(t, capture, func() { recoveries.Add(1) })
+			first := []byte("COMPLETE RunId=before-gap Result=SUCCESS\n")
+			serialTestWrite(t, backend, first)
+			if capture {
+				serialTestLog(t, directory, first)
+			}
+			oldClient := serialTestAttach(t, broker, directory)
+			listener := serialTestRecoveryListener(t, directory)
+			if err := backend.Close(); err != nil {
+				t.Fatal(err)
+			}
+			serialTestWait(t, func() bool { return reports.contains("reconnecting") })
+			if _, err := io.ReadAll(oldClient); err != nil {
+				t.Fatalf("stale console survived upstream loss: %v", err)
+			}
+			reconnected, err := listener.Accept()
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = reconnected.Close() })
+			serialTestWait(t, func() bool { return recoveries.Load() == 1 })
+			client := serialTestAttach(t, broker, directory)
+			second := []byte("COMPLETE RunId=after-gap Result=SUCCESS\n")
+			serialTestWrite(t, reconnected, second)
+			serialTestRead(t, client, second)
+			serialTestWrite(t, client, []byte("new input\n"))
+			serialTestRead(t, reconnected, []byte("new input\n"))
+			if capture {
+				serialTestLog(t, directory, append(first, second...))
+			} else if _, err := os.Stat(filepath.Join(directory, "virt-serial0-log")); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("reconnect changed disabled logging policy: %v", err)
+			}
+			if !reports.contains("cannot be recovered") {
+				t.Fatal("transport gap was not explicitly reported")
+			}
+			stopped := make(chan struct{})
+			go func() {
+				broker.Stop()
+				close(stopped)
+			}()
+			serialTestWait(t, func() bool {
+				broker.mutex.Lock()
+				defer broker.mutex.Unlock()
+				return broker.stopping
+			})
+			final := []byte("COMPLETE RunId=reconnected-shutdown Result=SUCCESS\n")
+			serialTestWrite(t, reconnected, final)
+			if err := reconnected.Close(); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case <-stopped:
+			case <-time.After(3 * time.Second):
+				t.Fatal("shutdown after recovery did not drain and join")
+			}
+			if capture {
+				serialTestLog(t, directory, append(append(first, second...), final...))
+			}
+			if recoveries.Load() != 1 || reports.contains("final drain incomplete") {
+				t.Fatal("shutdown restarted recovery or lost its final output drain")
+			}
+		})
+	}
+}
+
+func TestOpenVMMSerialRecoveryRejectsConsolesAndCancelsOnStop(t *testing.T) {
+	broker, backend, directory, reports := serialTestBroker(t, true)
+	if err := backend.Close(); err != nil {
+		t.Fatal(err)
+	}
+	serialTestWait(t, func() bool { return reports.contains("reconnecting") })
+	client, err := net.DialTimeout("unix", filepath.Join(directory, "virt-serial0"), time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	if err := client.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Read(make([]byte, 1)); !errors.Is(err, io.EOF) {
+		t.Fatalf("console was not rejected while upstream unavailable: %v", err)
+	}
+	start := time.Now()
+	broker.Stop()
+	if time.Since(start) > time.Second {
+		t.Fatal("shutdown did not cancel reconnect backoff")
+	}
+	listener := serialTestRecoveryListener(t, directory)
+	if err := listener.SetDeadline(time.Now().Add(100 * time.Millisecond)); err != nil {
+		t.Fatal(err)
+	}
+	if conn, err := listener.Accept(); err == nil {
+		_ = conn.Close()
+		t.Fatal("broker reconnected after Stop returned")
+	} else if timeout, ok := err.(net.Error); !ok || !timeout.Timeout() {
+		t.Fatalf("unexpected listener error after stop: %v", err)
+	}
+}
+
+func TestOpenVMMSerialInputTransportFailureTriggersRecovery(t *testing.T) {
+	broker, backend, directory, reports := serialTestBroker(t, true)
+	listener := serialTestRecoveryListener(t, directory)
+	client := serialTestAttach(t, broker, directory)
+	if err := backend.(*net.UnixConn).CloseRead(); err != nil {
+		t.Fatal(err)
+	}
+	serialTestWrite(t, client, []byte("broken upstream input\n"))
+	serialTestWait(t, func() bool { return reports.contains("forward OpenVMM console input") })
+	reconnected, err := listener.Accept()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reconnected.Close()
+	serialTestWait(t, func() bool {
+		broker.mutex.Lock()
+		defer broker.mutex.Unlock()
+		return broker.upstream != nil
+	})
+	replacement := serialTestAttach(t, broker, directory)
+	serialTestWrite(t, reconnected, []byte("restored\n"))
+	serialTestRead(t, replacement, []byte("restored\n"))
+	serialTestWrite(t, replacement, []byte("input works\n"))
+	serialTestRead(t, reconnected, []byte("input works\n"))
+	serialTestLog(t, directory, []byte("restored\n"))
+}
+
+func TestOpenVMMSerialRecoveryBackoffIsCappedAndPersistsAcrossFlaps(t *testing.T) {
+	delay := openVMMSerialRetryMinDelay
+	for range 20 {
+		next := nextOpenVMMSerialRetryDelay(delay)
+		if next < delay || next > openVMMSerialRetryMaxDelay {
+			t.Fatalf("invalid retry progression: %v -> %v", delay, next)
+		}
+		delay = next
+	}
+	if delay != openVMMSerialRetryMaxDelay {
+		t.Fatalf("retry delay did not reach cap: %v", delay)
+	}
+	broker, backend, directory, _ := serialTestBroker(t, false)
+	listener := serialTestRecoveryListener(t, directory)
+	if err := backend.Close(); err != nil {
+		t.Fatal(err)
+	}
+	var previous time.Time
+	for index := range 4 {
+		conn, err := listener.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		now := time.Now()
+		if index > 0 {
+			minimum := openVMMSerialRetryMinDelay * time.Duration(1<<index)
+			if now.Sub(previous) < minimum*9/10 {
+				t.Errorf("immediate flap reset backoff: elapsed=%v, expected at least about %v", now.Sub(previous), minimum)
+			}
+		}
+		previous = now
+		if err := conn.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	broker.Stop()
 }
 
 func TestOpenVMMSerialFileFailureIsReportedAndConsoleSurvives(t *testing.T) {
 	broker, backend, directory, reports := serialTestBroker(t, true)
 	writer := broker.log.(*openVMMRotatingSerialLog)
+	serialTestWrite(t, backend, []byte("before failure\n"))
+	serialTestLog(t, directory, []byte("before failure\n"))
 	if err := writer.file.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -345,6 +536,24 @@ func TestOpenVMMSerialFileFailureIsReportedAndConsoleSurvives(t *testing.T) {
 	serialTestWait(t, func() bool { return reports.contains("capture disabled after log failure") })
 	serialTestWrite(t, backend, []byte("still live\n"))
 	serialTestRead(t, client, []byte("still live\n"))
+	listener := serialTestRecoveryListener(t, directory)
+	if err := backend.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reconnected, err := listener.Accept()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reconnected.Close()
+	serialTestWait(t, func() bool {
+		broker.mutex.Lock()
+		defer broker.mutex.Unlock()
+		return broker.upstream != nil
+	})
+	replacement := serialTestAttach(t, broker, directory)
+	serialTestWrite(t, reconnected, []byte("live after recovery\n"))
+	serialTestRead(t, replacement, []byte("live after recovery\n"))
+	serialTestLog(t, directory, []byte("before failure\n"))
 }
 
 func TestOpenVMMSerialSyncAndCloseFailuresAreReported(t *testing.T) {
@@ -358,6 +567,7 @@ func TestOpenVMMSerialSyncAndCloseFailuresAreReported(t *testing.T) {
 	if err := backend.Close(); err != nil {
 		t.Fatal(err)
 	}
+	broker.Stop()
 	select {
 	case <-broker.done:
 	case <-time.After(time.Second):
@@ -372,14 +582,14 @@ func TestOpenVMMSerialStartupErrorsAreReturned(t *testing.T) {
 	directory := serialTestDirectory(t)
 	reports := &serialTestReports{}
 	sentinel := errors.New("ownership denied")
-	_, err := newOpenVMMSerialBroker(directory, true, func(string) error { return sentinel }, reports.add)
+	_, err := newOpenVMMSerialBroker(directory, true, func(string) error { return sentinel }, reports.add, nil)
 	if !errors.Is(err, sentinel) {
 		t.Fatalf("log preparation failure hidden: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(directory, "virt-serial0"), []byte("occupied"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := newOpenVMMSerialBroker(directory, true, func(string) error { return nil }, reports.add); err == nil {
+	if _, err := newOpenVMMSerialBroker(directory, true, func(string) error { return nil }, reports.add, nil); err == nil {
 		t.Fatal("console socket creation failure hidden")
 	}
 }
@@ -387,7 +597,7 @@ func TestOpenVMMSerialStartupErrorsAreReturned(t *testing.T) {
 func TestOpenVMMSerialConnectCancellation(t *testing.T) {
 	directory := serialTestDirectory(t)
 	reports := &serialTestReports{}
-	broker, err := newOpenVMMSerialBroker(directory, true, func(string) error { return nil }, reports.add)
+	broker, err := newOpenVMMSerialBroker(directory, true, func(string) error { return nil }, reports.add, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -401,7 +611,7 @@ func TestOpenVMMSerialConnectCancellation(t *testing.T) {
 func TestOpenVMMSerialDelayedStartupIsReportedAndRetried(t *testing.T) {
 	directory := serialTestDirectory(t)
 	reports := &serialTestReports{}
-	broker, err := newOpenVMMSerialBroker(directory, false, nil, reports.add)
+	broker, err := newOpenVMMSerialBroker(directory, false, nil, reports.add, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

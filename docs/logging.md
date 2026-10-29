@@ -88,14 +88,26 @@ durable archive. Existing content is appended, not truncated on broker startup.
 File writes are synchronous: a slow filesystem can backpressure guest output and
 the live console, but does not create an unbounded in-memory log queue. An append
 or rotation failure is reported and disables persistence for that VMI lifetime;
-live console delivery continues. Unexpected transport termination is reported,
-closes the public console, and is not automatically reconnected. Inspect
-virt-launcher logs for these errors rather than treating an empty sidecar log as
-proof that the guest produced no output.
+live console delivery continues. Unexpected transport termination or a
+non-timeout upstream input failure is reported and closes the stale console
+session. The broker reconnects while the VM runs, with exponential retry delay
+from 10 ms to a one-second cap. The delay carries across immediately flapping
+connections and resets after a connection lasts five seconds. New console
+sessions are rejected while the upstream is unavailable; users can reattach
+after recovery. Input queued for an old connection is not replayed.
+
+Loss and reconnection are logged separately. Reconnection is only transport
+recovery: bytes emitted while OpenVMM has no accepted connection can be lost
+permanently. A new successful dial still does not prove UART acceptance.
+The existing log remains open across recovery, so already captured bytes are
+not truncated or replayed. A disabled or failed log does not become enabled by
+reconnection. Inspect virt-launcher logs rather than treating an empty sidecar
+log as proof that the guest produced no output.
 
 After OpenVMM exits, the broker stops console input and allows up to two seconds
 for buffered upstream output to reach EOF before closing the transport. It joins
 its workers, syncs and closes the log before publishing the stopped domain event.
+A pending reconnect is cancelled, and shutdown never starts a new retry.
 A drain deadline, sync failure, or close failure is reported. The network drain
 is bounded; regular-file writes and `fsync` are not cancellable and a hung
 filesystem can extend shutdown. This is not a guarantee against power loss,

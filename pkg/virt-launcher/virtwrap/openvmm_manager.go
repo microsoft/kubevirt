@@ -203,6 +203,9 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 		func(err error) {
 			log.Log.Object(vmi).Reason(err).Error("OpenVMM serial broker")
 		},
+		func() {
+			log.Log.Object(vmi).Info("OpenVMM serial socket reconnected; capture resumes when OpenVMM accepts it, and output emitted during the gap cannot be recovered")
+		},
 	)
 	if err != nil {
 		_ = stderrFile.Close()
