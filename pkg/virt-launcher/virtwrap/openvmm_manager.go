@@ -46,6 +46,7 @@ import (
 	cloudinit "kubevirt.io/kubevirt/pkg/cloud-init"
 	"kubevirt.io/kubevirt/pkg/config"
 	containerdisk "kubevirt.io/kubevirt/pkg/container-disk"
+	ephemeraldiskutils "kubevirt.io/kubevirt/pkg/ephemeral-disk-utils"
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	"kubevirt.io/kubevirt/pkg/network/cache"
 	netsetup "kubevirt.io/kubevirt/pkg/network/setup/launcher"
@@ -195,6 +196,21 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 			return nil, err
 		}
 	}
+	serial, err := newOpenVMMSerialBroker(
+		filepath.Join(l.consoleDir, string(vmi.UID)),
+		openVMMSerialLogEnabled(vmi, options),
+		ephemeraldiskutils.DefaultOwnershipManager.UnsafeSetFileOwnership,
+		func(err error) {
+			log.Log.Object(vmi).Reason(err).Error("OpenVMM serial broker")
+		},
+	)
+	if err != nil {
+		_ = stderrFile.Close()
+		_ = pty.Close()
+		l.stopVNCProxyLocked()
+		l.mutex.Unlock()
+		return nil, err
+	}
 
 	command := l.commandFactory(openVMMBinaryPath, args...)
 	command.Stdin = pty.Slave
@@ -204,6 +220,7 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 	// Add logging for the OpenVMM command being executed
 	log.Log.Infof("Starting OpenVMM with command: %s %v; stderr: %s", openVMMBinaryPath, args, stderrPath)
 	if err := command.Start(); err != nil {
+		serial.Stop()
 		_ = stderrFile.Close()
 		_ = pty.Close()
 		l.stopVNCProxyLocked()
@@ -227,6 +244,7 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 		l.stopVNCProxyLocked()
 		go func() {
 			_ = command.Wait()
+			serial.Stop()
 			_ = pty.Master.Close()
 		}()
 		l.state = openVMMFailed
@@ -238,7 +256,7 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 	l.mutex.Unlock()
 
 	l.publish(event)
-	go l.waitForExit(command, pty.Master)
+	go l.waitForExit(command, pty.Master, serial)
 	return spec, nil
 }
 
@@ -336,7 +354,7 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 	}
 	domain.SetState(api.Running, api.ReasonUnknown)
 
-	consolePath := filepath.Join(l.consoleDir, string(vmi.UID), "virt-serial0")
+	consolePath := filepath.Join(l.consoleDir, string(vmi.UID), openVMMSerialSocket)
 	if err := os.MkdirAll(filepath.Dir(consolePath), 0755); err != nil {
 		return nil, nil, fmt.Errorf("failed to create OpenVMM console directory: %w", err)
 	}
@@ -721,8 +739,16 @@ func (l *OpenVMMDomainManager) writePIDFileLocked(domainName string, pid int) er
 	return nil
 }
 
-func (l *OpenVMMDomainManager) waitForExit(command *exec.Cmd, ptyMaster *os.File) {
+func openVMMSerialLogEnabled(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) bool {
+	if autoattach := vmi.Spec.Domain.Devices.AutoattachSerialConsole; autoattach != nil && !*autoattach {
+		return false
+	}
+	return isSerialConsoleLogEnabled(options.GetClusterConfig().GetSerialConsoleLogDisabled(), vmi)
+}
+
+func (l *OpenVMMDomainManager) waitForExit(command *exec.Cmd, ptyMaster *os.File, serial *openVMMSerialBroker) {
 	err := command.Wait()
+	serial.Stop()
 	if err := ptyMaster.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
 		log.Log.Reason(err).Warning("failed to close OpenVMM PTY master")
 	}
