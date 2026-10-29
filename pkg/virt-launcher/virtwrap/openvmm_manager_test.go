@@ -97,6 +97,30 @@ var _ = Describe("OpenVMM manager", func() {
 			"--virtio-blk", "file:"+diskPath+",ro,pcie_port=disk0",
 		))
 		Expect(domain.Spec.Devices.Disks[0].ReadOnly).ToNot(BeNil())
+		Expect(args).To(ContainElements("--com1", "listen="+filepath.Join(tempDir, "console", "test-uid", openVMMPrivateSerialSocket)),
+			"OpenVMM should serve COM1 on the private socket so the launcher relay is its only client")
+	})
+
+	It("serves the serial console and log for as long as OpenVMM runs", func() {
+		tempDir := GinkgoT().TempDir()
+		manager, _ := newManager(tempDir)
+		exitFile := filepath.Join(tempDir, "exit-openvmm")
+		manager.commandFactory = func(string, ...string) *exec.Cmd {
+			return exec.Command("/bin/sh", "-c", "while [ ! -e "+exitFile+" ]; do sleep 0.05; done")
+		}
+		uidDir := filepath.Join(tempDir, "console", "test-uid")
+
+		_, err := manager.SyncVMI(newVMI(), false, nil)
+		Expect(err).ToNot(HaveOccurred(), "OpenVMM should start")
+
+		Expect(filepath.Join(uidDir, openVMMSerialSocket)).To(BeAnExistingFile(),
+			"virt-serial0 should be available to virt-handler while OpenVMM runs")
+		Expect(filepath.Join(uidDir, openVMMSerialSocket+openVMMSerialLogSuffix)).To(BeAnExistingFile(),
+			"virt-serial0-log should exist for the guest-console-log container when logging is enabled by default")
+
+		Expect(os.WriteFile(exitFile, nil, 0600)).To(Succeed(), "signaling the fake OpenVMM to exit should succeed")
+		Eventually(filepath.Join(uidDir, openVMMSerialSocket)).ShouldNot(BeAnExistingFile(),
+			"virt-serial0 should be removed once OpenVMM exits")
 	})
 
 	It("resolves filesystem PVCs through the canonical KubeVirt disk path", func() {

@@ -120,6 +120,7 @@ type OpenVMMDomainManager struct {
 	vncListener           net.Listener
 	vncTargetAddress      string
 	vncSocketPath         string
+	serialRelay           *openVMMSerialRelay
 }
 
 func NewOpenVMMDomainManager(pidDir string, notifier domainEventNotifier, events chan<- watch.Event, imageVolumeEnabled bool) DomainManager {
@@ -187,10 +188,17 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 		l.mutex.Unlock()
 		return nil, fmt.Errorf("failed to create OpenVMM controlling terminal: %w", err)
 	}
+	if err := l.startSerialRelayLocked(vmi, options); err != nil {
+		_ = stderrFile.Close()
+		_ = pty.Close()
+		l.mutex.Unlock()
+		return nil, err
+	}
 	if openVMMGraphicsEnabled(vmi) {
 		if err := l.startVNCProxyLocked(vmi.UID); err != nil {
 			_ = stderrFile.Close()
 			_ = pty.Close()
+			l.stopSerialRelayLocked()
 			l.mutex.Unlock()
 			return nil, err
 		}
@@ -207,6 +215,7 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 		_ = stderrFile.Close()
 		_ = pty.Close()
 		l.stopVNCProxyLocked()
+		l.stopSerialRelayLocked()
 		l.state = openVMMFailed
 		l.mutex.Unlock()
 		return nil, fmt.Errorf("failed to start OpenVMM: %w", err)
@@ -225,6 +234,7 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 	if err := l.writePIDFileLocked(domain.Spec.Name, command.Process.Pid); err != nil {
 		_ = command.Process.Kill()
 		l.stopVNCProxyLocked()
+		l.stopSerialRelayLocked()
 		go func() {
 			_ = command.Wait()
 			_ = pty.Master.Close()
@@ -336,7 +346,7 @@ func (l *OpenVMMDomainManager) buildDomainAndCommand(vmi *v1.VirtualMachineInsta
 	}
 	domain.SetState(api.Running, api.ReasonUnknown)
 
-	consolePath := filepath.Join(l.consoleDir, string(vmi.UID), "virt-serial0")
+	consolePath := openVMMPrivateSerialSocketPath(l.consoleDir, string(vmi.UID))
 	if err := os.MkdirAll(filepath.Dir(consolePath), 0755); err != nil {
 		return nil, nil, fmt.Errorf("failed to create OpenVMM console directory: %w", err)
 	}
@@ -538,6 +548,28 @@ func dialOpenVMMVNC(address string) (net.Conn, error) {
 			return nil, err
 		}
 		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func (l *OpenVMMDomainManager) startSerialRelayLocked(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) error {
+	uid := string(vmi.UID)
+	socketPath := openVMMSerialSocketPath(l.consoleDir, uid)
+	logPath := ""
+	if openVMMSerialLogEnabled(vmi, options) {
+		logPath = socketPath + openVMMSerialLogSuffix
+	}
+	relay, err := startOpenVMMSerialRelay(socketPath, openVMMPrivateSerialSocketPath(l.consoleDir, uid), logPath)
+	if err != nil {
+		return err
+	}
+	l.serialRelay = relay
+	return nil
+}
+
+func (l *OpenVMMDomainManager) stopSerialRelayLocked() {
+	if l.serialRelay != nil {
+		l.serialRelay.Stop()
+		l.serialRelay = nil
 	}
 }
 
@@ -743,6 +775,7 @@ func (l *OpenVMMDomainManager) waitForExit(command *exec.Cmd, ptyMaster *os.File
 	}
 	l.domain.SetState(api.Shutoff, reason)
 	l.stopVNCProxyLocked()
+	l.stopSerialRelayLocked()
 	now := metav1.Now()
 	l.domain.DeletionTimestamp = &now
 	event := watch.Event{Type: watch.Modified, Object: l.domain.DeepCopy()}
