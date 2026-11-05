@@ -277,6 +277,11 @@ func TestOpenVMMSerialInputWriteDeadline(t *testing.T) {
 
 func TestOpenVMMSerialFinalDrain(t *testing.T) {
 	broker, backend, directory, reports := serialTestBroker(t, true)
+	serialTestWait(t, func() bool {
+		broker.mutex.Lock()
+		defer broker.mutex.Unlock()
+		return broker.upstream != nil
+	})
 	stopped := make(chan struct{})
 	go func() {
 		broker.Stop()

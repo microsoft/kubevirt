@@ -42,10 +42,11 @@ socket still provides bidirectional `virtctl console` access. Management-termina
 output and OpenVMM stderr are not guest COM1 output and are not mixed into this log.
 
 Logging follows the existing policy: `autoattachSerialConsole: false` disables
-capture; otherwise an explicit `logSerialConsole` setting overrides the cluster's
-`disableSerialConsoleLog` default. Disabling capture leaves interactive console
-forwarding available, without opening the guest log. This does not change the
-existing OpenVMM behavior of attaching COM1 even when autoattach is disabled.
+the serial broker entirely, matching the QEMU/libvirt path where the serial
+device is not attached at all. When the console is attached (the default),
+an explicit `logSerialConsole` setting overrides the cluster's
+`disableSerialConsoleLog` default to independently control capture without
+affecting interactive console forwarding.
 
 ### Startup and completion markers
 

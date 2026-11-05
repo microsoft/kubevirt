@@ -98,7 +98,7 @@ func (l *openVMMRotatingSerialLog) Write(data []byte) (int, error) {
 		}
 		size := min(int64(len(data)), l.maxSize-l.size, int64(openVMMSerialBufferSize))
 		if l.maxSize-l.size <= 2*headroom {
-			if newline := bytes.IndexByte(data[:size], '\n'); newline >= 0 {
+			if newline := bytes.LastIndexByte(data[:size], '\n'); newline >= 0 {
 				size = int64(newline + 1)
 			}
 		}

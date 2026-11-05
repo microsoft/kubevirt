@@ -196,23 +196,26 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 			return nil, err
 		}
 	}
-	serial, err := newOpenVMMSerialBroker(
-		filepath.Join(l.consoleDir, string(vmi.UID)),
-		openVMMSerialLogEnabled(vmi, options),
-		ephemeraldiskutils.DefaultOwnershipManager.UnsafeSetFileOwnership,
-		func(err error) {
-			log.Log.Object(vmi).Reason(err).Error("OpenVMM serial broker")
-		},
-		func() {
-			log.Log.Object(vmi).Info("OpenVMM serial socket reconnected; capture resumes when OpenVMM accepts it, and output emitted during the gap cannot be recovered")
-		},
-	)
-	if err != nil {
-		_ = stderrFile.Close()
-		_ = pty.Close()
-		l.stopVNCProxyLocked()
-		l.mutex.Unlock()
-		return nil, err
+	var serial *openVMMSerialBroker
+	if openVMMSerialConsoleEnabled(vmi) {
+		serial, err = newOpenVMMSerialBroker(
+			filepath.Join(l.consoleDir, string(vmi.UID)),
+			openVMMSerialLogEnabled(vmi, options),
+			ephemeraldiskutils.DefaultOwnershipManager.UnsafeSetFileOwnership,
+			func(err error) {
+				log.Log.Object(vmi).Reason(err).Error("OpenVMM serial broker")
+			},
+			func() {
+				log.Log.Object(vmi).Info("OpenVMM serial socket reconnected; capture resumes when OpenVMM accepts it, and output emitted during the gap cannot be recovered")
+			},
+		)
+		if err != nil {
+			_ = stderrFile.Close()
+			_ = pty.Close()
+			l.stopVNCProxyLocked()
+			l.mutex.Unlock()
+			return nil, err
+		}
 	}
 
 	command := l.commandFactory(openVMMBinaryPath, args...)
@@ -223,7 +226,9 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 	// Add logging for the OpenVMM command being executed
 	log.Log.Infof("Starting OpenVMM with command: %s %v; stderr: %s", openVMMBinaryPath, args, stderrPath)
 	if err := command.Start(); err != nil {
-		serial.Stop()
+		if serial != nil {
+			serial.Stop()
+		}
 		_ = stderrFile.Close()
 		_ = pty.Close()
 		l.stopVNCProxyLocked()
@@ -247,7 +252,9 @@ func (l *OpenVMMDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, _ bool, o
 		l.stopVNCProxyLocked()
 		go func() {
 			_ = command.Wait()
-			serial.Stop()
+			if serial != nil {
+				serial.Stop()
+			}
 			_ = pty.Master.Close()
 		}()
 		l.state = openVMMFailed
@@ -742,8 +749,12 @@ func (l *OpenVMMDomainManager) writePIDFileLocked(domainName string, pid int) er
 	return nil
 }
 
+func openVMMSerialConsoleEnabled(vmi *v1.VirtualMachineInstance) bool {
+	return vmi.Spec.Domain.Devices.AutoattachSerialConsole == nil || *vmi.Spec.Domain.Devices.AutoattachSerialConsole
+}
+
 func openVMMSerialLogEnabled(vmi *v1.VirtualMachineInstance, options *cmdv1.VirtualMachineOptions) bool {
-	if autoattach := vmi.Spec.Domain.Devices.AutoattachSerialConsole; autoattach != nil && !*autoattach {
+	if !openVMMSerialConsoleEnabled(vmi) {
 		return false
 	}
 	return isSerialConsoleLogEnabled(options.GetClusterConfig().GetSerialConsoleLogDisabled(), vmi)
@@ -751,7 +762,9 @@ func openVMMSerialLogEnabled(vmi *v1.VirtualMachineInstance, options *cmdv1.Virt
 
 func (l *OpenVMMDomainManager) waitForExit(command *exec.Cmd, ptyMaster *os.File, serial *openVMMSerialBroker) {
 	err := command.Wait()
-	serial.Stop()
+	if serial != nil {
+		serial.Stop()
+	}
 	if err := ptyMaster.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
 		log.Log.Reason(err).Warning("failed to close OpenVMM PTY master")
 	}

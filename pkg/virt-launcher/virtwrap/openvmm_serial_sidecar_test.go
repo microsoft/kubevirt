@@ -80,6 +80,15 @@ func TestOpenVMMSerialFragmentedMarkerSurvivesRotation(t *testing.T) {
 	defer writer.Close()
 	writer.maxSize = 128
 	reader := serialTestTail(t, path)
+	// The vendored tail library can emit a line before its inotify watch for
+	// subsequent writes/renames is fully installed. Send a throwaway line first
+	// and wait for it so the watch is confirmed ready before the writes below,
+	// one of which triggers rotation; otherwise the follower can race the
+	// rename and watch the new file while still reading the old one.
+	if _, err := writer.Write([]byte("WARMUP\n")); err != nil {
+		t.Fatal(err)
+	}
+	serialTestTailLine(t, reader, "WARMUP")
 	before := strings.Repeat("x", 110)
 	if _, err := writer.Write([]byte(before + "\n")); err != nil {
 		t.Fatal(err)
