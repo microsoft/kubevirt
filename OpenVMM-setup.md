@@ -19,7 +19,7 @@ This is a focused PoC rather than a complete replacement for the libvirt backend
 
 ## Known Limitations
 
-- Container disks are currently attached directly to OpenVMM as read-only disks. The standard libvirt/QEMU backend creates a writable ephemeral overlay over the immutable container-disk image, but the OpenVMM backend does not yet create or attach such an overlay. Consequently, guest writes to a container disk are not supported. A future change will add an overlay layer to provide writable ephemeral container disks while preserving the underlying image.
+- Container disks are currently attached directly to OpenVMM as read-only disks. The standard libvirt/QEMU backend creates a writable ephemeral overlay over the immutable container-disk image, but the OpenVMM backend does not yet create or attach such an overlay. Consequently, guest writes to a container disk are not supported. Guests requiring OS-disk writes, including Windows, should use a writable PVC-backed disk instead. A future change will add an overlay layer to provide writable ephemeral container disks while preserving the underlying image.
 
 ## Prerequisites
 
