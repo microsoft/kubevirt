@@ -41,6 +41,7 @@ import (
 	cmdv1 "kubevirt.io/kubevirt/pkg/handler-launcher-com/cmd/v1"
 	hostdisk "kubevirt.io/kubevirt/pkg/host-disk"
 	"kubevirt.io/kubevirt/pkg/libvmi"
+	"kubevirt.io/kubevirt/pkg/pointer"
 	"kubevirt.io/kubevirt/pkg/safepath"
 	"kubevirt.io/kubevirt/pkg/storage/volumepath"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
@@ -96,7 +97,63 @@ var _ = Describe("OpenVMM manager", func() {
 			"--pcie-root-port", "rc0:disk0",
 			"--virtio-blk", "file:"+diskPath+",ro,pcie_port=disk0",
 		))
+		Expect(args).To(ContainElement("listen=" + filepath.Join(manager.consoleDir, "test-uid", openVMMSerialSocket)))
 		Expect(domain.Spec.Devices.Disks[0].ReadOnly).ToNot(BeNil())
+	})
+
+	DescribeTable("applies the serial logging policy",
+		func(autoattach, logging *bool, clusterDisabled, expected bool) {
+			vmi := newVMI()
+			vmi.Spec.Domain.Devices.AutoattachSerialConsole = autoattach
+			vmi.Spec.Domain.Devices.LogSerialConsole = logging
+			options := &cmdv1.VirtualMachineOptions{ClusterConfig: &cmdv1.ClusterConfig{
+				SerialConsoleLogDisabled: clusterDisabled,
+			}}
+			Expect(openVMMSerialLogEnabled(vmi, options)).To(Equal(expected))
+		},
+		Entry("defaults enabled", nil, nil, false, true),
+		Entry("cluster default disabled", nil, nil, true, false),
+		Entry("explicit logging overrides cluster disable", nil, pointer.P(true), true, true),
+		Entry("explicit logging disable overrides cluster enable", nil, pointer.P(false), false, false),
+		Entry("explicit logging disable with cluster disabled", nil, pointer.P(false), true, false),
+		Entry("explicit logging enabled with cluster enabled", nil, pointer.P(true), false, true),
+		Entry("autoattach enabled with cluster default enabled", pointer.P(true), nil, false, true),
+		Entry("autoattach enabled with cluster default disabled", pointer.P(true), nil, true, false),
+		Entry("autoattach disabled overrides explicit logging", pointer.P(false), pointer.P(true), false, false),
+		Entry("autoattach disabled with cluster disabled", pointer.P(false), nil, true, false),
+		Entry("autoattach disabled with default logging", pointer.P(false), nil, false, false),
+		Entry("autoattach enabled with explicit logging disabled", pointer.P(true), pointer.P(false), false, false),
+	)
+
+	It("uses the default logging policy without launcher options", func() {
+		Expect(openVMMSerialLogEnabled(newVMI(), nil)).To(BeTrue())
+	})
+
+	It("rolls back the serial broker when OpenVMM cannot start", func() {
+		manager, _ := newManager(GinkgoT().TempDir())
+		manager.commandFactory = func(string, ...string) *exec.Cmd {
+			return exec.Command("/nonexistent-openvmm-test-binary")
+		}
+		_, err := manager.SyncVMI(newVMI(), false, nil)
+		Expect(err).To(MatchError(ContainSubstring("failed to start OpenVMM")))
+		_, err = os.Stat(filepath.Join(manager.consoleDir, "test-uid", "virt-serial0"))
+		Expect(os.IsNotExist(err)).To(BeTrue())
+	})
+
+	It("cleans up serial workers after PID-file rollback", func() {
+		directory := GinkgoT().TempDir()
+		manager, _ := newManager(directory)
+		manager.pidDir = filepath.Join(directory, "not-a-directory")
+		Expect(os.WriteFile(manager.pidDir, []byte("block"), 0600)).To(Succeed())
+		manager.commandFactory = func(string, ...string) *exec.Cmd {
+			return exec.Command("/bin/sleep", "30")
+		}
+		_, err := manager.SyncVMI(newVMI(), false, nil)
+		Expect(err).To(MatchError(ContainSubstring("failed to create OpenVMM PID directory")))
+		Eventually(func() bool {
+			_, err := os.Stat(filepath.Join(manager.consoleDir, "test-uid", "virt-serial0"))
+			return os.IsNotExist(err)
+		}).Should(BeTrue())
 	})
 
 	It("resolves filesystem PVCs through the canonical KubeVirt disk path", func() {
