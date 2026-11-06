@@ -70,8 +70,9 @@ follower or promise exactly-once sidecar delivery.
 
 ### Backpressure, retention, and shutdown
 
-Console delivery has a 16-entry queue of at most 32 KiB chunks (512 KiB plus the
-in-flight write), independent of file capture. A full queue or a one-second socket
+Console delivery has a 512 KiB pending-byte budget plus an in-flight write of at
+most 32 KiB, independent of file capture. Small guest reads are coalesced rather
+than consuming one queue entry each. A full queue or a one-second socket
 write deadline disconnects the console rather than blocking capture. A new
 console replaces the previous connection and receives new output, not historical
 log replay. Guest-directed console input also has a one-second write deadline.

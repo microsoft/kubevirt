@@ -223,13 +223,65 @@ func serialTestStalledClient(t *testing.T, broker *openVMMSerialBroker) *openVMM
 	t.Helper()
 	server, peer := net.Pipe()
 	t.Cleanup(func() { _ = peer.Close() })
-	client := &openVMMSerialClient{conn: server, tx: make(chan []byte, openVMMSerialQueueSize), done: make(chan struct{})}
+	client := &openVMMSerialClient{conn: server, tx: make(chan struct{}, 1), done: make(chan struct{})}
 	broker.mutex.Lock()
 	broker.client = client
 	broker.workers.Add(1)
 	broker.mutex.Unlock()
 	go broker.writeClient(client)
 	return client
+}
+
+func TestOpenVMMSerialConsoleQueueUsesByteBudget(t *testing.T) {
+	server, peer := net.Pipe()
+	defer server.Close()
+	defer peer.Close()
+	reports := &serialTestReports{}
+	client := &openVMMSerialClient{conn: server, tx: make(chan struct{}, 1), done: make(chan struct{})}
+	broker := &openVMMSerialBroker{client: client, report: reports.add}
+	expected := make([]byte, openVMMSerialQueueBytes)
+	for index := range expected {
+		expected[index] = byte(index)
+		broker.deliver(expected[index : index+1])
+	}
+	select {
+	case <-client.done:
+		t.Fatal("small reads exhausted a chunk count before the byte budget")
+	default:
+	}
+	if !bytes.Equal(client.pending.Bytes(), expected) {
+		t.Fatal("queued small reads changed byte order or exceeded the budget")
+	}
+	broker.deliver([]byte("overflow"))
+	select {
+	case <-client.done:
+	default:
+		t.Fatal("console exceeding the byte budget was not disconnected")
+	}
+	if !reports.contains("output queue full") {
+		t.Fatal("queue overflow was not reported")
+	}
+}
+
+func TestOpenVMMSerialSmallConsoleReadsStayConnected(t *testing.T) {
+	server, peer := net.Pipe()
+	defer server.Close()
+	defer peer.Close()
+	reports := &serialTestReports{}
+	client := &openVMMSerialClient{conn: server, tx: make(chan struct{}, 1), done: make(chan struct{})}
+	broker := &openVMMSerialBroker{client: client, report: reports.add}
+	expected := bytes.Repeat([]byte("Windows SAC response\n"), 100)
+	for index := range expected {
+		broker.deliver(expected[index : index+1])
+	}
+	broker.workers.Add(1)
+	go broker.writeClient(client)
+	serialTestRead(t, peer, expected)
+	client.close()
+	broker.workers.Wait()
+	if reports.contains("output queue full") {
+		t.Fatal("a small response disconnected its console")
+	}
 }
 
 func TestOpenVMMSerialSlowConsoleCannotBlockCapture(t *testing.T) {

@@ -20,6 +20,7 @@
 package virtwrap
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -36,7 +37,7 @@ const (
 	openVMMSerialDrainTimeout   = 2 * time.Second
 	openVMMSerialWriteTimeout   = time.Second
 	openVMMSerialBufferSize     = 32 * 1024
-	openVMMSerialQueueSize      = 16
+	openVMMSerialQueueBytes     = 512 * 1024
 	openVMMSerialRetryMinDelay  = 10 * time.Millisecond
 	openVMMSerialRetryMaxDelay  = time.Second
 	openVMMSerialRetryResetTime = 5 * time.Second
@@ -48,10 +49,11 @@ type openVMMSerialLog interface {
 }
 
 type openVMMSerialClient struct {
-	conn net.Conn
-	tx   chan []byte
-	done chan struct{}
-	once sync.Once
+	conn    net.Conn
+	tx      chan struct{}
+	pending bytes.Buffer
+	done    chan struct{}
+	once    sync.Once
 }
 
 func (c *openVMMSerialClient) close() {
@@ -239,7 +241,7 @@ func (b *openVMMSerialBroker) acceptClients() {
 			}
 			return
 		}
-		client := &openVMMSerialClient{conn: conn, tx: make(chan []byte, openVMMSerialQueueSize), done: make(chan struct{})}
+		client := &openVMMSerialClient{conn: conn, tx: make(chan struct{}, 1), done: make(chan struct{})}
 		b.mutex.Lock()
 		stopping := b.stopping
 		if stopping || b.upstream == nil {
@@ -277,15 +279,19 @@ func (b *openVMMSerialBroker) deliver(data []byte) {
 		b.mutex.Unlock()
 		return
 	}
-	select {
-	case client.tx <- append([]byte(nil), data...):
+	if len(data) <= openVMMSerialQueueBytes-client.pending.Len() {
+		client.pending.Write(data)
+		select {
+		case client.tx <- struct{}{}:
+		default:
+		}
 		b.mutex.Unlock()
-	default:
-		b.client = nil
-		b.mutex.Unlock()
-		client.close()
-		b.report(fmt.Errorf("disconnected slow OpenVMM console: %d-chunk output queue full; serial capture continues", openVMMSerialQueueSize))
+		return
 	}
+	b.client = nil
+	b.mutex.Unlock()
+	client.close()
+	b.report(fmt.Errorf("disconnected slow OpenVMM console: %d-byte output queue full; serial capture continues", openVMMSerialQueueBytes))
 }
 
 func (b *openVMMSerialBroker) readClient(client *openVMMSerialClient) {
@@ -327,16 +333,25 @@ func (b *openVMMSerialBroker) readClient(client *openVMMSerialClient) {
 func (b *openVMMSerialBroker) writeClient(client *openVMMSerialClient) {
 	defer b.workers.Done()
 	defer b.detach(client)
+	buffer := make([]byte, openVMMSerialBufferSize)
 	for {
 		select {
 		case <-client.done:
 			return
-		case data := <-client.tx:
-			if err := writeOpenVMMSerial(client.conn, data); err != nil {
-				if !errors.Is(err, net.ErrClosed) {
-					b.report(fmt.Errorf("disconnect OpenVMM console after output failure; serial capture continues: %w", err))
+		case <-client.tx:
+			for {
+				b.mutex.Lock()
+				n := copy(buffer, client.pending.Next(len(buffer)))
+				b.mutex.Unlock()
+				if n == 0 {
+					break
 				}
-				return
+				if err := writeOpenVMMSerial(client.conn, buffer[:n]); err != nil {
+					if !errors.Is(err, net.ErrClosed) {
+						b.report(fmt.Errorf("disconnect OpenVMM console after output failure; serial capture continues: %w", err))
+					}
+					return
+				}
 			}
 		}
 	}
